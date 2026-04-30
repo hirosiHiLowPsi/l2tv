@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>L2TV</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <button id="level-mode-toggle-button" type="button" class="level-mode-toggle-button button-secondary">
+      CLEAR LAMP
+    </button>
+
+    <button
+      id="menu-toggle-button"
+      type="button"
+      class="menu-toggle-button button-secondary"
+      aria-controls="control-drawer"
+      aria-expanded="false"
+    >
+      メニュー
+    </button>
+
+    <button
+      id="rival-toggle-button"
+      type="button"
+      class="rival-toggle-button button-secondary hidden"
+      aria-controls="rival-panel"
+      aria-expanded="false"
+    >
+      RIVAL
+    </button>
+
+    <div id="rival-panel" class="rival-panel hidden" aria-hidden="true"></div>
+
+    <div id="menu-backdrop" class="menu-backdrop hidden" aria-hidden="true"></div>
+
+    <aside id="control-drawer" class="control-drawer" aria-hidden="true" tabindex="-1">
+      <div class="control-drawer-header">
+        <h2>メニュー</h2>
+        <button id="menu-close-button" type="button" class="button-secondary control-drawer-close">閉じる</button>
+      </div>
+
+      <div class="control-drawer-content">
+        <section class="panel input-panel">
+          <div class="panel-heading">
+            <h2>読み込み設定</h2>
+            <p>難易度表URLは任意です。1行に1件ずつ入力できます。</p>
+          </div>
+
+          <form id="analyze-form" class="form-grid">
+            <label class="field">
+              <span>LR2 score.db パス</span>
+              <div class="path-picker">
+                <input
+                  id="score-db-path"
+                  name="scoreDbPath"
+                  placeholder="例: D:\LR2\LR2files\Database\Score\player.db"
+                />
+                <button id="browse-score-db" type="button" class="button-secondary path-picker-button">参照</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>song.db パス</span>
+              <div class="path-picker">
+                <input
+                  id="song-db-path"
+                  name="songDbPath"
+                  placeholder="例: D:\LR2\LR2files\Database\song.db"
+                />
+                <button id="browse-song-db" type="button" class="button-secondary path-picker-button">参照</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>スクショ保存先</span>
+              <div class="path-picker">
+                <input
+                  id="screenshot-dir-path"
+                  name="screenshotDirPath"
+                  placeholder="空欄の場合は既定のscreenshotフォルダに保存"
+                />
+                <button id="browse-screenshot-dir" type="button" class="button-secondary path-picker-button">参照</button>
+              </div>
+            </label>
+
+            <label class="field">
+              <span>ライバルフォルダ</span>
+              <div class="path-picker">
+                <input
+                  id="rival-folder-path"
+                  name="rivalFolderPath"
+                  placeholder="例: D:\LR2\LR2files\Rival"
+                />
+                <button id="browse-rival-folder" type="button" class="button-secondary path-picker-button">参照</button>
+              </div>
+            </label>
+
+            <label class="field textarea-field">
+              <span>難易度表URL</span>
+              <textarea
+                id="table-urls"
+                name="tableUrls"
+                rows="7"
+                placeholder="https://stellabms.xyz/sl/table.html&#10;https://stellabms.xyz/st/table.html"
+              ></textarea>
+              <div id="manual-table-url-toggles" class="manual-table-url-toggles"></div>
+              <p class="helper">URLを残したまま、チェックを外すとその表だけ読み込み対象から外せます。</p>
+            </label>
+
+            <label class="field">
+              <span>テーマ</span>
+              <select id="theme-select" name="theme">
+                <option value="l2tv-pop">Light Aqua</option>
+                <option value="lr2ir-dark">Geek Dark</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>IR順位表示</span>
+              <select id="ir-rank-display-select" name="irRankDisplay">
+                <option value="count">人数表示</option>
+                <option value="percent">割合表示</option>
+              </select>
+            </label>
+
+            <label class="checkbox-setting textarea-field">
+              <input id="include-bp-updates" type="checkbox" name="includeBpUpdates" />
+              <span>本日更新にBPが減った譜面も表示する</span>
+            </label>
+
+            <div class="field textarea-field">
+              <span>難易度表プリセット</span>
+              <div id="table-presets" class="table-presets"></div>
+              <p class="helper">チェックしたプリセットはURL未入力でも読み込み対象になります。</p>
+            </div>
+
+            <div class="form-actions">
+              <div class="action-row">
+                <button id="analyze-button" type="submit">表とランプを読み込む</button>
+                <button id="clear-saved-button" type="button" class="button-secondary">保存データを消す</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel status-panel">
+          <div class="panel-heading">
+            <h2>進行状況</h2>
+            <p>バックエンドが難易度表またはプレイヤーデータを読み込みます。</p>
+          </div>
+          <div id="status-box" class="status-box">待機中です。</div>
+        </section>
+      </div>
+    </aside>
+
+    <div class="app-shell">
+      <header class="hero">
+        <p class="eyebrow">LR2 Table Viewer</p>
+        <h1>L2TV</h1>
+      </header>
+
+      <main class="layout">
+        <div id="main-feedback" class="main-feedback hidden" aria-live="polite"></div>
+        <section id="results-root" class="results-root hidden"></section>
+      </main>
+    </div>
+
+    <div id="export-message-modal" class="export-message-modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="export-message-card">
+        <p id="export-message-text" class="export-message-text"></p>
+        <button id="export-message-ok" type="button" class="button-secondary export-message-ok">OK</button>
+      </div>
+    </div>
+
+    <template id="table-section-template">
+      <section class="panel table-section">
+        <div class="table-header">
+          <div class="table-title-wrap">
+            <h2>
+              <button type="button" class="table-name-toggle" aria-expanded="false">
+                <span class="table-name"></span>
+              </button>
+            </h2>
+          </div>
+          <a class="table-link" target="_blank" rel="noopener noreferrer">Table Link</a>
+        </div>
+
+        <div class="table-info-panel hidden">
+          <div class="metric-strip"></div>
+
+          <div class="summary-grid">
+            <div class="summary-card">
+              <h3>ランプ内訳</h3>
+              <div class="lamp-summary"></div>
+              <h3 class="score-summary-heading">スコア内訳</h3>
+              <div class="score-summary"></div>
+            </div>
+            <div class="summary-card">
+              <h3 class="level-summary-title">CLEAR LAMP</h3>
+              <div class="level-summary"></div>
+            </div>
+          </div>
+
+          <details class="chart-details">
+            <summary>譜面一覧を開く</summary>
+            <div class="chart-table-wrap"></div>
+          </details>
+        </div>
+      </section>
+    </template>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

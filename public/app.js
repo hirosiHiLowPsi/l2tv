@@ -1,0 +1,5224 @@
+const form = document.getElementById("analyze-form");
+const scoreDbPathInput = document.getElementById("score-db-path");
+const songDbPathInput = document.getElementById("song-db-path");
+const screenshotDirPathInput = document.getElementById("screenshot-dir-path");
+const rivalFolderPathInput = document.getElementById("rival-folder-path");
+const browseScoreDbButton = document.getElementById("browse-score-db");
+const browseSongDbButton = document.getElementById("browse-song-db");
+const browseScreenshotDirButton = document.getElementById("browse-screenshot-dir");
+const browseRivalFolderButton = document.getElementById("browse-rival-folder");
+const tableUrlsInput = document.getElementById("table-urls");
+const manualTableUrlTogglesContainer = document.getElementById("manual-table-url-toggles");
+const themeSelect = document.getElementById("theme-select");
+const irRankDisplaySelect = document.getElementById("ir-rank-display-select");
+const includeBpUpdatesInput = document.getElementById("include-bp-updates");
+const tablePresetsContainer = document.getElementById("table-presets");
+const analyzeButton = document.getElementById("analyze-button");
+const clearSavedButton = document.getElementById("clear-saved-button");
+const statusBox = document.getElementById("status-box");
+const mainFeedback = document.getElementById("main-feedback");
+const resultsRoot = document.getElementById("results-root");
+const levelModeToggleButton = document.getElementById("level-mode-toggle-button");
+const tableSectionTemplate = document.getElementById("table-section-template");
+const menuToggleButton = document.getElementById("menu-toggle-button");
+const rivalToggleButton = document.getElementById("rival-toggle-button");
+const rivalPanel = document.getElementById("rival-panel");
+const menuCloseButton = document.getElementById("menu-close-button");
+const menuBackdrop = document.getElementById("menu-backdrop");
+const controlDrawer = document.getElementById("control-drawer");
+const exportMessageModal = document.getElementById("export-message-modal");
+const exportMessageText = document.getElementById("export-message-text");
+const exportMessageOkButton = document.getElementById("export-message-ok");
+
+const lampOptions = [
+  "FULL COMBO",
+  "HARD CLEAR",
+  "CLEAR",
+  "EASY CLEAR",
+  "FAILED",
+  "NO PLAY",
+  "NO SONG",
+];
+
+const lampLabels = {
+  "FULL COMBO": "FC",
+  "HARD CLEAR": "HC",
+  CLEAR: "NC",
+  "EASY CLEAR": "EC",
+  FAILED: "FL",
+  "NO PLAY": "NP",
+  "NO SONG": "NS",
+};
+
+const lampSnapshotColors = {
+  "FULL COMBO": "#fff0a3",
+  "HARD CLEAR": "#ff9ca4",
+  CLEAR: "#5aa1ff",
+  "EASY CLEAR": "#7ee7a1",
+  FAILED: "#9aa4b6",
+  "NO PLAY": "#e8e8ea",
+  "NO SONG": "#111827",
+};
+
+const levelChartLampOrder = [
+  "FULL COMBO",
+  "HARD CLEAR",
+  "CLEAR",
+  "EASY CLEAR",
+  "FAILED",
+  "NO PLAY",
+  "NO SONG",
+];
+
+const levelChartScoreOrder = ["AAA", "AA", "A", "B", "C", "D", "E", "F", "NO_PLAY", "NO_SONG"];
+const levelChartScoreLabels = {
+  AAA: "AAA",
+  AA: "AA",
+  A: "A",
+  B: "B",
+  C: "C",
+  D: "D",
+  E: "E",
+  F: "F",
+  NO_PLAY: "NP",
+  NO_SONG: "NS",
+};
+
+const scoreSnapshotColors = {
+  AAA: "#f4d35e",
+  AA: "#c9d2df",
+  A: "#cf8d52",
+  B: "#7fdfff",
+  C: "#5fc4ff",
+  D: "#3fa9ff",
+  E: "#2388f2",
+  F: "#005cff",
+  NO_PLAY: "#e8e8ea",
+  NO_SONG: "#111827",
+};
+
+const chartSortColumns = [
+  { key: "level", label: "Lv" },
+  { key: "title", label: "Title" },
+  { key: "artist", label: "Artist" },
+  { key: "lampStatus", label: "Lamp" },
+  { key: "scoreRate", label: "EX/Rate" },
+  { key: "missCount", label: "BP" },
+  { key: "irRank", label: "IR順位" },
+  { key: "rival", label: "Rival" },
+  { key: "playCount", label: "プレイ回数" },
+];
+
+const TABLE_PRESETS = [
+  {
+    id: "stella",
+    name: "Stella",
+    url: "https://stellabms.xyz/st/table.html",
+  },
+  {
+    id: "satellite",
+    name: "Satellite",
+    url: "https://stellabms.xyz/sl/table.html",
+  },
+  {
+    id: "insane",
+    name: "発狂BMS難易度表",
+    url: "https://darksabun.club/table/archive/insane1/",
+  },
+  {
+    id: "overjoy",
+    name: "Overjoy",
+    url: "https://rattoto10.jounin.jp/table_overjoy.html",
+  },
+  {
+    id: "dystopia",
+    name: "Dystopia",
+    url: "https://monibms.github.io/Dystopia/dystopia.html",
+  },
+];
+
+const THEME_MODES = ["l2tv-pop", "lr2ir-dark"];
+const DEFAULT_THEME_MODE = "l2tv-pop";
+const IR_RANK_DISPLAY_MODES = ["count", "percent"];
+const DEFAULT_IR_RANK_DISPLAY_MODE = "count";
+
+const PERSISTENCE_DB_NAME = "lr2ir-table-lamp-viewer";
+const PERSISTENCE_STORE_NAME = "app-state";
+const PERSISTENCE_SCHEMA_VERSION = 1;
+const FORM_STATE_KEY = "form-state";
+const LAST_ANALYSIS_KEY = "last-analysis";
+const TABLE_PRESET_SELECTION_KEY = "table-preset-selection";
+const MAZAIOU_PREVIEW_QUERY_KEY = "preview80737";
+
+let latestAnalysis = null;
+let persistenceDbPromise = null;
+let levelChartMode = "lamp";
+let selectedThemeMode = DEFAULT_THEME_MODE;
+let irRankDisplayMode = DEFAULT_IR_RANK_DISPLAY_MODE;
+let includeBpUpdatesInLampUpdates = false;
+let disabledManualTableUrls = new Set();
+let autoDbProfileFetchToken = 0;
+let selectedTablePresetIds = new Set();
+let selectedRivalIds = new Set();
+let knownRivalIds = new Set();
+let rivalSelectionInitialized = false;
+let selectedRivalStatsScope = "all";
+const tableInfoPanelOpenState = new Map();
+const chartDetailsOpenState = new Map();
+const chartListOpenLevelsState = new Map();
+let latestLampImprovements = [];
+let latestComparisonBaseAnalysis = null;
+let hasComparedLampImprovements = false;
+let latestKeyHitCountDelta = null;
+let mainFeedbackTimeoutId = null;
+let apiTokenPromise = null;
+const persistFormStateDebounced = debounce(() => {
+  persistFormState().catch((error) => console.error("Failed to persist form state", error));
+}, 250);
+const levelChartTooltip = createFloatingTooltip();
+
+renderTablePresetPicker();
+renderManualTableUrlToggles();
+configureDbBrowseButtons();
+configureScreenshotDirectoryBrowseButton();
+configureRivalFolderBrowseButton();
+initializeControlMenu();
+initializeRivalPanel();
+initializeLevelModeToggleButton();
+initializeThemeSelector();
+initializeExportMessageDialog();
+applyTheme(selectedThemeMode, { persist: false });
+
+function initializeControlMenu() {
+  if (!menuToggleButton || !menuBackdrop || !controlDrawer) {
+    return;
+  }
+
+  setControlMenuOpen(false, { restoreFocus: false });
+
+  menuToggleButton.addEventListener("click", () => {
+    setControlMenuOpen(!isControlMenuOpen());
+  });
+
+  if (menuCloseButton) {
+    menuCloseButton.addEventListener("click", () => {
+      setControlMenuOpen(false);
+    });
+  }
+
+  menuBackdrop.addEventListener("click", () => {
+    setControlMenuOpen(false);
+    setRivalPanelOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") {
+      return;
+    }
+    if (isControlMenuOpen()) {
+      setControlMenuOpen(false);
+    }
+  });
+}
+
+function isControlMenuOpen() {
+  return document.body.classList.contains("menu-open");
+}
+
+function setControlMenuOpen(open, options = {}) {
+  if (!menuToggleButton || !menuBackdrop || !controlDrawer) {
+    return;
+  }
+
+  const { restoreFocus = true, closeOther = true } = options;
+  const shouldOpen = Boolean(open);
+  if (shouldOpen && closeOther) {
+    setRivalPanelOpen(false, { closeOther: false });
+  }
+  document.body.classList.toggle("menu-open", shouldOpen);
+  menuToggleButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  menuToggleButton.textContent = shouldOpen ? "閉じる" : "メニュー";
+  controlDrawer.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+  updateDrawerBackdrop();
+
+  if (!restoreFocus) {
+    return;
+  }
+
+  if (shouldOpen) {
+    controlDrawer.focus();
+  } else {
+    menuToggleButton.focus();
+  }
+}
+
+function initializeRivalPanel() {
+  if (!rivalToggleButton || !rivalPanel) {
+    return;
+  }
+
+  rivalToggleButton.addEventListener("click", () => {
+    setRivalPanelOpen(!isRivalPanelOpen());
+  });
+}
+
+function isRivalPanelOpen() {
+  return rivalPanel?.getAttribute("aria-hidden") === "false";
+}
+
+function setRivalPanelOpen(open, options = {}) {
+  if (!rivalToggleButton || !rivalPanel) {
+    return;
+  }
+
+  const { closeOther = true } = options;
+  const shouldOpen = Boolean(open);
+  if (shouldOpen && closeOther) {
+    setControlMenuOpen(false, { restoreFocus: false, closeOther: false });
+  }
+  document.body.classList.toggle("rival-open", shouldOpen);
+  rivalToggleButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
+  rivalPanel.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+  rivalPanel.classList.toggle("hidden", !shouldOpen);
+  updateDrawerBackdrop();
+}
+
+function updateDrawerBackdrop() {
+  if (!menuBackdrop) {
+    return;
+  }
+  const anyDrawerOpen = isControlMenuOpen() || isRivalPanelOpen();
+  menuBackdrop.setAttribute("aria-hidden", anyDrawerOpen ? "false" : "true");
+  menuBackdrop.classList.toggle("hidden", !anyDrawerOpen);
+}
+
+function initializeExportMessageDialog() {
+  if (!exportMessageModal || !exportMessageOkButton) {
+    return;
+  }
+
+  exportMessageOkButton.addEventListener("click", () => {
+    hideExportMessage();
+  });
+
+  exportMessageModal.addEventListener("click", (event) => {
+    if (event.target === exportMessageModal && !exportMessageOkButton.classList.contains("hidden")) {
+      hideExportMessage();
+    }
+  });
+}
+
+function showExportMessage(message, options = {}) {
+  if (!exportMessageModal || !exportMessageText || !exportMessageOkButton) {
+    return;
+  }
+
+  const { closable = true } = options;
+  exportMessageText.textContent = String(message ?? "");
+  exportMessageOkButton.classList.toggle("hidden", !closable);
+  exportMessageModal.classList.remove("hidden");
+  exportMessageModal.setAttribute("aria-hidden", "false");
+}
+
+function hideExportMessage() {
+  if (!exportMessageModal) {
+    return;
+  }
+  exportMessageModal.classList.add("hidden");
+  exportMessageModal.setAttribute("aria-hidden", "true");
+}
+
+function initializeLevelModeToggleButton() {
+  if (!levelModeToggleButton) {
+    return;
+  }
+  updateLevelModeToggleButton();
+  levelModeToggleButton.addEventListener("click", () => {
+    levelChartMode = levelChartMode === "lamp" ? "score" : "lamp";
+    updateLevelModeToggleButton();
+    persistFormStateDebounced();
+    if (latestAnalysis) {
+      renderAnalysis();
+    }
+  });
+}
+
+function updateLevelModeToggleButton() {
+  if (!levelModeToggleButton) {
+    return;
+  }
+  levelModeToggleButton.textContent = getLevelSummaryTitle(levelChartMode);
+}
+
+function initializeThemeSelector() {
+  if (!themeSelect) {
+    return;
+  }
+
+  themeSelect.value = selectedThemeMode;
+  themeSelect.addEventListener("change", () => {
+    applyTheme(themeSelect.value);
+  });
+
+  if (irRankDisplaySelect) {
+    irRankDisplaySelect.value = irRankDisplayMode;
+    irRankDisplaySelect.addEventListener("change", () => {
+      irRankDisplayMode = normalizeIrRankDisplayMode(irRankDisplaySelect.value);
+      irRankDisplaySelect.value = irRankDisplayMode;
+      persistFormStateDebounced();
+      if (latestAnalysis) {
+        renderAnalysis();
+      }
+    });
+  }
+
+  if (includeBpUpdatesInput) {
+    includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
+    includeBpUpdatesInput.addEventListener("change", () => {
+      includeBpUpdatesInLampUpdates = includeBpUpdatesInput.checked;
+      if (latestComparisonBaseAnalysis && latestAnalysis) {
+        latestLampImprovements = collectLampImprovements(latestComparisonBaseAnalysis, latestAnalysis, {
+          includeBpUpdates: includeBpUpdatesInLampUpdates,
+        });
+      }
+      persistFormStateDebounced();
+      if (latestAnalysis) {
+        renderAnalysis();
+      }
+    });
+  }
+}
+
+function normalizeThemeMode(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return THEME_MODES.includes(normalized) ? normalized : DEFAULT_THEME_MODE;
+}
+
+function normalizeIrRankDisplayMode(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return IR_RANK_DISPLAY_MODES.includes(normalized) ? normalized : DEFAULT_IR_RANK_DISPLAY_MODE;
+}
+
+function applyTheme(themeMode, options = {}) {
+  const { persist = true } = options;
+  selectedThemeMode = normalizeThemeMode(themeMode);
+  document.documentElement.dataset.theme = selectedThemeMode;
+  document.body.dataset.theme = selectedThemeMode;
+
+  if (themeSelect && themeSelect.value !== selectedThemeMode) {
+    themeSelect.value = selectedThemeMode;
+  }
+
+  if (includeBpUpdatesInput && includeBpUpdatesInput.checked !== includeBpUpdatesInLampUpdates) {
+    includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
+  }
+
+  if (persist) {
+    void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+  }
+}
+
+async function getApiToken() {
+  if (!apiTokenPromise) {
+    apiTokenPromise = fetch("/api/client-config", {
+      method: "GET",
+      credentials: "same-origin",
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.apiToken) {
+          throw new Error("API設定の取得に失敗しました。");
+        }
+        return String(payload.apiToken);
+      })
+      .catch((error) => {
+        apiTokenPromise = null;
+        throw error;
+      });
+  }
+  return apiTokenPromise;
+}
+
+async function postJsonApi(path, body) {
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      "X-L2TV-Token": await getApiToken(),
+    },
+    body: JSON.stringify(body ?? {}),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || "APIリクエストに失敗しました。");
+  }
+  return payload;
+}
+
+function configureDbBrowseButtons() {
+  const available = hasDesktopFileDialog();
+  if (available) {
+    return;
+  }
+  const message = "参照ボタンはデスクトップ版(.exe)で利用できます。";
+  browseScoreDbButton.title = message;
+  browseSongDbButton.title = message;
+}
+
+function configureScreenshotDirectoryBrowseButton() {
+  if (!browseScreenshotDirButton) {
+    return;
+  }
+  if (hasDesktopDirectoryDialog()) {
+    return;
+  }
+  browseScreenshotDirButton.title = "参照ボタンはデスクトップ版(.exe)で利用できます。";
+}
+
+function configureRivalFolderBrowseButton() {
+  if (!browseRivalFolderButton) {
+    return;
+  }
+  if (hasDesktopDirectoryDialog()) {
+    return;
+  }
+  browseRivalFolderButton.title = "参照ボタンはデスクトップ版(.exe)で利用できます。";
+}
+
+function hasDesktopFileDialog() {
+  return Boolean(window?.lr2irDesktop && typeof window.lr2irDesktop.pickFile === "function");
+}
+
+function hasDesktopDirectoryDialog() {
+  return Boolean(window?.lr2irDesktop && typeof window.lr2irDesktop.pickDirectory === "function");
+}
+
+function parseTableUrls(text) {
+  return String(text ?? "")
+    .split(/\r?\n/)
+    .map((url) => url.trim())
+    .filter(Boolean);
+}
+
+function getManualTableUrls() {
+  return [...new Set(parseTableUrls(tableUrlsInput.value))];
+}
+
+function collectSelectedTableUrls() {
+  const presetUrls = TABLE_PRESETS.filter((preset) => selectedTablePresetIds.has(preset.id)).map((preset) => preset.url);
+  const manualUrls = getManualTableUrls().filter((url) => !disabledManualTableUrls.has(url));
+  return [...new Set([...presetUrls, ...manualUrls])];
+}
+
+function renderManualTableUrlToggles() {
+  if (!manualTableUrlTogglesContainer) {
+    return;
+  }
+
+  const manualUrls = getManualTableUrls();
+  disabledManualTableUrls = new Set([...disabledManualTableUrls].filter((url) => manualUrls.includes(url)));
+  manualTableUrlTogglesContainer.innerHTML = "";
+
+  if (!manualUrls.length) {
+    manualTableUrlTogglesContainer.classList.add("hidden");
+    return;
+  }
+
+  manualTableUrlTogglesContainer.classList.remove("hidden");
+  for (const tableUrl of manualUrls) {
+    const label = document.createElement("label");
+    label.className = "manual-table-url-toggle";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = !disabledManualTableUrls.has(tableUrl);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        disabledManualTableUrls.delete(tableUrl);
+      } else {
+        disabledManualTableUrls.add(tableUrl);
+      }
+      persistFormStateDebounced();
+    });
+
+    const text = document.createElement("span");
+    text.textContent = getManualTableUrlDisplayName(tableUrl);
+
+    label.append(checkbox, text);
+    manualTableUrlTogglesContainer.append(label);
+  }
+}
+
+function getManualTableUrlDisplayName(tableUrl) {
+  const normalizedUrl = normalizeTableUrlForDisplayLookup(tableUrl);
+  const loadedTable = Array.isArray(latestAnalysis?.tables)
+    ? latestAnalysis.tables.find((table) => normalizeTableUrlForDisplayLookup(table?.sourceUrl) === normalizedUrl)
+    : null;
+  const loadedName = String(loadedTable?.name ?? "").trim();
+  if (loadedName) {
+    return loadedName;
+  }
+
+  const preset = TABLE_PRESETS.find((entry) => normalizeTableUrlForDisplayLookup(entry.url) === normalizedUrl);
+  if (preset?.name) {
+    return preset.name;
+  }
+
+  return tableUrl;
+}
+
+function normalizeTableUrlForDisplayLookup(value) {
+  return String(value ?? "").trim().replace(/\/+$/, "").toLowerCase();
+}
+
+function renderTablePresetPicker() {
+  if (!tablePresetsContainer) {
+    return;
+  }
+
+  tablePresetsContainer.innerHTML = "";
+
+  for (const preset of TABLE_PRESETS) {
+    const label = document.createElement("label");
+    label.className = "table-preset-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = selectedTablePresetIds.has(preset.id);
+    checkbox.dataset.presetId = preset.id;
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        selectedTablePresetIds.add(preset.id);
+      } else {
+        selectedTablePresetIds.delete(preset.id);
+      }
+      void persistTablePresetSelection().catch((error) =>
+        console.error("Failed to persist table preset selection", error),
+      );
+    });
+
+    const textWrap = document.createElement("span");
+    textWrap.className = "table-preset-text";
+
+    const name = document.createElement("strong");
+    name.textContent = preset.name;
+
+    const url = document.createElement("small");
+    url.textContent = preset.url;
+
+    textWrap.append(name, url);
+    label.append(checkbox, textWrap);
+    tablePresetsContainer.append(label);
+  }
+}
+
+function syncPresetCheckboxesFromState() {
+  if (!tablePresetsContainer) {
+    return;
+  }
+  const checkboxes = tablePresetsContainer.querySelectorAll('input[type="checkbox"][data-preset-id]');
+  for (const checkbox of checkboxes) {
+    const presetId = checkbox.dataset.presetId;
+    checkbox.checked = selectedTablePresetIds.has(presetId);
+  }
+}
+
+async function pickDbPath({ title, defaultPath }) {
+  if (!hasDesktopFileDialog()) {
+    setStatus("参照ボタンはデスクトップ版(.exe)で利用できます。ブラウザ版ではパスを直接入力してください。");
+    return "";
+  }
+
+  try {
+    const picked = await window.lr2irDesktop.pickFile({
+      title,
+      defaultPath,
+      filters: [{ name: "DB", extensions: ["db"] }],
+    });
+    return String(picked ?? "").trim();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "ファイル選択に失敗しました。");
+    return "";
+  }
+}
+
+async function pickDirectoryPath({ title, defaultPath }) {
+  if (!hasDesktopDirectoryDialog()) {
+    setStatus("参照ボタンはデスクトップ版(.exe)で利用できます。ブラウザ版ではパスを直接入力してください。");
+    return "";
+  }
+
+  try {
+    const picked = await window.lr2irDesktop.pickDirectory({
+      title,
+      defaultPath,
+    });
+    return String(picked ?? "").trim();
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "フォルダ選択に失敗しました。");
+    return "";
+  }
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  autoDbProfileFetchToken += 1;
+  const previousAnalysis = latestAnalysis;
+
+  const scoreDbPath = scoreDbPathInput.value.trim();
+  const songDbPath = songDbPathInput.value.trim();
+  const rivalFolderPath = rivalFolderPathInput?.value.trim() ?? "";
+  const tableUrls = collectSelectedTableUrls();
+
+  if (!scoreDbPath) {
+    setStatus("LR2 score.db パスを入力してください。");
+    return;
+  }
+
+  setControlMenuOpen(false, { restoreFocus: false });
+  showMainLoadingFeedback();
+  latestAnalysis = null;
+  latestLampImprovements = [];
+  latestComparisonBaseAnalysis = previousAnalysis ?? null;
+  hasComparedLampImprovements = false;
+  latestKeyHitCountDelta = null;
+  resultsRoot.classList.add("hidden");
+  analyzeButton.disabled = true;
+
+  const loadingPlayerOnly = tableUrls.length === 0;
+  let loadingMessage = loadingPlayerOnly
+    ? "プレイヤーデータを読み込んでいます。"
+    : "難易度表とローカルのLR2 score.dbを読み込んでいます。\n表の数や曲数によっては少し時間がかかります。";
+  if (scoreDbPath && !loadingPlayerOnly) {
+    loadingMessage =
+      "難易度表とローカルのLR2 score.dbを読み込んでいます。\n表の数や曲数によっては少し時間がかかります。";
+  } else if (scoreDbPath && loadingPlayerOnly) {
+    loadingMessage = "ローカルのLR2 score.dbからプレイヤーデータを読み込んでいます。";
+  }
+  setStatus(loadingMessage);
+
+  try {
+    const payload = await postJsonApi("/api/analyze", { scoreDbPath, songDbPath, rivalFolderPath, tableUrls });
+
+    latestAnalysis = normalizeAnalysisLampStatuses(payload);
+    syncSelectedRivalsWithAnalysis(latestAnalysis);
+    latestLampImprovements = collectLampImprovements(previousAnalysis, latestAnalysis, {
+      includeBpUpdates: includeBpUpdatesInLampUpdates,
+    });
+    hasComparedLampImprovements = Boolean(previousAnalysis && Array.isArray(previousAnalysis.tables));
+    latestKeyHitCountDelta = collectKeyHitCountDelta(previousAnalysis, latestAnalysis);
+    setStatus(buildStatusMessage(latestAnalysis));
+    renderAnalysis();
+    resultsRoot.classList.remove("hidden");
+    showMainDoneFeedback();
+    void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+    void persistLatestAnalysis(latestAnalysis).catch((error) => console.error("Failed to persist analysis", error));
+  } catch (error) {
+    setControlMenuOpen(true, { restoreFocus: false });
+    hideMainFeedback();
+    renderAnalysis();
+    setStatus(error instanceof Error ? error.message : "読み込みに失敗しました。");
+  } finally {
+    analyzeButton.disabled = false;
+  }
+});
+
+scoreDbPathInput.addEventListener("input", persistFormStateDebounced);
+songDbPathInput.addEventListener("input", persistFormStateDebounced);
+screenshotDirPathInput?.addEventListener("input", persistFormStateDebounced);
+rivalFolderPathInput?.addEventListener("input", persistFormStateDebounced);
+tableUrlsInput.addEventListener("input", persistFormStateDebounced);
+tableUrlsInput.addEventListener("input", () => {
+  renderManualTableUrlToggles();
+});
+scoreDbPathInput.addEventListener("input", () => {
+  if (latestAnalysis) {
+    renderAnalysis();
+  }
+});
+songDbPathInput.addEventListener("input", () => {
+  if (latestAnalysis) {
+    renderAnalysis();
+  }
+});
+browseScoreDbButton.addEventListener("click", async () => {
+  const selectedPath = await pickDbPath({
+    title: "score.db を選択",
+    defaultPath: scoreDbPathInput.value.trim(),
+  });
+  if (!selectedPath) {
+    return;
+  }
+  scoreDbPathInput.value = selectedPath;
+  scoreDbPathInput.dispatchEvent(new Event("input", { bubbles: true }));
+  scoreDbPathInput.dispatchEvent(new Event("change", { bubbles: true }));
+});
+browseSongDbButton.addEventListener("click", async () => {
+  const selectedPath = await pickDbPath({
+    title: "song.db を選択",
+    defaultPath: songDbPathInput.value.trim(),
+  });
+  if (!selectedPath) {
+    return;
+  }
+  songDbPathInput.value = selectedPath;
+  songDbPathInput.dispatchEvent(new Event("input", { bubbles: true }));
+  void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+});
+screenshotDirPathInput?.addEventListener("change", () => {
+  void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+});
+browseScreenshotDirButton?.addEventListener("click", async () => {
+  const selectedPath = await pickDirectoryPath({
+    title: "スクショ保存先を選択",
+    defaultPath: screenshotDirPathInput?.value.trim() ?? "",
+  });
+  if (!selectedPath || !screenshotDirPathInput) {
+    return;
+  }
+  screenshotDirPathInput.value = selectedPath;
+  screenshotDirPathInput.dispatchEvent(new Event("input", { bubbles: true }));
+  screenshotDirPathInput.dispatchEvent(new Event("change", { bubbles: true }));
+});
+browseRivalFolderButton?.addEventListener("click", async () => {
+  const selectedPath = await pickDirectoryPath({
+    title: "LR2 Rival フォルダを選択",
+    defaultPath: rivalFolderPathInput?.value.trim() ?? "",
+  });
+  if (!selectedPath || !rivalFolderPathInput) {
+    return;
+  }
+  rivalFolderPathInput.value = selectedPath;
+  rivalFolderPathInput.dispatchEvent(new Event("input", { bubbles: true }));
+  rivalFolderPathInput.dispatchEvent(new Event("change", { bubbles: true }));
+});
+scoreDbPathInput.addEventListener("change", () => {
+  void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+  void autoFetchProfileFromScoreDb().catch((error) => {
+    console.error("Failed to auto fetch profile from score.db", error);
+  });
+});
+
+clearSavedButton.addEventListener("click", async () => {
+  const shouldClear = window.confirm(
+    "保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表プリセットの選択状態は保持されます。",
+  );
+  if (!shouldClear) {
+    return;
+  }
+
+  await clearPersistedState();
+  latestAnalysis = null;
+  latestLampImprovements = [];
+  latestComparisonBaseAnalysis = null;
+  selectedRivalIds.clear();
+  knownRivalIds.clear();
+  rivalSelectionInitialized = false;
+  renderRivalPanel();
+  hasComparedLampImprovements = false;
+  latestKeyHitCountDelta = null;
+  tableInfoPanelOpenState.clear();
+  chartDetailsOpenState.clear();
+  chartListOpenLevelsState.clear();
+  form.reset();
+  scoreDbPathInput.value = "";
+  songDbPathInput.value = "";
+  if (screenshotDirPathInput) {
+    screenshotDirPathInput.value = "";
+  }
+  if (rivalFolderPathInput) {
+    rivalFolderPathInput.value = "";
+  }
+  syncPresetCheckboxesFromState();
+  disabledManualTableUrls.clear();
+  renderManualTableUrlToggles();
+  levelChartMode = "lamp";
+  updateLevelModeToggleButton();
+  irRankDisplayMode = DEFAULT_IR_RANK_DISPLAY_MODE;
+  if (irRankDisplaySelect) {
+    irRankDisplaySelect.value = irRankDisplayMode;
+  }
+  applyTheme(DEFAULT_THEME_MODE, { persist: false });
+  includeBpUpdatesInLampUpdates = false;
+  if (includeBpUpdatesInput) {
+    includeBpUpdatesInput.checked = false;
+  }
+  renderAnalysis();
+  setStatus("保存済みデータを削除しました。難易度表プリセットの選択状態は保持しています。");
+});
+
+function renderAnalysis() {
+  if (!latestAnalysis) {
+    renderRivalPanel();
+    renderInitialGuidePanel();
+    return;
+  }
+  syncSelectedRivalsWithAnalysis(latestAnalysis);
+  renderManualTableUrlToggles();
+  renderRivalPanel();
+  hideFloatingTooltip();
+
+  resultsRoot.innerHTML = "";
+  resultsRoot.append(renderOverviewPanel(latestAnalysis));
+  const lampImprovementPanel = renderLampImprovementsPanel(latestLampImprovements, hasComparedLampImprovements);
+  if (lampImprovementPanel) {
+    resultsRoot.append(lampImprovementPanel);
+  }
+  const visibleTables = latestAnalysis.tables;
+
+  const visibleTableKeys = new Set(visibleTables.map((table) => buildTableInfoStateKey(table)));
+  for (const key of tableInfoPanelOpenState.keys()) {
+    if (!visibleTableKeys.has(key)) {
+      tableInfoPanelOpenState.delete(key);
+    }
+  }
+  for (const key of chartDetailsOpenState.keys()) {
+    if (!visibleTableKeys.has(key)) {
+      chartDetailsOpenState.delete(key);
+    }
+  }
+  for (const key of chartListOpenLevelsState.keys()) {
+    if (!visibleTableKeys.has(key)) {
+      chartListOpenLevelsState.delete(key);
+    }
+  }
+
+  if (!visibleTables.length) {
+    const emptyPanel = document.createElement("section");
+    emptyPanel.className = "panel overview-panel";
+    emptyPanel.innerHTML =
+      latestAnalysis.tables.length === 0
+        ? '<p class="helper">難易度表URL未入力のため、プレイヤーデータのみ表示しています。</p>'
+        : '<p class="helper">表示対象の難易度表がありません。</p>';
+    resultsRoot.append(emptyPanel);
+    return;
+  }
+
+  for (const table of visibleTables) {
+    resultsRoot.append(renderTableSection(table, table.charts));
+  }
+}
+
+function renderInitialGuidePanel() {
+  hideFloatingTooltip();
+  resultsRoot.innerHTML = "";
+
+  const section = document.createElement("section");
+  section.className = "panel overview-panel";
+
+  const title = document.createElement("h2");
+  title.textContent = "Welcome";
+
+  const description = document.createElement("p");
+  description.className = "helper";
+  description.textContent = "まずはメニューから読み込み設定を行ってください。";
+
+  section.append(title, description);
+  resultsRoot.append(section);
+  resultsRoot.classList.remove("hidden");
+}
+
+function syncSelectedRivalsWithAnalysis(analysis) {
+  const rivalIds = getAnalysisRivalIds(analysis);
+  if (!rivalIds.length) {
+    selectedRivalIds.clear();
+    knownRivalIds.clear();
+    rivalSelectionInitialized = false;
+    return;
+  }
+
+  if (!rivalSelectionInitialized) {
+    selectedRivalIds = new Set(rivalIds);
+    knownRivalIds = new Set(rivalIds);
+    rivalSelectionInitialized = true;
+    return;
+  }
+
+  const previousKnownRivalIds = new Set(knownRivalIds);
+  selectedRivalIds = new Set([...selectedRivalIds].filter((id) => rivalIds.includes(id)));
+  for (const id of rivalIds) {
+    if (!previousKnownRivalIds.has(id)) {
+      selectedRivalIds.add(id);
+    }
+  }
+  knownRivalIds = new Set(rivalIds);
+}
+
+function getAnalysisRivalIds(analysis) {
+  return Array.isArray(analysis?.rivals?.players)
+    ? analysis.rivals.players.map((rival) => String(rival?.id ?? "").trim()).filter(Boolean)
+    : [];
+}
+
+function renderRivalPanel() {
+  if (!rivalToggleButton || !rivalPanel) {
+    return;
+  }
+
+  const rivals = Array.isArray(latestAnalysis?.rivals?.players) ? latestAnalysis.rivals.players : [];
+  rivalToggleButton.classList.toggle("hidden", rivals.length === 0);
+  if (!rivals.length) {
+    setRivalPanelOpen(false);
+    rivalPanel.innerHTML = "";
+    return;
+  }
+
+  rivalPanel.innerHTML = "";
+  const header = document.createElement("div");
+  header.className = "rival-panel-header";
+
+  const title = document.createElement("div");
+  title.className = "rival-panel-title";
+  title.textContent = "RIVAL";
+
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "button-secondary rival-panel-close";
+  closeButton.textContent = "閉じる";
+  closeButton.addEventListener("click", () => setRivalPanelOpen(false));
+
+  header.append(title, closeButton);
+  rivalPanel.append(header);
+
+  const summary = document.createElement("div");
+  summary.className = "rival-panel-summary";
+
+  const summaryLabel = document.createElement("div");
+  summaryLabel.className = "rival-panel-summary-label";
+  summaryLabel.textContent = "Rival";
+
+  const summaryCount = document.createElement("div");
+  summaryCount.className = "rival-panel-summary-count";
+  summaryCount.textContent = `${formatInteger(latestAnalysis?.rivals?.count ?? rivals.length)}人`;
+
+  const summaryScores = document.createElement("div");
+  summaryScores.className = "rival-panel-summary-scores";
+  summaryScores.textContent = `${formatInteger(latestAnalysis?.rivals?.totalScores ?? 0)}スコア`;
+
+  summary.append(summaryLabel, summaryCount, summaryScores);
+  rivalPanel.append(summary);
+
+  const rivalScopes = getRivalStatsScopeOptions(latestAnalysis);
+  if (!rivalScopes.some((scope) => scope.id === selectedRivalStatsScope)) {
+    selectedRivalStatsScope = "all";
+  }
+
+  const currentScope = rivalScopes.find((scope) => scope.id === selectedRivalStatsScope) ?? rivalScopes[0];
+  const scopePicker = document.createElement("details");
+  scopePicker.className = "rival-panel-scope-picker";
+
+  const scopeSummary = document.createElement("summary");
+  scopeSummary.className = "rival-panel-scope-summary";
+  scopeSummary.textContent = `勝敗表示: ${currentScope?.label ?? "全譜面"}`;
+  scopePicker.append(scopeSummary);
+
+  const scopeList = document.createElement("div");
+  scopeList.className = "rival-panel-scope-list";
+  for (const scope of rivalScopes) {
+    const optionButton = document.createElement("button");
+    optionButton.type = "button";
+    optionButton.className = "rival-panel-scope-option";
+    optionButton.setAttribute("aria-pressed", scope.id === selectedRivalStatsScope ? "true" : "false");
+    optionButton.textContent = scope.label;
+    optionButton.addEventListener("click", () => {
+      selectedRivalStatsScope = scope.id;
+      renderAnalysis();
+    });
+    scopeList.append(optionButton);
+  }
+  scopePicker.append(scopeList);
+  rivalPanel.append(scopePicker);
+
+  const rivalStats = buildRivalWinLossStats(latestAnalysis, selectedRivalStatsScope);
+
+  const actions = document.createElement("div");
+  actions.className = "rival-panel-actions";
+
+  const selectAllButton = document.createElement("button");
+  selectAllButton.type = "button";
+  selectAllButton.className = "button-secondary rival-panel-action";
+  selectAllButton.textContent = "全選択";
+  selectAllButton.addEventListener("click", () => {
+    selectedRivalIds = new Set(getAnalysisRivalIds(latestAnalysis));
+    renderAnalysis();
+  });
+
+  const clearAllButton = document.createElement("button");
+  clearAllButton.type = "button";
+  clearAllButton.className = "button-secondary rival-panel-action";
+  clearAllButton.textContent = "全解除";
+  clearAllButton.addEventListener("click", () => {
+    selectedRivalIds.clear();
+    renderAnalysis();
+  });
+
+  actions.append(selectAllButton, clearAllButton);
+  rivalPanel.append(actions);
+
+  for (const rival of rivals) {
+    const rivalId = String(rival?.id ?? "").trim();
+    if (!rivalId) {
+      continue;
+    }
+
+    const label = document.createElement("label");
+    label.className = "rival-panel-item";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = selectedRivalIds.has(rivalId);
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        selectedRivalIds.add(rivalId);
+      } else {
+        selectedRivalIds.delete(rivalId);
+      }
+      renderAnalysis();
+    });
+
+    const stats = rivalStats.get(rivalId) ?? { wins: 0, losses: 0 };
+    const totalDecided = stats.wins + stats.losses;
+    const winPercent = totalDecided > 0 ? (stats.wins / totalDecided) * 100 : 0;
+    const lossPercent = totalDecided > 0 ? 100 - winPercent : 0;
+
+    const name = document.createElement("span");
+    name.className = "rival-panel-name";
+    name.style.setProperty("--rival-win-percent", `${winPercent}%`);
+
+    const nameText = document.createElement("strong");
+    nameText.textContent = rival?.name || rivalId;
+
+    const record = document.createElement("span");
+    record.className = "rival-panel-record";
+    record.textContent = `WIN ${formatInteger(stats.wins)} / LOSE ${formatInteger(stats.losses)}`;
+
+    name.append(nameText, record);
+
+    const meta = document.createElement("small");
+    meta.textContent = totalDecided > 0 ? `${winPercent.toFixed(1)}% / ${lossPercent.toFixed(1)}%` : "対戦なし";
+
+    label.append(checkbox, name, meta);
+    rivalPanel.append(label);
+  }
+}
+
+function getRivalStatsScopeOptions(analysis) {
+  const scopes = [{ id: "all", label: "全譜面" }];
+  const tables = Array.isArray(analysis?.tables) ? analysis.tables : [];
+  for (const table of tables) {
+    const tableId = getRivalStatsTableScopeId(table);
+    if (!tableId || scopes.some((scope) => scope.id === tableId)) {
+      continue;
+    }
+    const label = String(table?.name ?? "").trim() || String(table?.symbol ?? "").trim() || "難易度表";
+    scopes.push({ id: tableId, label });
+  }
+  return scopes;
+}
+
+function getRivalStatsTableScopeId(table) {
+  const key = buildTableInfoStateKey(table);
+  return key ? `table:${key}` : "";
+}
+
+function buildRivalWinLossStats(analysis, scopeId = "all") {
+  const stats = new Map();
+  const rivals = Array.isArray(analysis?.rivals?.players) ? analysis.rivals.players : [];
+  for (const rival of rivals) {
+    const rivalId = String(rival?.id ?? "").trim();
+    if (rivalId) {
+      stats.set(rivalId, { wins: 0, losses: 0 });
+    }
+  }
+
+  const tables = Array.isArray(analysis?.tables) ? analysis.tables : [];
+  const scopedTables =
+    scopeId && scopeId !== "all"
+      ? tables.filter((table) => getRivalStatsTableScopeId(table) === scopeId)
+      : tables;
+  const charts = scopedTables.flatMap((table) => (Array.isArray(table?.charts) ? table.charts : []));
+  for (const chart of charts) {
+    const selfLamp = normalizeLampStatusForUi(chart?.lampStatus);
+    if (selfLamp === "NO PLAY" || selfLamp === "NO SONG") {
+      continue;
+    }
+    const selfExScore = Number.isFinite(Number(chart?.exScore)) ? Number(chart.exScore) : null;
+    if (selfExScore == null) {
+      continue;
+    }
+
+    const rivalScores = Array.isArray(chart?.rivalComparison?.scores) ? chart.rivalComparison.scores : [];
+    for (const score of rivalScores) {
+      const rivalId = String(score?.id ?? "").trim();
+      if (!rivalId || !stats.has(rivalId)) {
+        continue;
+      }
+      const rivalLamp = normalizeLampStatusForUi(score?.lampStatus);
+      if (rivalLamp === "NO PLAY" || rivalLamp === "NO SONG") {
+        continue;
+      }
+      const rivalExScore = Number.isFinite(Number(score?.exScore)) ? Number(score.exScore) : null;
+      if (rivalExScore == null || selfExScore === rivalExScore) {
+        continue;
+      }
+      if (selfExScore > rivalExScore) {
+        stats.get(rivalId).wins += 1;
+      } else {
+        stats.get(rivalId).losses += 1;
+      }
+    }
+  }
+
+  return stats;
+}
+
+function renderOverviewPanel(analysis) {
+  const section = document.createElement("section");
+  section.className = "panel overview-panel";
+
+  const title = document.createElement("h2");
+  title.textContent = "Player Data";
+
+  const metricGrid = document.createElement("div");
+  metricGrid.className = "metric-grid";
+  const danValue = formatPlayerGrade(analysis.player);
+  const danFormalName = getPlayerGradeFormalName(analysis.player);
+  metricGrid.append(createMetricCard("プレイヤー名", analysis.player.name || "-", `LR2ID ${analysis.player.id}`));
+  metricGrid.append(createMetricCard("SP段位", danValue, danFormalName, getDanToneClass(danValue, analysis.player)));
+  for (const card of createSkillAnalyzerMetricCards(analysis.player)) {
+    metricGrid.append(card);
+  }
+  if (latestKeyHitCountDelta != null && latestKeyHitCountDelta > 0) {
+    metricGrid.append(
+      createMetricCard(
+        "今回の打鍵回数",
+        `${formatInteger(latestKeyHitCountDelta)}回`,
+        "",
+      ),
+    );
+  }
+
+  section.append(title, metricGrid);
+
+  if (analysis.tableErrors.length) {
+    const errorList = document.createElement("ul");
+    errorList.className = "note-list";
+    for (const entry of analysis.tableErrors) {
+      const item = document.createElement("li");
+      item.textContent = `${entry.tableUrl} : ${entry.error}`;
+      errorList.append(item);
+    }
+    section.append(errorList);
+  }
+
+  return section;
+}
+
+function renderLampImprovementsPanel(improvements, compared) {
+  if (!compared) {
+    return null;
+  }
+
+  const section = document.createElement("section");
+  section.className = "panel overview-panel lamp-improvements-panel";
+
+  const heading = document.createElement("div");
+  heading.className = "lamp-improvements-heading";
+
+  const title = document.createElement("h2");
+  title.textContent = "Lamp Updates";
+  heading.append(title);
+
+  const saveImageButton = document.createElement("button");
+  saveImageButton.type = "button";
+  saveImageButton.className = "button-secondary lamp-improvements-save-button";
+  saveImageButton.textContent = "今日の更新を画像出力";
+  saveImageButton.addEventListener("click", async () => {
+    const defaultLabel = "今日の更新を画像出力";
+    saveImageButton.disabled = true;
+    saveImageButton.textContent = "出力中…";
+    setStatus("出力中…");
+    showExportMessage("出力中…", { closable: false });
+    try {
+      await exportLampUpdatesSnapshot({
+        improvements: Array.isArray(improvements) ? improvements : [],
+        keyHitCountDelta: latestKeyHitCountDelta,
+        themeMode: selectedThemeMode,
+      });
+      setStatus("画像出力が完了しました。");
+      showExportMessage("スクショ保存完了！");
+    } catch (error) {
+      const details = error instanceof Error ? error.message : String(error);
+      setStatus(`画像保存に失敗しました: ${details}`);
+      showExportMessage(`出力に失敗しました: ${details}`);
+    } finally {
+      saveImageButton.disabled = false;
+      saveImageButton.textContent = defaultLabel;
+    }
+  });
+  heading.append(saveImageButton);
+  section.append(heading);
+
+  if (!Array.isArray(improvements) || improvements.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "helper";
+    empty.textContent = includeBpUpdatesInLampUpdates
+      ? "前回読み込みから更新されたクリアランプ、BP、スコアはありません。"
+      : "前回読み込みから更新されたクリアランプまたはスコアはありません。";
+    section.append(empty);
+    return section;
+  }
+
+  const helper = document.createElement("p");
+  helper.className = "helper";
+  helper.textContent = includeBpUpdatesInLampUpdates
+    ? `前回読み込みからランプ、BP、スコアが更新された譜面: ${improvements.length}件`
+    : `前回読み込みからランプまたはスコアが更新された譜面: ${improvements.length}件`;
+  section.append(helper);
+  const updateDateText = formatDateYmd(new Date());
+
+  const sortedImprovements = [...improvements].sort(compareLampImprovements);
+  const groupedByCurrentLamp = new Map();
+  for (const item of sortedImprovements) {
+    const lamp = getLampImprovementGroupKey(item);
+    if (!groupedByCurrentLamp.has(lamp)) {
+      groupedByCurrentLamp.set(lamp, []);
+    }
+    groupedByCurrentLamp.get(lamp).push(item);
+  }
+
+  for (const groupDef of getLampImprovementGroupDefs()) {
+    const groupItems = groupedByCurrentLamp.get(groupDef.key);
+    if (!groupItems || !groupItems.length) {
+      continue;
+    }
+
+    const group = document.createElement("section");
+    group.className = `lamp-improvement-group ${groupDef.className}`;
+
+    const groupTitle = document.createElement("h3");
+    groupTitle.className = "lamp-improvement-group-title";
+    groupTitle.textContent = groupDef.title;
+    group.append(groupTitle);
+
+    const list = document.createElement("ul");
+    list.className = "lamp-improvement-list";
+
+    for (const item of groupItems) {
+      const row = document.createElement("li");
+      row.className = "lamp-improvement-item";
+
+      const mainLine = document.createElement("div");
+      mainLine.className = "lamp-improvement-main";
+
+      const levelLine = document.createElement("span");
+      levelLine.className = "lamp-improvement-levels";
+      levelLine.textContent = item.levelText || "-";
+
+      const titleLine = document.createElement("span");
+      titleLine.className = "lamp-improvement-title";
+      titleLine.textContent = item.title;
+
+      const detailLine = document.createElement("div");
+      detailLine.className = "lamp-improvement-detail";
+      const transitionLine = document.createElement("span");
+      transitionLine.className = "lamp-improvement-transition";
+      const newBadge = createLampImprovementLampBadge(item.currentLamp);
+      if (item.updateKind === "lamp") {
+        const oldBadge = createLampImprovementLampBadge(item.previousLamp);
+        const arrow = document.createElement("span");
+        arrow.className = "lamp-improvement-arrow";
+        arrow.textContent = "→";
+        transitionLine.append(oldBadge, arrow, newBadge);
+      } else {
+        transitionLine.append(newBadge);
+      }
+      detailLine.append(transitionLine);
+
+      const detailParts = new Map(
+        getLampImprovementDetailParts(item).map((part) => [String(part?.kind ?? "").trim(), part]),
+      );
+      detailLine.append(
+        createLampImprovementMetricSlot(detailParts.get("bp"), "bp"),
+        createLampImprovementMetricSlot(detailParts.get("tier"), "tier"),
+        createLampImprovementMetricSlot(detailParts.get("ex"), "ex"),
+        createLampImprovementMetricSlot(detailParts.get("rate"), "rate"),
+        createLampImprovementMetricSlot(detailParts.get("ir-rank"), "ir-rank"),
+      );
+
+      const dateLine = document.createElement("span");
+      dateLine.className = "lamp-improvement-date";
+      dateLine.textContent = updateDateText;
+
+      mainLine.append(levelLine, titleLine, detailLine, dateLine);
+      row.append(mainLine);
+      list.append(row);
+    }
+
+    group.append(list);
+    section.append(group);
+  }
+
+  return section;
+}
+
+function appendLampImprovementMetric(container, text, kind, options = {}) {
+  if (!container) {
+    return;
+  }
+
+  container.append(createLampImprovementMetricElement(text, kind, options));
+}
+
+function createLampImprovementMetricElement(text, kind, options = {}) {
+  const { dimmed = false } = options;
+  const metric = document.createElement("span");
+  metric.className = `lamp-improvement-metric lamp-improvement-metric-${kind}`;
+  if (kind === "ir-rank" && options.rank != null) {
+    metric.classList.add(getIrRankTone(options.rank));
+    metric.title = formatLampImprovementRankText(options.rank, options.total);
+  }
+  if (dimmed) {
+    metric.classList.add("dimmed");
+  }
+  metric.textContent = text;
+  return metric;
+}
+
+function createLampImprovementMetricSlot(part, defaultKind) {
+  const slot = document.createElement("span");
+  slot.className = `lamp-improvement-slot lamp-improvement-slot-${defaultKind}`;
+
+  if (!part || !String(part.text ?? "").trim()) {
+    slot.classList.add("is-empty");
+    return slot;
+  }
+
+  slot.append(
+    createLampImprovementMetricElement(part.text, part.kind || defaultKind, {
+      dimmed: Boolean(part.dimmed),
+      rank: part.rank ?? null,
+      total: part.total ?? null,
+    }),
+  );
+  return slot;
+}
+
+function createLampImprovementLampBadge(lamp) {
+  const badge = document.createElement("span");
+  const normalizedLamp = normalizeLampStatusForUi(lamp);
+  badge.className = `lamp-badge lamp-${toLampSlug(normalizedLamp)}`;
+  badge.textContent = lampLabels[normalizedLamp] || normalizedLamp;
+  return badge;
+}
+
+function getLampImprovementDetailParts(item) {
+  const parts = [];
+  if (item.missCount == null) {
+    parts.push({
+      text: "BP NO Data",
+      kind: "bp",
+      dimmed: true,
+    });
+  } else if (item.previousMissCount != null && item.missCount < item.previousMissCount) {
+    parts.push({
+      text: `BP ${formatInteger(item.previousMissCount)}→${formatInteger(item.missCount)}`,
+      kind: "bp",
+    });
+  } else {
+    parts.push({
+      text: `BP ${formatInteger(item.missCount)}`,
+      kind: "bp",
+    });
+  }
+
+  if ((item.updateKind === "score" || item.scoreUpdated) && (item.scoreRate != null || item.exScore != null)) {
+    if (item.scoreRate != null) {
+      const scoreTier = levelChartScoreLabels[classifyScoreTier({ ...item, lampStatus: item.currentLamp })] || classifyScoreTier({ ...item, lampStatus: item.currentLamp });
+      parts.push({ text: scoreTier, kind: "tier" });
+    }
+    if (item.exScore != null) {
+      const exText =
+        item.updateKind === "score" && item.previousExScore != null && item.exScore > item.previousExScore
+          ? `${formatInteger(item.previousExScore)}→${formatInteger(item.exScore)}`
+          : formatInteger(item.exScore);
+      parts.push({ text: exText, kind: "ex" });
+    }
+    if (item.scoreRate != null) {
+      parts.push({ text: `${item.scoreRate.toFixed(2)}%`, kind: "rate" });
+    }
+  }
+  const rank = Number.parseInt(item.irRank, 10);
+  if (Number.isFinite(rank) && rank > 0 && rank <= 10) {
+    parts.push({
+      text: formatLampImprovementRankBadgeText(rank),
+      kind: "ir-rank",
+      rank,
+      total: item.irTotal ?? null,
+    });
+  }
+  return parts;
+}
+
+function formatLampImprovementRankBadgeText(rank) {
+  if (rank === 1) {
+    return "🥇";
+  }
+  if (rank === 2) {
+    return "🥈";
+  }
+  if (rank === 3) {
+    return "🥉";
+  }
+  if (rank >= 4 && rank <= 10) {
+    return "TOP10";
+  }
+  return "";
+}
+
+function formatLampImprovementRankText(rank, total) {
+  const formatted = formatIrRankText(rank, total);
+  return formatted ? `IR ${formatted}` : "";
+}
+
+function formatIrRankText(rank, total, mode = irRankDisplayMode) {
+  const parts = formatIrRankParts(rank, total, mode);
+  return parts.sub ? `${parts.main}(${parts.sub})` : parts.main;
+}
+
+function formatIrRankParts(rank, total, mode = irRankDisplayMode) {
+  const numericRank = Number.parseInt(rank, 10);
+  if (!Number.isFinite(numericRank) || numericRank <= 0) {
+    return { main: "", sub: "" };
+  }
+
+  const numericTotal = Number.parseInt(total, 10);
+  if (!Number.isFinite(numericTotal) || numericTotal <= 0) {
+    return { main: `${numericRank}位`, sub: "" };
+  }
+
+  if (normalizeIrRankDisplayMode(mode) === "percent") {
+    const topPercent = (numericRank / numericTotal) * 100;
+    return { main: `${numericRank}位`, sub: `上位${topPercent.toFixed(2)}%` };
+  }
+
+  return { main: `${numericRank}位`, sub: `${formatInteger(numericTotal)}人中` };
+}
+
+function getLampImprovementGroupKey(item) {
+  if (item?.updateKind === "bp") {
+    return "BP_UPDATE";
+  }
+  if (item?.updateKind === "score") {
+    return "SCORE_UPDATE";
+  }
+  return normalizeLampStatusForUi(item?.currentLamp);
+}
+
+function getLampImprovementGroupDefs() {
+  return [
+    ...lampOptions.map((lamp) => ({
+      key: lamp,
+      title: `新規 ${lampLabels[lamp] || lamp}`,
+      className: `lamp-improvement-group-${toLampSlug(lamp)}`,
+    })),
+    {
+      key: "BP_UPDATE",
+      title: "BP更新",
+      className: "lamp-improvement-group-bp-update",
+    },
+    {
+      key: "SCORE_UPDATE",
+      title: "スコア更新",
+      className: "lamp-improvement-group-score-update",
+    },
+  ];
+}
+
+async function exportLampUpdatesSnapshot({ improvements, keyHitCountDelta, themeMode }) {
+  const dataUrl = renderLampUpdatesSnapshotDataUrl({
+    improvements: Array.isArray(improvements) ? improvements : [],
+    keyHitCountDelta,
+    themeMode,
+  });
+  const fileName = buildLampUpdatesSnapshotFileName();
+
+  if (hasDesktopImageSave()) {
+    const saved = await window.lr2irDesktop.saveImage({
+      dataUrl,
+      fileName,
+      directoryPath: getScreenshotDirectoryPath(),
+    });
+    const savedPath = String(saved?.filePath ?? "").trim();
+    if (savedPath) {
+      return `画像を保存しました: ${savedPath}`;
+    }
+    return "画像を保存しました。";
+  }
+
+  downloadDataUrl(dataUrl, fileName);
+  return "画像をダウンロードしました。";
+}
+
+function hasDesktopImageSave() {
+  return Boolean(window?.lr2irDesktop && typeof window.lr2irDesktop.saveImage === "function");
+}
+
+function getScreenshotDirectoryPath() {
+  return screenshotDirPathInput?.value.trim() ?? "";
+}
+
+function buildLampUpdatesSnapshotFileName() {
+  return `L2TV_Today_${formatSnapshotTimestamp(new Date())}.png`;
+}
+
+async function exportTableSummarySnapshot({ table, charts, mode, themeMode }) {
+  const dataUrl = renderTableSummarySnapshotDataUrl({
+    table,
+    charts: Array.isArray(charts) ? charts : [],
+    mode,
+    themeMode,
+  });
+  const fileName = buildTableSummarySnapshotFileName(table);
+
+  if (hasDesktopImageSave()) {
+    await window.lr2irDesktop.saveImage({
+      dataUrl,
+      fileName,
+      directoryPath: getScreenshotDirectoryPath(),
+    });
+    return;
+  }
+
+  downloadDataUrl(dataUrl, fileName);
+}
+
+function buildTableSummarySnapshotFileName(table) {
+  const safeSymbol = String(table?.symbol ?? table?.name ?? "Table")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_")
+    .slice(0, 32);
+  return `L2TV_Table_${safeSymbol || "Table"}_${formatSnapshotTimestamp(new Date())}.png`;
+}
+
+function formatSnapshotTimestamp(date) {
+  const pad2 = (value) => String(value).padStart(2, "0");
+  return (
+    `${date.getFullYear()}${pad2(date.getMonth() + 1)}${pad2(date.getDate())}` +
+    `${pad2(date.getHours())}${pad2(date.getMinutes())}${pad2(date.getSeconds())}`
+  );
+}
+
+function downloadDataUrl(dataUrl, fileName) {
+  const anchor = document.createElement("a");
+  anchor.href = dataUrl;
+  anchor.download = fileName;
+  anchor.rel = "noopener";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+}
+
+function renderTableSummarySnapshotDataUrl({ table, charts, mode, themeMode }) {
+  const normalizedTheme = normalizeThemeMode(themeMode);
+  const normalizedMode = normalizeLevelChartMode(mode);
+  const segmentDefs = getSnapshotLevelChartDefs(normalizedMode);
+  const levelGroups = groupChartsForSnapshot(charts, table?.levelOrder ?? []);
+
+  const metrics = {
+    width: 1280,
+    padding: 28,
+    headerHeight: 58,
+    gap: 18,
+    leftWidth: 470,
+    panelPadding: 20,
+    rowHeight: 26,
+    rowGap: 7,
+    legendHeight: 48,
+  };
+  const rightWidth = metrics.width - metrics.padding * 2 - metrics.leftWidth - metrics.gap;
+  const graphRowsHeight = Math.max(80, levelGroups.length * metrics.rowHeight + Math.max(0, levelGroups.length - 1) * metrics.rowGap);
+  const lampRows = Math.ceil(lampOptions.length / 3);
+  const scoreRows = Math.ceil(levelChartScoreOrder.length / 4);
+  const lampCardHeight = 74;
+  const lampCardGap = 12;
+  const scoreCardHeight = 68;
+  const scoreCardGap = 10;
+  const lampStartY = metrics.panelPadding + 44;
+  const scoreTitleY = lampStartY + lampRows * (lampCardHeight + lampCardGap) + 34;
+  const scoreStartY = scoreTitleY + 42;
+  const scoreCardsHeight = scoreRows * scoreCardHeight + Math.max(0, scoreRows - 1) * scoreCardGap;
+  const leftPanelHeight = scoreStartY + scoreCardsHeight + metrics.panelPadding;
+  const graphPanelHeight = metrics.panelPadding * 2 + 30 + metrics.legendHeight + graphRowsHeight;
+  const panelHeight = Math.max(360, leftPanelHeight, graphPanelHeight);
+  const height = metrics.padding + metrics.headerHeight + panelHeight + metrics.padding;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = metrics.width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas初期化に失敗しました。");
+  }
+
+  const palette = getSummarySnapshotPalette(normalizedTheme);
+  ctx.fillStyle = palette.page;
+  ctx.fillRect(0, 0, metrics.width, height);
+
+  const tableName = String(table?.name ?? "難易度表").trim() || "難易度表";
+  ctx.textBaseline = "top";
+  ctx.font = "700 30px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText("L2TV Table Summary", metrics.padding, metrics.padding);
+
+  ctx.font = "600 17px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textMuted;
+  const dateText = new Date().toLocaleString("ja-JP");
+  const dateWidth = ctx.measureText(dateText).width;
+  ctx.fillText(dateText, metrics.width - metrics.padding - dateWidth, metrics.padding + 8);
+
+  ctx.font = "600 18px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textMuted;
+  const tableText = truncateTextForWidth(ctx, tableName, metrics.width - metrics.padding * 2, ctx.font);
+  ctx.fillText(tableText, metrics.padding, metrics.padding + 36);
+
+  const panelY = metrics.padding + metrics.headerHeight;
+  const leftX = metrics.padding;
+  const rightX = leftX + metrics.leftWidth + metrics.gap;
+  drawRoundedRect(ctx, leftX, panelY, metrics.leftWidth, panelHeight, 16, palette.panelBg);
+  drawRoundedRect(ctx, rightX, panelY, rightWidth, panelHeight, 16, palette.panelBg);
+
+  drawSnapshotLampSummary(ctx, charts, {
+    x: leftX,
+    y: panelY,
+    width: metrics.leftWidth,
+    height: panelHeight,
+    padding: metrics.panelPadding,
+    palette,
+  });
+
+  drawSnapshotLevelGraph(ctx, levelGroups, segmentDefs, {
+    x: rightX,
+    y: panelY,
+    width: rightWidth,
+    height: panelHeight,
+    padding: metrics.panelPadding,
+    rowHeight: metrics.rowHeight,
+    rowGap: metrics.rowGap,
+    legendHeight: metrics.legendHeight,
+    title: getLevelSummaryTitle(normalizedMode),
+    palette,
+  });
+
+  return canvas.toDataURL("image/png");
+}
+
+function getSummarySnapshotPalette(themeMode) {
+  if (themeMode === "lr2ir-dark") {
+    return {
+      page: "#0b1018",
+      panelBg: "#111824",
+      panelBorder: "#53617a",
+      cardText: "#122033",
+      textStrong: "#eef2ff",
+      textMuted: "#b8c2d9",
+    graphBarBg: "#edf2f8",
+    graphBorder: "#667187",
+    graphText: "#dce5f5",
+    graphInsideText: "#101723",
+    scoreCardText: "#122033",
+  };
+  }
+
+  return {
+    page: "#dff4ff",
+    panelBg: "#f7fcff",
+    panelBorder: "#9fd6f7",
+    cardText: "#12324f",
+    textStrong: "#12324f",
+    textMuted: "#4f7393",
+    graphBarBg: "#f7fcff",
+    graphBorder: "#9fd6f7",
+    graphText: "#12324f",
+    graphInsideText: "#102033",
+    scoreCardText: "#12324f",
+  };
+}
+
+function drawSnapshotLampSummary(ctx, charts, metrics) {
+  const { x, y, width, padding, palette } = metrics;
+  ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText("ランプ内訳", x + padding, y + padding);
+
+  const columns = 3;
+  const cardGap = 12;
+  const cardWidth = (width - padding * 2 - cardGap * (columns - 1)) / columns;
+  const cardHeight = 74;
+  const startY = y + padding + 44;
+
+  lampOptions.forEach((lamp, index) => {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const cardX = x + padding + column * (cardWidth + cardGap);
+    const cardY = startY + row * (cardHeight + cardGap);
+    drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 12, getSnapshotLampFill(ctx, lamp, cardX, cardY, cardWidth, cardHeight));
+    ctx.fillStyle = getLampSnapshotCardTextColor(lamp, palette);
+    ctx.font = "700 20px 'Segoe UI', 'Meiryo', sans-serif";
+    const count = charts.filter((chart) => chart.lampStatus === lamp).length;
+    ctx.fillText(formatInteger(count), cardX + 14, cardY + 14);
+    ctx.font = "700 13px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillText(lampLabels[lamp] || lamp, cardX + 14, cardY + 46);
+  });
+
+  const lampRows = Math.ceil(lampOptions.length / columns);
+  const scoreTitleY = startY + lampRows * cardHeight + Math.max(0, lampRows - 1) * cardGap + 34;
+  ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText("スコア内訳", x + padding, scoreTitleY);
+
+  const scoreColumns = 4;
+  const scoreCardGap = 10;
+  const scoreCardWidth = (width - padding * 2 - scoreCardGap * (scoreColumns - 1)) / scoreColumns;
+  const scoreCardHeight = 68;
+  const scoreStartY = scoreTitleY + 42;
+
+  levelChartScoreOrder.forEach((tier, index) => {
+    const row = Math.floor(index / scoreColumns);
+    const column = index % scoreColumns;
+    const cardX = x + padding + column * (scoreCardWidth + scoreCardGap);
+    const cardY = scoreStartY + row * (scoreCardHeight + scoreCardGap);
+    drawRoundedRect(ctx, cardX, cardY, scoreCardWidth, scoreCardHeight, 12, scoreSnapshotColors[tier] || "#ffffff");
+    ctx.fillStyle = getScoreSnapshotCardTextColor(tier, palette);
+    ctx.font = "700 19px 'Segoe UI', 'Meiryo', sans-serif";
+    const count = charts.filter((chart) => classifyScoreTier(chart) === tier).length;
+    ctx.fillText(formatInteger(count), cardX + 12, cardY + 13);
+    ctx.font = "700 12px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillText(levelChartScoreLabels[tier] || tier, cardX + 12, cardY + 43);
+  });
+}
+
+function getLampSnapshotCardTextColor(lamp, palette) {
+  return lamp === "NO SONG" ? "#f8fafc" : palette.cardText;
+}
+
+function getScoreSnapshotCardTextColor(tier, palette) {
+  return tier === "NO_SONG" ? "#f2f8ff" : palette.scoreCardText;
+}
+
+function drawSnapshotLevelGraph(ctx, levelGroups, segmentDefs, metrics) {
+  const { x, y, width, padding, rowHeight, rowGap, legendHeight, title, palette } = metrics;
+  ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText(title, x + padding, y + padding);
+
+  let legendX = x + padding;
+  const legendY = y + padding + 34;
+  ctx.font = "600 13px 'Segoe UI', 'Meiryo', sans-serif";
+  for (const def of segmentDefs) {
+    drawRoundedRect(ctx, legendX, legendY + 5, 12, 12, 2, getSnapshotSegmentFill(ctx, def, legendX, legendY + 5, 12, 12));
+    ctx.fillStyle = palette.textMuted;
+    ctx.fillText(def.label, legendX + 18, legendY + 2);
+    legendX += ctx.measureText(def.label).width + 42;
+  }
+
+  const labelWidth = 42;
+  const totalWidth = 38;
+  const barX = x + padding + labelWidth;
+  const barWidth = width - padding * 2 - labelWidth - totalWidth - 10;
+  let rowY = y + padding + 30 + legendHeight;
+
+  for (const group of levelGroups) {
+    ctx.font = "700 16px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillStyle = palette.graphText;
+    const labelWidthActual = ctx.measureText(group.level).width;
+    ctx.fillText(group.level, x + padding + labelWidth - labelWidthActual - 8, rowY + 3);
+
+    drawRoundedRect(ctx, barX, rowY, barWidth, rowHeight, 0, palette.graphBarBg);
+    let cursorX = barX;
+    for (const def of segmentDefs) {
+      const count = group.charts.reduce((sum, chart) => sum + (def.matches(chart) ? 1 : 0), 0);
+      if (!count) {
+        continue;
+      }
+      const ratio = count / group.charts.length;
+      const segmentWidth = Math.max(1, barWidth * ratio);
+      ctx.fillStyle = getSnapshotSegmentFill(ctx, def, cursorX, rowY, segmentWidth, rowHeight);
+      ctx.fillRect(cursorX, rowY, segmentWidth, rowHeight);
+      if (ratio >= 0.08 && segmentWidth >= 42) {
+        const percentage = formatPercent(ratio * 100);
+        ctx.font = "700 12px 'Segoe UI', 'Meiryo', sans-serif";
+        ctx.fillStyle = palette.graphInsideText;
+        const textWidth = ctx.measureText(percentage).width;
+        if (textWidth + 8 < segmentWidth) {
+          ctx.fillText(percentage, cursorX + segmentWidth / 2 - textWidth / 2, rowY + 6);
+        }
+      }
+      cursorX += segmentWidth;
+    }
+    ctx.strokeStyle = palette.graphBorder;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, rowY, barWidth, rowHeight);
+
+    ctx.font = "600 14px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillStyle = palette.textMuted;
+    ctx.fillText(String(group.charts.length), barX + barWidth + 10, rowY + 4);
+    rowY += rowHeight + rowGap;
+  }
+}
+
+function getSnapshotLevelChartDefs(mode) {
+  if (normalizeLevelChartMode(mode) === "score") {
+    return levelChartScoreOrder.map((tier) => ({
+      label: levelChartScoreLabels[tier],
+      color: scoreSnapshotColors[tier],
+      matches: (chart) => classifyScoreTier(chart) === tier,
+    }));
+  }
+
+  return levelChartLampOrder.map((lamp) => ({
+    label: toChartLampLabel(lamp),
+    color: lampSnapshotColors[lamp],
+    lamp,
+    matches: (chart) => chart.lampStatus === lamp,
+  }));
+}
+
+function getSnapshotLampFill(ctx, lamp, x, y, width, height) {
+  if (lamp !== "FULL COMBO") {
+    return lampSnapshotColors[lamp] || "#ffffff";
+  }
+
+  return createFcSnapshotGradient(ctx, x, y, width, height);
+}
+
+function getSnapshotSegmentFill(ctx, def, x, y, width, height) {
+  if (def?.lamp === "FULL COMBO") {
+    return createFcSnapshotGradient(ctx, x, y, width, height);
+  }
+
+  return def?.color || "#ffffff";
+}
+
+function createFcSnapshotGradient(ctx, x, y, width, height) {
+  const gradient = ctx.createLinearGradient(x, y, x + width, y + Math.max(1, height));
+  gradient.addColorStop(0, "#8ff5ff");
+  gradient.addColorStop(0.52, "#fff2a8");
+  gradient.addColorStop(1, "#b7f8ff");
+  return gradient;
+}
+
+function groupChartsForSnapshot(charts, levelOrder) {
+  const grouped = new Map();
+  for (const chart of charts) {
+    if (!grouped.has(chart.level)) {
+      grouped.set(chart.level, []);
+    }
+    grouped.get(chart.level).push(chart);
+  }
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => compareLevels(left, right, levelOrder))
+    .map(([level, levelCharts]) => ({
+      level,
+      charts: levelCharts,
+    }));
+}
+
+function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, themeMode }) {
+  const normalizedTheme = normalizeThemeMode(themeMode);
+  const updateDateText = formatDateYmd(new Date());
+  const sortedImprovements = [...(Array.isArray(improvements) ? improvements : [])].sort(compareLampImprovements);
+  const groupedByLamp = new Map();
+  for (const item of sortedImprovements) {
+    const lamp = getLampImprovementGroupKey(item);
+    if (!groupedByLamp.has(lamp)) {
+      groupedByLamp.set(lamp, []);
+    }
+    groupedByLamp.get(lamp).push(item);
+  }
+
+  const groups = getLampImprovementGroupDefs()
+    .map((groupDef) => ({
+      ...groupDef,
+      lamp: groupDef.key,
+      items: groupedByLamp.get(groupDef.key) ?? [],
+    }))
+    .filter((group) => group.items.length > 0);
+
+  const metrics = {
+    width: 2048,
+    paddingX: 42,
+    paddingTop: 30,
+    paddingBottom: 36,
+    headerHeight: 42,
+    metaHeight: 32,
+    groupTopGap: 16,
+    groupPaddingX: 14,
+    groupPaddingTop: 12,
+    groupPaddingBottom: 12,
+    groupTitleHeight: 38,
+    groupInnerGap: 8,
+    rowHeight: 48,
+    rowGap: 8,
+    rowLevelWidth: 300,
+    rowDetailWidth: 760,
+    rowDateWidth: 150,
+    rowColumnGap: 16,
+    rowInnerPaddingX: 14,
+  };
+
+  const groupsHeight = groups.reduce((sum, group) => {
+    return (
+      sum +
+      metrics.groupTopGap +
+      metrics.groupPaddingTop +
+      metrics.groupTitleHeight +
+      metrics.groupInnerGap +
+      group.items.length * metrics.rowHeight +
+      Math.max(0, group.items.length - 1) * metrics.rowGap +
+      metrics.groupPaddingBottom
+    );
+  }, 0);
+  const emptyHeight = groups.length ? 0 : metrics.groupTopGap + 72;
+  const height =
+    metrics.paddingTop +
+    metrics.headerHeight +
+    metrics.metaHeight +
+    groupsHeight +
+    emptyHeight +
+    metrics.paddingBottom;
+
+  const scale = 1;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.floor(metrics.width * scale));
+  canvas.height = Math.max(1, Math.floor(height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas初期化に失敗しました。");
+  }
+  ctx.scale(scale, scale);
+
+  const palette = getLampUpdatesSnapshotPalette(normalizedTheme);
+  ctx.fillStyle = palette.page;
+  ctx.fillRect(0, 0, metrics.width, height);
+
+  let y = metrics.paddingTop;
+  ctx.font = "700 34px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.textBaseline = "top";
+  ctx.fillText("L2TV Lamp Updates", metrics.paddingX, y);
+
+  const timestampText = new Date().toLocaleString("ja-JP");
+  ctx.font = "600 18px 'Segoe UI', 'Meiryo', sans-serif";
+  const timestampWidth = ctx.measureText(timestampText).width;
+  ctx.fillStyle = palette.textMuted;
+  ctx.fillText(timestampText, metrics.width - metrics.paddingX - timestampWidth, y + 8);
+
+  y += metrics.headerHeight;
+
+  const keyHitText =
+    keyHitCountDelta != null && keyHitCountDelta > 0 ? `${formatInteger(keyHitCountDelta)}回` : "NO Data";
+  ctx.font = "700 20px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText(`今回の打鍵数: ${keyHitText}`, metrics.paddingX, y);
+  ctx.fillText(`更新譜面数: ${sortedImprovements.length}件`, metrics.paddingX + 350, y);
+
+  y += metrics.metaHeight;
+
+  if (!groups.length) {
+    y += metrics.groupTopGap;
+    drawRoundedRect(ctx, metrics.paddingX, y, metrics.width - metrics.paddingX * 2, 72, 10, palette.groupNeutralBg);
+    ctx.font = "600 20px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillStyle = palette.textMuted;
+    ctx.fillText("更新データはありません。", metrics.paddingX + 16, y + 22);
+    return canvas.toDataURL("image/png");
+  }
+
+  for (const group of groups) {
+    y += metrics.groupTopGap;
+    const groupBodyHeight =
+      metrics.groupPaddingTop +
+      metrics.groupTitleHeight +
+      metrics.groupInnerGap +
+      group.items.length * metrics.rowHeight +
+      Math.max(0, group.items.length - 1) * metrics.rowGap +
+      metrics.groupPaddingBottom;
+
+    const groupColor = getLampUpdatesSnapshotGroupColor(group.lamp, palette);
+    drawRoundedRect(
+      ctx,
+      metrics.paddingX,
+      y,
+      metrics.width - metrics.paddingX * 2,
+      groupBodyHeight,
+      12,
+      getLampUpdatesSnapshotFill(ctx, group.lamp, groupColor.groupBg, metrics.paddingX, y, metrics.width - metrics.paddingX * 2, groupBodyHeight),
+    );
+
+    drawRoundedRect(
+      ctx,
+      metrics.paddingX + metrics.groupPaddingX,
+      y + metrics.groupPaddingTop,
+      metrics.width - metrics.paddingX * 2 - metrics.groupPaddingX * 2,
+      metrics.groupTitleHeight,
+      8,
+      getLampUpdatesSnapshotFill(
+        ctx,
+        group.lamp,
+        groupColor.titleBg,
+        metrics.paddingX + metrics.groupPaddingX,
+        y + metrics.groupPaddingTop,
+        metrics.width - metrics.paddingX * 2 - metrics.groupPaddingX * 2,
+        metrics.groupTitleHeight,
+      ),
+    );
+    ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillStyle = palette.groupTitleText;
+    const groupTitle = group.title;
+    const groupTitleWidth = ctx.measureText(groupTitle).width;
+    ctx.fillText(groupTitle, metrics.width / 2 - groupTitleWidth / 2, y + metrics.groupPaddingTop + 5);
+
+    let rowY = y + metrics.groupPaddingTop + metrics.groupTitleHeight + metrics.groupInnerGap;
+    for (const item of group.items) {
+      const rowX = metrics.paddingX + metrics.groupPaddingX;
+      const rowWidth = metrics.width - metrics.paddingX * 2 - metrics.groupPaddingX * 2;
+      drawRoundedRect(ctx, rowX, rowY, rowWidth, metrics.rowHeight, 7, palette.rowBg);
+
+      const rowContentLeft = rowX + metrics.rowInnerPaddingX;
+      const rowContentRight = rowX + rowWidth - metrics.rowInnerPaddingX;
+      const levelX = rowContentLeft;
+      const titleX = levelX + metrics.rowLevelWidth + metrics.rowColumnGap;
+
+      ctx.font = "600 15px 'Segoe UI', 'Meiryo', sans-serif";
+      const dateWidth = Math.max(metrics.rowDateWidth, Math.ceil(ctx.measureText(updateDateText).width) + 6);
+      const dateX = rowContentRight - dateWidth;
+
+      const detailWidth = Math.min(metrics.rowDetailWidth, Math.max(560, Math.floor(rowWidth * 0.4)));
+      const detailRight = dateX - metrics.rowColumnGap;
+      const detailX = Math.max(titleX + 120, detailRight - detailWidth);
+      const detailMaxWidth = Math.max(0, detailRight - detailX);
+      const rowCenterY = rowY + metrics.rowHeight / 2;
+
+      const levelText = truncateTextForWidth(
+        ctx,
+        String(item.levelText ?? "-"),
+        metrics.rowLevelWidth,
+        "700 18px 'Segoe UI', 'Meiryo', sans-serif",
+      );
+      drawSnapshotLeftText(
+        ctx,
+        levelText,
+        levelX,
+        metrics.rowLevelWidth,
+        rowCenterY,
+        "700 18px 'Segoe UI', 'Meiryo', sans-serif",
+        palette.levelText,
+      );
+
+      const detailGap = 12;
+      const bpWidth = 132;
+      const tierWidth = 76;
+      const exWidth = 112;
+      const rateWidth = 108;
+      const medalWidth = 92;
+      const transitionX = detailX;
+      const transitionWidth = 150;
+      const bpX = transitionX + transitionWidth + detailGap;
+      const tierX = bpX + bpWidth + detailGap;
+      const exX = tierX + tierWidth + detailGap;
+      const rateX = exX + exWidth + detailGap;
+      const medalX = rateX + rateWidth + detailGap;
+
+      drawSnapshotLampTransition(
+        ctx,
+        transitionX,
+        rowCenterY,
+        transitionWidth,
+        item.updateKind === "lamp" ? item.previousLamp : null,
+        item.currentLamp,
+        palette,
+      );
+
+      const bpText =
+        item.missCount == null
+          ? "BP NO Data"
+          : item.previousMissCount != null && item.missCount < item.previousMissCount
+            ? `BP ${formatInteger(item.previousMissCount)}→${formatInteger(item.missCount)}`
+            : `BP ${formatInteger(item.missCount)}`;
+      drawSnapshotColumnText(
+        ctx,
+        bpText,
+        bpX,
+        bpWidth,
+        rowCenterY,
+        "700 16px 'Segoe UI', 'Meiryo', sans-serif",
+        item.missCount == null ? palette.dateText : palette.detailText,
+      );
+
+      const hasScoreUpdate =
+        item.updateKind === "score" || Boolean(item.scoreUpdated && (item.scoreRate != null || item.exScore != null));
+      const tierText =
+        hasScoreUpdate && item.scoreRate != null
+          ? levelChartScoreLabels[classifyScoreTier({ ...item, lampStatus: item.currentLamp })] || ""
+          : "";
+      const exText =
+        hasScoreUpdate && item.exScore != null
+          ? item.updateKind === "score" && item.previousExScore != null && item.exScore > item.previousExScore
+            ? `${formatInteger(item.previousExScore)}→${formatInteger(item.exScore)}`
+            : formatInteger(item.exScore)
+          : "";
+      const rateText = hasScoreUpdate && item.scoreRate != null ? `${item.scoreRate.toFixed(2)}%` : "";
+
+      drawSnapshotCenterText(
+        ctx,
+        tierText,
+        tierX,
+        tierWidth,
+        rowCenterY,
+        "700 16px 'Segoe UI', 'Meiryo', sans-serif",
+        palette.tierText,
+      );
+      drawSnapshotColumnText(
+        ctx,
+        exText,
+        exX,
+        exWidth,
+        rowCenterY,
+        "600 16px 'Segoe UI', 'Meiryo', sans-serif",
+        palette.detailText,
+      );
+      drawSnapshotColumnText(
+        ctx,
+        rateText,
+        rateX,
+        rateWidth,
+        rowCenterY,
+        "600 16px 'Segoe UI', 'Meiryo', sans-serif",
+        palette.detailText,
+      );
+      drawSnapshotIrRankMedal(ctx, medalX, rowCenterY, medalWidth, item.irRank, item.irTotal, palette);
+
+      drawSnapshotColumnText(
+        ctx,
+        updateDateText,
+        dateX,
+        dateWidth,
+        rowCenterY,
+        "600 15px 'Segoe UI', 'Meiryo', sans-serif",
+        palette.dateText,
+      );
+
+      const titleMaxWidth = Math.max(120, detailX - metrics.rowColumnGap - titleX);
+      const titleText = truncateTextForWidth(
+        ctx,
+        String(item.title ?? "タイトル不明"),
+        titleMaxWidth,
+        "600 19px 'Segoe UI', 'Meiryo', sans-serif",
+      );
+      drawSnapshotLeftText(
+        ctx,
+        titleText,
+        titleX,
+        titleMaxWidth,
+        rowCenterY,
+        "600 19px 'Segoe UI', 'Meiryo', sans-serif",
+        palette.titleText,
+      );
+
+      rowY += metrics.rowHeight + metrics.rowGap;
+    }
+
+    y += groupBodyHeight;
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
+function getLampUpdatesSnapshotPalette(themeMode) {
+  if (themeMode === "lr2ir-dark") {
+    return {
+      page: "#0b1018",
+      textStrong: "#eef2ff",
+      textMuted: "#aeb8d0",
+      groupTitleText: "#0f1826",
+      groupNeutralBg: "#172234",
+      rowBg: "#f2f4f8",
+      levelText: "#111722",
+      titleText: "#111722",
+      detailText: "#33405a",
+      dateText: "#4d5f7e",
+      tierText: "#ab7b28",
+      fcBg: "#fff7c6",
+      fcTitle: "#9df2f5",
+      hcBg: "#ffe1e4",
+      hcTitle: "#ffb9c1",
+      ncBg: "#e0f2ff",
+      ncTitle: "#b7dbff",
+      ecBg: "#dff8e6",
+      ecTitle: "#b8edca",
+      bpBg: "#ece5ff",
+      bpTitle: "#d7c8ff",
+      scoreUpdateBg: "#fff4d8",
+      scoreUpdateTitle: "#ffe08a",
+    };
+  }
+
+  return {
+    page: "#f3fbff",
+    textStrong: "#123453",
+    textMuted: "#4f7190",
+    groupTitleText: "#23374f",
+    groupNeutralBg: "#e2f0f8",
+    rowBg: "#ffffff",
+    levelText: "#163450",
+    titleText: "#163450",
+    detailText: "#466280",
+    dateText: "#617c9e",
+    tierText: "#ab7b28",
+    fcBg: "#fff9d7",
+    fcTitle: "#b7f7f7",
+    hcBg: "#ffe7ea",
+    hcTitle: "#ffc4cc",
+    ncBg: "#e8f4ff",
+    ncTitle: "#c8e2ff",
+    ecBg: "#e8fbee",
+    ecTitle: "#c8f4d6",
+    bpBg: "#f0eaff",
+    bpTitle: "#d9ccff",
+    scoreUpdateBg: "#fff7df",
+    scoreUpdateTitle: "#ffe69a",
+  };
+}
+
+function getLampUpdatesSnapshotGroupColor(lamp, palette) {
+  switch (lamp) {
+    case "FULL COMBO":
+      return { groupBg: palette.fcBg, titleBg: palette.fcTitle };
+    case "HARD CLEAR":
+      return { groupBg: palette.hcBg, titleBg: palette.hcTitle };
+    case "CLEAR":
+      return { groupBg: palette.ncBg, titleBg: palette.ncTitle };
+    case "EASY CLEAR":
+      return { groupBg: palette.ecBg, titleBg: palette.ecTitle };
+    case "BP_UPDATE":
+      return { groupBg: palette.bpBg, titleBg: palette.bpTitle };
+    case "SCORE_UPDATE":
+      return { groupBg: palette.scoreUpdateBg, titleBg: palette.scoreUpdateTitle };
+    default:
+      return { groupBg: palette.groupNeutralBg, titleBg: palette.groupNeutralBg };
+  }
+}
+
+function getLampUpdatesSnapshotFill(ctx, lamp, fallback, x, y, width, height) {
+  if (lamp === "FULL COMBO") {
+    return createFcSnapshotGradient(ctx, x, y, width, height);
+  }
+
+  return fallback;
+}
+
+function drawRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
+  const resolvedRadius = Math.max(0, Math.min(radius, width / 2, height / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + resolvedRadius, y);
+  ctx.lineTo(x + width - resolvedRadius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + resolvedRadius);
+  ctx.lineTo(x + width, y + height - resolvedRadius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - resolvedRadius, y + height);
+  ctx.lineTo(x + resolvedRadius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - resolvedRadius);
+  ctx.lineTo(x, y + resolvedRadius);
+  ctx.quadraticCurveTo(x, y, x + resolvedRadius, y);
+  ctx.closePath();
+  ctx.fillStyle = fillStyle;
+  ctx.fill();
+}
+
+function drawSnapshotLampBadge(ctx, x, y, lamp) {
+  const normalizedLamp = normalizeLampStatusForUi(lamp);
+  const label = lampLabels[normalizedLamp] || normalizedLamp;
+  const colors = getSnapshotLampBadgeColors(normalizedLamp);
+  ctx.font = "700 13px 'Segoe UI', 'Meiryo', sans-serif";
+  const textWidth = ctx.measureText(label).width;
+  const width = Math.ceil(textWidth + 16);
+  const height = 20;
+  const fill = normalizedLamp === "FULL COMBO" ? createFcSnapshotGradient(ctx, x, y, width, height) : colors.bg;
+  drawRoundedRect(ctx, x, y, width, height, 10, fill);
+  const previousBaseline = ctx.textBaseline;
+  ctx.fillStyle = colors.text;
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + 8, y + height / 2 + 0.5);
+  ctx.textBaseline = previousBaseline;
+  return x + width;
+}
+
+function drawSnapshotLampTransition(ctx, x, centerY, maxWidth, previousLamp, currentLamp, palette) {
+  if (maxWidth <= 0) {
+    return;
+  }
+
+  const left = x;
+  const right = x + maxWidth;
+  const badgeHeight = 20;
+  const badgeY = Math.round(centerY - badgeHeight / 2);
+  let cursorX = left;
+
+  if (!String(previousLamp ?? "").trim() || normalizeLampStatusForUi(previousLamp) === normalizeLampStatusForUi(currentLamp)) {
+    drawSnapshotLampBadge(ctx, cursorX, badgeY, currentLamp);
+    return;
+  }
+
+  cursorX = drawSnapshotLampBadge(ctx, cursorX, badgeY, previousLamp);
+  if (cursorX + 18 >= right) {
+    return;
+  }
+
+  const previousBaseline = ctx.textBaseline;
+  ctx.font = "700 15px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.detailText;
+  ctx.textBaseline = "middle";
+  ctx.fillText("→", cursorX + 5, centerY + 0.5);
+  ctx.textBaseline = previousBaseline;
+  cursorX += 20;
+  if (cursorX + 36 >= right) {
+    return;
+  }
+
+  drawSnapshotLampBadge(ctx, cursorX, badgeY, currentLamp);
+}
+
+function drawSnapshotColumnText(ctx, text, x, width, centerY, font, color) {
+  const value = String(text ?? "").trim();
+  if (!value || width <= 0) {
+    return;
+  }
+
+  const rendered = truncateTextForWidth(ctx, value, width, font);
+  const previousBaseline = ctx.textBaseline;
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "middle";
+  const measured = ctx.measureText(rendered).width;
+  const drawX = x + Math.max(0, width - measured);
+  ctx.fillText(rendered, drawX, centerY + 0.5);
+  ctx.textBaseline = previousBaseline;
+}
+
+function drawSnapshotCenterText(ctx, text, x, width, centerY, font, color) {
+  const value = String(text ?? "").trim();
+  if (!value || width <= 0) {
+    return;
+  }
+
+  const rendered = truncateTextForWidth(ctx, value, width, font);
+  const previousBaseline = ctx.textBaseline;
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "middle";
+  const measured = ctx.measureText(rendered).width;
+  const drawX = x + Math.max(0, (width - measured) / 2);
+  ctx.fillText(rendered, drawX, centerY + 0.5);
+  ctx.textBaseline = previousBaseline;
+}
+
+function drawSnapshotIrRankMedal(ctx, x, centerY, width, rank, total, palette) {
+  const normalizedRank = toPositiveRankInteger(rank);
+  if (normalizedRank == null || normalizedRank > 10 || width <= 0) {
+    return;
+  }
+
+  const medal = getSnapshotIrRankMedalStyle(normalizedRank);
+  const badgeWidth = normalizedRank <= 3 ? 34 : 58;
+  const badgeHeight = 22;
+  const badgeX = x + Math.max(0, width - badgeWidth) / 2;
+  const badgeY = centerY - badgeHeight / 2;
+  drawRoundedRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, 11, medal.bg);
+  ctx.strokeStyle = medal.stroke;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  const previousBaseline = ctx.textBaseline;
+  const label = normalizedRank <= 3 ? `${normalizedRank}` : "TOP10";
+  ctx.font =
+    normalizedRank <= 3
+      ? "900 14px 'Segoe UI', 'Meiryo', sans-serif"
+      : "900 11px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = medal.text;
+  ctx.textBaseline = "middle";
+  const labelWidth = ctx.measureText(label).width;
+  ctx.fillText(label, badgeX + badgeWidth / 2 - labelWidth / 2, centerY + 0.5);
+  ctx.textBaseline = previousBaseline;
+}
+
+function getSnapshotIrRankMedalStyle(rank) {
+  if (rank === 1) {
+    return { bg: "#f4c542", stroke: "#fff0a3", text: "#392200" };
+  }
+  if (rank === 2) {
+    return { bg: "#c9d2df", stroke: "#f8fbff", text: "#1b2633" };
+  }
+  if (rank === 3) {
+    return { bg: "#cf8d52", stroke: "#ffd8ac", text: "#331805" };
+  }
+  return { bg: "#7dbfff", stroke: "#c9f2ff", text: "#0d263f" };
+}
+
+function drawSnapshotLeftText(ctx, text, x, width, centerY, font, color) {
+  const value = String(text ?? "").trim();
+  if (!value || width <= 0) {
+    return;
+  }
+
+  const rendered = truncateTextForWidth(ctx, value, width, font);
+  const previousBaseline = ctx.textBaseline;
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "middle";
+  ctx.fillText(rendered, x, centerY + 0.5);
+  ctx.textBaseline = previousBaseline;
+}
+
+function getSnapshotLampBadgeColors(lamp) {
+  switch (lamp) {
+    case "FULL COMBO":
+      return { bg: "#fff0a3", text: "#2f2a05" };
+    case "HARD CLEAR":
+      return { bg: "#ff9ca4", text: "#38141a" };
+    case "CLEAR":
+      return { bg: "#5aa1ff", text: "#081d36" };
+    case "EASY CLEAR":
+      return { bg: "#7ee7a1", text: "#092818" };
+    case "FAILED":
+      return { bg: "#9aa4b6", text: "#101824" };
+    default:
+      return { bg: "#e8e8ea", text: "#1a1b1d" };
+  }
+}
+
+function truncateTextForWidth(ctx, text, maxWidth, font) {
+  const value = String(text ?? "");
+  if (!value || maxWidth <= 0) {
+    return "";
+  }
+  const previousFont = ctx.font;
+  if (font) {
+    ctx.font = font;
+  }
+
+  if (ctx.measureText(value).width <= maxWidth) {
+    if (font) {
+      ctx.font = previousFont;
+    }
+    return value;
+  }
+
+  const suffix = "…";
+  let end = value.length;
+  while (end > 0) {
+    const candidate = `${value.slice(0, end)}${suffix}`;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      if (font) {
+        ctx.font = previousFont;
+      }
+      return candidate;
+    }
+    end -= 1;
+  }
+
+  if (font) {
+    ctx.font = previousFont;
+  }
+  return suffix;
+}
+
+function renderTableSection(table, filteredCharts) {
+  const fragment = tableSectionTemplate.content.cloneNode(true);
+  const root = fragment.querySelector(".table-section");
+
+  const tableName = root.querySelector(".table-name");
+  const tableNameToggle = root.querySelector(".table-name-toggle");
+  const tableInfoPanel = root.querySelector(".table-info-panel");
+  const tableStateKey = buildTableInfoStateKey(table);
+  const isOpen = Boolean(tableInfoPanelOpenState.get(tableStateKey));
+  tableName.textContent = table.name;
+  tableInfoPanel.classList.toggle("hidden", !isOpen);
+  tableNameToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+
+  if (tableNameToggle && tableInfoPanel) {
+    tableNameToggle.addEventListener("click", () => {
+      const nextOpen = tableInfoPanel.classList.contains("hidden");
+      tableInfoPanel.classList.toggle("hidden", !nextOpen);
+      tableNameToggle.setAttribute("aria-expanded", nextOpen ? "true" : "false");
+      tableInfoPanelOpenState.set(tableStateKey, nextOpen);
+    });
+  }
+
+  const tableLink = root.querySelector(".table-link");
+  tableLink.href = table.sourceUrl;
+
+  const metricStrip = root.querySelector(".metric-strip");
+  const top1Count = countRankOwnership(table.charts, 1);
+  const top2Count = countRankOwnership(table.charts, 2);
+  const top3Count = countRankOwnership(table.charts, 3);
+  const top10Count = countRankOwnershipWithin(table.charts, 10);
+  metricStrip.append(
+    createMetricCard("総譜面数", String(table.stats.totalCharts), ""),
+    createMetricCard("クリア率", formatPercent(table.stats.clearRate), ""),
+    createMetricCard("プレイ率", formatPercent(table.stats.playedRate), ""),
+    createMetricCard("IR1位保持数", `${formatInteger(top1Count)}譜面`, ""),
+    createMetricCard("IR2位保持数", `${formatInteger(top2Count)}譜面`, ""),
+    createMetricCard("IR3位保持数", `${formatInteger(top3Count)}譜面`, ""),
+    createMetricCard("IRTOP10保持数", `${formatInteger(top10Count)}譜面`, ""),
+  );
+
+  const lampSummary = root.querySelector(".lamp-summary");
+  for (const lamp of lampOptions) {
+    const count = filteredCharts.filter((chart) => chart.lampStatus === lamp).length;
+    lampSummary.append(createLampPill(lamp, count));
+  }
+
+  const scoreSummary = root.querySelector(".score-summary");
+  if (scoreSummary) {
+    for (const tier of levelChartScoreOrder) {
+      const count = filteredCharts.filter((chart) => classifyScoreTier(chart) === tier).length;
+      scoreSummary.append(createScorePill(tier, count));
+    }
+  }
+
+  const levelSummaryTitle = root.querySelector(".level-summary-title");
+  if (levelSummaryTitle) {
+    levelSummaryTitle.textContent = getLevelSummaryTitle(levelChartMode);
+  }
+
+  const levelSummary = root.querySelector(".level-summary");
+  levelSummary.append(renderLevelChart(table, filteredCharts, levelChartMode));
+
+  const summaryGrid = root.querySelector(".summary-grid");
+  if (summaryGrid) {
+    const summaryActions = document.createElement("div");
+    summaryActions.className = "summary-export-actions";
+    const exportSummaryButton = document.createElement("button");
+    exportSummaryButton.type = "button";
+    exportSummaryButton.className = "button-secondary summary-export-button";
+    exportSummaryButton.textContent = "この画面を画像出力";
+    exportSummaryButton.addEventListener("click", async () => {
+      const defaultLabel = exportSummaryButton.textContent;
+      exportSummaryButton.disabled = true;
+      exportSummaryButton.textContent = "出力中…";
+      showExportMessage("出力中…", { closable: false });
+      try {
+        await exportTableSummarySnapshot({
+          table,
+          charts: filteredCharts,
+          mode: levelChartMode,
+          themeMode: selectedThemeMode,
+        });
+        showExportMessage("スクショ保存完了！");
+      } catch (error) {
+        showExportMessage(error instanceof Error ? error.message : "画像出力に失敗しました。");
+      } finally {
+        exportSummaryButton.disabled = false;
+        exportSummaryButton.textContent = defaultLabel;
+      }
+    });
+    summaryActions.append(exportSummaryButton);
+    summaryGrid.before(summaryActions);
+  }
+
+  const chartDetails = root.querySelector(".chart-details");
+  const chartDetailsSummary = root.querySelector(".chart-details summary");
+  chartDetails.open = Boolean(chartDetailsOpenState.get(tableStateKey));
+  let chartPanelRendered = false;
+
+  const mountChartListPanel = () => {
+    if (chartPanelRendered) {
+      return;
+    }
+    const chartTableWrap = root.querySelector(".chart-table-wrap");
+    if (!chartTableWrap) {
+      return;
+    }
+    chartTableWrap.replaceWith(createChartListPanel(table, filteredCharts, chartDetailsSummary));
+    chartPanelRendered = true;
+  };
+
+  const unmountChartListPanel = () => {
+    if (!chartPanelRendered) {
+      return;
+    }
+    const existingPanel = root.querySelector(".chart-list-panel");
+    if (!existingPanel) {
+      chartPanelRendered = false;
+      return;
+    }
+    const placeholder = document.createElement("div");
+    placeholder.className = "chart-table-wrap";
+    existingPanel.replaceWith(placeholder);
+    chartPanelRendered = false;
+  };
+
+  if (chartDetails.open) {
+    mountChartListPanel();
+  }
+  chartDetails.addEventListener("toggle", () => {
+    chartDetailsOpenState.set(tableStateKey, Boolean(chartDetails.open));
+    if (chartDetails.open) {
+      mountChartListPanel();
+      return;
+    }
+    unmountChartListPanel();
+  });
+
+  return fragment;
+}
+
+function renderLevelChart(table, filteredCharts, mode = "lamp") {
+  const grouped = new Map();
+
+  for (const chart of filteredCharts) {
+    if (!grouped.has(chart.level)) {
+      grouped.set(chart.level, []);
+    }
+    grouped.get(chart.level).push(chart);
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "level-chart";
+  wrapper.addEventListener("mouseleave", () => {
+    hideFloatingTooltip();
+  });
+
+  if (!grouped.size) {
+    const empty = document.createElement("div");
+    empty.className = "dimmed";
+    empty.textContent = "条件に一致する譜面はありません。";
+    wrapper.append(empty);
+    return wrapper;
+  }
+
+  const normalizedMode = normalizeLevelChartMode(mode);
+  const segmentDefs = normalizedMode === "score" ? buildScoreChartDefs() : buildLampChartDefs(filteredCharts);
+
+  const legend = document.createElement("div");
+  legend.className = "chart-legend";
+  for (const def of segmentDefs) {
+    const item = document.createElement("div");
+    item.className = "chart-legend-item";
+    item.innerHTML =
+      `<span class="chart-legend-swatch ${def.segmentClass}"></span>` +
+      `<span>${escapeHtml(def.label)}</span>`;
+    legend.append(item);
+  }
+
+  const rows = document.createElement("div");
+  rows.className = "level-chart-rows";
+  const sortedLevels = [...grouped.keys()].sort((left, right) => compareLevels(left, right, table.levelOrder));
+
+  for (const level of sortedLevels) {
+    const charts = grouped.get(level);
+    const row = document.createElement("div");
+    row.className = "level-chart-row";
+
+    const label = document.createElement("div");
+    label.className = "level-chart-label";
+    label.textContent = level;
+
+    const bar = document.createElement("div");
+    bar.className = "level-chart-bar";
+
+    for (const def of segmentDefs) {
+      const count = charts.reduce((sum, chart) => sum + (def.matches(chart) ? 1 : 0), 0);
+      if (!count) {
+        continue;
+      }
+
+      const ratio = count / charts.length;
+      const segment = document.createElement("div");
+      segment.className = `level-chart-segment ${def.segmentClass}`;
+      segment.style.width = `${ratio * 100}%`;
+      const tooltipText = `${def.label}: ${count} (${formatPercent(ratio * 100)})`;
+      if (ratio >= 0.08) {
+        const percentage = document.createElement("span");
+        percentage.className = "level-chart-segment-label";
+        percentage.textContent = formatPercent(ratio * 100);
+        segment.append(percentage);
+      }
+      segment.addEventListener("mouseenter", (event) => {
+        showFloatingTooltip(tooltipText, event);
+      });
+      segment.addEventListener("mousemove", (event) => {
+        showFloatingTooltip(tooltipText, event);
+      });
+      segment.addEventListener("mouseleave", () => {
+        hideFloatingTooltip();
+      });
+      bar.append(segment);
+    }
+
+    const total = document.createElement("div");
+    total.className = "level-chart-total";
+    total.textContent = `${charts.length}`;
+
+    row.append(label, bar, total);
+    rows.append(row);
+  }
+
+  wrapper.append(legend, rows);
+  return wrapper;
+}
+
+function buildLampChartDefs(filteredCharts) {
+  return levelChartLampOrder.map((lamp) => ({
+    label: toChartLampLabel(lamp),
+    segmentClass: `segment-${toLampSlug(lamp)}`,
+    matches: (chart) => chart.lampStatus === lamp,
+  }));
+}
+
+function buildScoreChartDefs() {
+  return levelChartScoreOrder.map((tier) => ({
+    label: levelChartScoreLabels[tier],
+    segmentClass: `segment-score-${toScoreTierSlug(tier)}`,
+    matches: (chart) => classifyScoreTier(chart) === tier,
+  }));
+}
+
+function createChartListPanel(table, charts, summaryElement) {
+  const panel = document.createElement("div");
+  panel.className = "chart-list-panel";
+  const tableStateKey = buildTableInfoStateKey(table);
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "chart-list-toolbar";
+
+  const filterGrid = document.createElement("div");
+  filterGrid.className = "chart-list-filters";
+
+  const searchInput = document.createElement("input");
+  searchInput.type = "search";
+  searchInput.placeholder = "曲名 / アーティスト / EX / Rate / IR順位 / プレイ回数";
+
+  const lampSelect = document.createElement("select");
+  lampSelect.innerHTML = '<option value="">すべて</option>';
+  for (const lamp of lampOptions) {
+    const option = document.createElement("option");
+    option.value = lamp;
+    option.textContent = lampLabels[lamp];
+    lampSelect.append(option);
+  }
+
+  const levelSelect = document.createElement("select");
+  levelSelect.innerHTML = '<option value="">すべて</option>';
+  const levels = [...new Set(charts.map((chart) => chart.level))].sort((left, right) =>
+    compareLevels(left, right, table.levelOrder),
+  );
+  for (const level of levels) {
+    const option = document.createElement("option");
+    option.value = level;
+    option.textContent = level;
+    levelSelect.append(option);
+  }
+
+  filterGrid.append(
+    createChartListField("検索", searchInput),
+    createChartListField("Lamp", lampSelect),
+    createChartListField("Level", levelSelect),
+  );
+
+  const content = document.createElement("div");
+  content.className = "chart-list-content";
+  const savedOpenLevels = chartListOpenLevelsState.get(tableStateKey);
+
+  const state = {
+    query: "",
+    lamp: "",
+    level: "",
+    sortKey: "level",
+    sortDirection: "asc",
+    openLevels: savedOpenLevels instanceof Set ? new Set(savedOpenLevels) : new Set(),
+  };
+
+  const update = () => {
+    const visibleCharts = charts.filter((chart) =>
+      chartMatchesChartListFilters(chart, state.query, state.lamp, state.level),
+    );
+
+    updateChartListSummary(summaryElement);
+
+    content.innerHTML = "";
+
+    if (!visibleCharts.length) {
+      const empty = document.createElement("div");
+      empty.className = "chart-list-empty dimmed";
+      empty.textContent = "条件に一致する譜面はありません。";
+      content.append(empty);
+      return;
+    }
+
+    content.append(renderGroupedChartTables(table, visibleCharts, state, update));
+  };
+
+  searchInput.addEventListener("input", () => {
+    state.query = searchInput.value.trim().toLowerCase();
+    update();
+  });
+
+  lampSelect.addEventListener("change", () => {
+    state.lamp = lampSelect.value;
+    update();
+  });
+
+  levelSelect.addEventListener("change", () => {
+    state.level = levelSelect.value;
+    if (state.level) {
+      state.openLevels.add(state.level);
+    }
+    chartListOpenLevelsState.set(tableStateKey, new Set(state.openLevels));
+    update();
+  });
+
+  toolbar.append(filterGrid);
+  panel.append(toolbar, content);
+
+  update();
+  return panel;
+}
+
+function createChartListField(label, control) {
+  const field = document.createElement("label");
+  field.className = "field chart-list-field";
+
+  const labelText = document.createElement("span");
+  labelText.textContent = label;
+
+  field.append(labelText, control);
+  return field;
+}
+
+function renderGroupedChartTables(table, charts, state, rerender) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "level-group-list";
+
+  const chartGroups = new Map();
+  for (const chart of charts) {
+    if (!chartGroups.has(chart.level)) {
+      chartGroups.set(chart.level, []);
+    }
+    chartGroups.get(chart.level).push(chart);
+  }
+
+  const groupedLevels = [...chartGroups.keys()].sort((left, right) => {
+    const compared = compareLevels(left, right, table.levelOrder);
+    return state.sortKey === "level" && state.sortDirection === "desc" ? -compared : compared;
+  });
+
+  for (const level of groupedLevels) {
+    const levelCharts = chartGroups.get(level);
+    const group = document.createElement("details");
+    group.className = "level-group";
+    const completedLamp = getLevelGroupCompletedLamp(levelCharts);
+    if (completedLamp) {
+      group.classList.add(`level-group-complete-${toLampSlug(completedLamp)}`);
+    }
+    group.open = state.level ? state.level === level : state.openLevels.has(level);
+
+    const summary = document.createElement("summary");
+    summary.className = "level-group-summary";
+
+    const groupName = document.createElement("span");
+    groupName.className = "level-group-name";
+    groupName.textContent = formatLevelWithSymbol(level, table.symbol);
+
+    const breakdown = createLevelGroupBreakdown(levelCharts);
+
+    const groupCount = document.createElement("span");
+    groupCount.className = "level-group-count";
+    groupCount.textContent = `${levelCharts.length}譜面`;
+
+    summary.append(groupName, breakdown, groupCount);
+
+    const sortedCharts = sortChartsForList(levelCharts, table, {
+      ...state,
+      sortKey: state.sortKey === "level" ? "title" : state.sortKey,
+      sortDirection: state.sortKey === "level" ? "asc" : state.sortDirection,
+    });
+
+    const groupContent = document.createElement("div");
+    groupContent.className = "level-group-content";
+
+    const renderGroupContent = () => {
+      if (groupContent.childElementCount > 0) {
+        return;
+      }
+      groupContent.append(renderChartTable(sortedCharts, table, state, rerender));
+    };
+
+    if (group.open) {
+      renderGroupContent();
+    }
+
+    group.addEventListener("toggle", () => {
+      if (group.open) {
+        state.openLevels.add(level);
+        renderGroupContent();
+      } else {
+        state.openLevels.delete(level);
+        groupContent.innerHTML = "";
+      }
+      chartListOpenLevelsState.set(buildTableInfoStateKey(table), new Set(state.openLevels));
+    });
+
+    group.append(summary, groupContent);
+    wrapper.append(group);
+  }
+
+  return wrapper;
+}
+
+function renderChartTable(charts, tableInfo, state, rerender) {
+  const table = document.createElement("table");
+  table.className = "chart-table";
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  for (const column of chartSortColumns) {
+    const th = document.createElement("th");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sort-button";
+    button.classList.toggle("is-active", state.sortKey === column.key);
+    button.innerHTML =
+      `<span>${escapeHtml(column.label)}</span>` +
+      `<span class="sort-indicator">${getSortIndicator(column.key, state)}</span>`;
+    button.addEventListener("click", () => {
+      if (state.sortKey === column.key) {
+        state.sortDirection = state.sortDirection === "asc" ? "desc" : "asc";
+      } else {
+        state.sortKey = column.key;
+        state.sortDirection = "asc";
+      }
+      rerender();
+    });
+    th.append(button);
+    headRow.append(th);
+  }
+  thead.append(headRow);
+  table.append(thead);
+
+  const tbody = document.createElement("tbody");
+
+  if (!charts.length) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td colspan="${chartSortColumns.length}" class="dimmed">条件に一致する譜面はありません。</td>`;
+    tbody.append(row);
+    table.append(tbody);
+    return table;
+  }
+
+  for (const chart of charts) {
+    const row = document.createElement("tr");
+    const lampClass = `lamp-${chart.lampStatus.toLowerCase().replace(/\s+/g, "-")}`;
+    row.className = lampClass;
+
+    const levelCell = document.createElement("td");
+    levelCell.className = "chart-level-cell";
+    levelCell.textContent = formatLevelWithSymbol(chart.level, tableInfo.symbol);
+
+    const titleCell = document.createElement("td");
+    titleCell.className = `chart-title-cell ${lampClass}`;
+    titleCell.innerHTML = `<div class="chart-title">${escapeHtml(chart.title)}</div>`;
+
+    const artistCell = document.createElement("td");
+    artistCell.className = "chart-artist-cell";
+    artistCell.innerHTML = chart.artist ? escapeHtml(chart.artist) : '<span class="dimmed">-</span>';
+
+    const lampCell = document.createElement("td");
+    lampCell.className = "chart-lamp-cell";
+    lampCell.textContent = lampLabels[chart.lampStatus] || chart.lampStatus;
+
+    row.append(
+      levelCell,
+      titleCell,
+      artistCell,
+      lampCell,
+      createScoreCell(chart),
+      createMissCountCell(chart),
+      createIrRankCell(chart),
+      createRivalCell(chart),
+      createPlayCountCell(chart),
+    );
+    tbody.append(row);
+  }
+
+  table.append(tbody);
+  return table;
+}
+
+function createLevelGroupBreakdown(charts) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "level-group-breakdown";
+
+  const lampGroup = document.createElement("span");
+  lampGroup.className = "level-group-breakdown-row";
+  for (const lamp of levelChartLampOrder) {
+    const count = charts.filter((chart) => chart.lampStatus === lamp).length;
+    lampGroup.append(createLevelGroupBreakdownChip(toChartLampLabel(lamp), count, `lamp-${toLampSlug(lamp)}`));
+  }
+
+  const scoreGroup = document.createElement("span");
+  scoreGroup.className = "level-group-breakdown-row";
+  for (const tier of levelChartScoreOrder) {
+    const count = charts.filter((chart) => classifyScoreTier(chart) === tier).length;
+    scoreGroup.append(createLevelGroupBreakdownChip(levelChartScoreLabels[tier] || tier, count, `score-${toScoreTierSlug(tier)}`));
+  }
+
+  wrapper.append(lampGroup, scoreGroup);
+  return wrapper;
+}
+
+function createLevelGroupBreakdownChip(label, count, toneClass) {
+  const chip = document.createElement("span");
+  chip.className = `level-group-breakdown-chip ${toneClass}`;
+  chip.textContent = `${label} ${formatInteger(count)}`;
+  return chip;
+}
+
+function getLevelGroupCompletedLamp(charts) {
+  if (!charts.length) {
+    return null;
+  }
+
+  if (charts.some((chart) => !chart?.lampStatus || isNoPlayableDataLamp(chart.lampStatus))) {
+    return null;
+  }
+
+  return charts.reduce((weakestLamp, chart) => {
+    if (!weakestLamp) {
+      return chart.lampStatus;
+    }
+    return compareLampStatus(chart.lampStatus, weakestLamp) > 0 ? chart.lampStatus : weakestLamp;
+  }, null);
+}
+
+function chartMatchesChartListFilters(chart, query, lamp, level) {
+  if (lamp && chart.lampStatus !== lamp) {
+    return false;
+  }
+
+  if (level && chart.level !== level) {
+    return false;
+  }
+
+  if (!query) {
+    return true;
+  }
+
+  return getChartSearchText(chart).includes(query);
+}
+
+function updateChartListSummary(summaryElement) {
+  summaryElement.textContent = "譜面一覧を開く";
+}
+
+function sortChartsForList(charts, table, state) {
+  return [...charts].sort((left, right) => {
+    const primary = compareChartsForSort(left, right, table, state.sortKey, state.sortDirection);
+    if (primary !== 0) {
+      return primary;
+    }
+
+    const levelFallback = compareChartsForSort(left, right, table, "level", "asc");
+    if (levelFallback !== 0) {
+      return levelFallback;
+    }
+
+    return compareChartsForSort(left, right, table, "title", "asc");
+  });
+}
+
+function compareChartsForSort(left, right, table, sortKey, sortDirection) {
+  switch (sortKey) {
+    case "level":
+      return applySortDirection(compareLevels(left.level, right.level, table.levelOrder), sortDirection);
+    case "title":
+      return applySortDirection(compareText(left.title, right.title), sortDirection);
+    case "artist":
+      return applySortDirection(compareText(left.artist, right.artist), sortDirection);
+    case "lampStatus":
+      return applySortDirection(compareLampStatus(left.lampStatus, right.lampStatus), sortDirection);
+    case "irRank":
+      return compareIrRankValues(extractIrRankingInfo(left)?.rank ?? null, extractIrRankingInfo(right)?.rank ?? null, sortDirection);
+    case "playCount":
+      return compareNumericNullable(left.playCount, right.playCount, sortDirection);
+    case "missCount":
+      return compareChartsByBp(left, right, sortDirection);
+    case "rival":
+      return compareRivalValues(left, right, sortDirection);
+    case "scoreRate":
+      return compareNumericNullable(left.scoreRate, right.scoreRate, sortDirection);
+    default:
+      return 0;
+  }
+}
+
+function applySortDirection(value, sortDirection) {
+  return sortDirection === "desc" ? value * -1 : value;
+}
+
+function compareText(left, right) {
+  return String(left || "").localeCompare(String(right || ""), "ja", { sensitivity: "base" });
+}
+
+function compareLampStatus(left, right) {
+  const leftIndex = lampOptions.indexOf(left);
+  const rightIndex = lampOptions.indexOf(right);
+  return (leftIndex === -1 ? lampOptions.length : leftIndex) - (rightIndex === -1 ? lampOptions.length : rightIndex);
+}
+
+function compareIrRankValues(left, right, sortDirection) {
+  if (left == null && right == null) {
+    return 0;
+  }
+  if (left == null) {
+    return 1;
+  }
+  if (right == null) {
+    return -1;
+  }
+  return sortDirection === "desc" ? right - left : left - right;
+}
+
+function compareNumericNullable(left, right, sortDirection) {
+  if (left == null && right == null) {
+    return 0;
+  }
+  if (left == null) {
+    return 1;
+  }
+  if (right == null) {
+    return -1;
+  }
+  return sortDirection === "desc" ? right - left : left - right;
+}
+
+function getSortIndicator(columnKey, state) {
+  if (state.sortKey !== columnKey) {
+    return "↕";
+  }
+  return state.sortDirection === "asc" ? "↑" : "↓";
+}
+
+function createIrRankCell(chart) {
+  const cell = document.createElement("td");
+  cell.className = "ir-cell";
+
+  const rankingInfo = extractIrRankingInfo(chart);
+  if (rankingInfo?.rank != null) {
+    const badge = document.createElement("span");
+    badge.className = `ir-rank-badge ${getIrRankTone(rankingInfo.rank)}`;
+    const rankParts = formatIrRankParts(rankingInfo.rank, rankingInfo.total);
+    badge.innerHTML = rankParts.sub
+      ? `<span class="ir-rank-main">${escapeHtml(rankParts.main)}</span><span class="ir-rank-sub">${escapeHtml(rankParts.sub)}</span>`
+      : `<span class="ir-rank-main">${escapeHtml(rankParts.main)}</span>`;
+    badge.title = rankingInfo.rawText || badge.textContent;
+    cell.append(badge);
+    return cell;
+  }
+
+  cell.innerHTML = '<span class="dimmed">NO Data</span>';
+  return cell;
+}
+
+function createPlayCountCell(chart) {
+  const cell = document.createElement("td");
+
+  if (isNoPlayableDataLamp(chart.lampStatus) || chart.playCount == null) {
+    cell.innerHTML = '<span class="dimmed">NO Data</span>';
+    return cell;
+  }
+
+  const playCount = document.createElement("div");
+  playCount.className = "chart-detail";
+  playCount.textContent = `${formatInteger(chart.playCount)}回`;
+  cell.append(playCount);
+  return cell;
+}
+
+function createMissCountCell(chart) {
+  const cell = document.createElement("td");
+  const missCountValue = getChartMissCountValue(chart);
+
+  if (missCountValue == null) {
+    cell.innerHTML = '<span class="dimmed">NO Data</span>';
+    return cell;
+  }
+
+  const missCountLine = document.createElement("div");
+  missCountLine.className = "chart-detail";
+  missCountLine.textContent = formatInteger(missCountValue);
+
+  cell.append(missCountLine);
+  return cell;
+}
+
+function getChartMissCountValue(chart) {
+  if (isNoPlayableDataLamp(chart?.lampStatus)) {
+    return null;
+  }
+
+  const missCountRaw = Number.isFinite(Number(chart?.missCount)) ? Number(chart.missCount) : null;
+  if (missCountRaw != null) {
+    return missCountRaw;
+  }
+  const badCount = Number.isFinite(Number(chart?.badCount)) ? Number(chart.badCount) : null;
+  const poorCount = Number.isFinite(Number(chart?.poorCount)) ? Number(chart.poorCount) : null;
+  return badCount != null && poorCount != null ? badCount + poorCount : null;
+}
+
+function compareChartsByBp(left, right, sortDirection) {
+  const leftGroup = getBpSortGroup(left);
+  const rightGroup = getBpSortGroup(right);
+  if (leftGroup !== rightGroup) {
+    return leftGroup - rightGroup;
+  }
+
+  const bpDiff = compareNumericNullable(getChartMissCountValue(left), getChartMissCountValue(right), sortDirection);
+  if (bpDiff !== 0) {
+    return bpDiff;
+  }
+  return 0;
+}
+
+function getBpSortGroup(chart) {
+  const lamp = normalizeLampStatusForUi(chart?.lampStatus);
+  if (lamp === "NO PLAY" || lamp === "NO SONG") {
+    return 2;
+  }
+  if (lamp === "FAILED") {
+    return 1;
+  }
+  return 0;
+}
+
+function createScoreCell(chart) {
+  const cell = document.createElement("td");
+  cell.className = "score-cell";
+
+  if (chart.exScore == null || chart.maxExScore == null || chart.scoreRate == null) {
+    cell.innerHTML = '<span class="dimmed">NO Data</span>';
+    return cell;
+  }
+
+  const exLine = document.createElement("div");
+  exLine.className = "chart-detail";
+  exLine.textContent = `${formatInteger(chart.exScore)} / ${formatInteger(chart.maxExScore)}`;
+
+  const rateLine = document.createElement("div");
+  rateLine.className = "chart-detail detail-rate";
+  rateLine.textContent = `${chart.scoreRate.toFixed(2)}%`;
+
+  cell.append(exLine, rateLine);
+
+  if (chart.scoreRate >= 94.5 && chart.maxOffset != null) {
+    const maxoLine = document.createElement("div");
+    maxoLine.className = "chart-detail detail-maxo";
+    maxoLine.textContent = `MAX-${formatInteger(chart.maxOffset)}`;
+    cell.append(maxoLine);
+  }
+
+  return cell;
+}
+
+function createRivalCell(chart) {
+  const cell = document.createElement("td");
+  cell.className = "rival-cell";
+  const comparison = getFilteredRivalComparison(chart);
+
+  if (!comparison || !comparison.bestScore) {
+    cell.innerHTML = '<span class="dimmed">NO Data</span>';
+    return cell;
+  }
+
+  const rivalLampClass = `rival-lamp-${toLampSlug(comparison.bestScore.lampStatus || "NO PLAY")}`;
+  cell.classList.add(rivalLampClass);
+
+  const scoreLine = document.createElement("div");
+  scoreLine.className = `rival-result rival-result-${comparison.scoreResult || "unknown"}`;
+  scoreLine.textContent = formatRivalScoreResult(comparison);
+
+  const rivalNameLine = document.createElement("div");
+  rivalNameLine.className = "rival-detail rival-name";
+  rivalNameLine.textContent = comparison.bestScore.name || comparison.bestScore.id || "Rival";
+
+  const rivalScoreLine = document.createElement("div");
+  rivalScoreLine.className = "rival-detail rival-score";
+  rivalScoreLine.textContent =
+    comparison.bestScore.exScore != null ? `EX ${formatInteger(comparison.bestScore.exScore)}` : "EX NO Data";
+
+  const rivalRateLine = document.createElement("div");
+  rivalRateLine.className = "rival-detail rival-rate";
+  rivalRateLine.textContent =
+    comparison.bestScore.scoreRate != null ? `${comparison.bestScore.scoreRate.toFixed(2)}%` : "Rate NO Data";
+
+  const lampLine = document.createElement("div");
+  lampLine.className = "rival-detail";
+  lampLine.textContent = lampLabels[comparison.bestScore.lampStatus] || comparison.bestScore.lampStatus;
+
+  cell.append(scoreLine, rivalNameLine, rivalScoreLine, rivalRateLine, lampLine);
+  return cell;
+}
+
+function formatRivalScoreResult(comparison) {
+  if (!comparison || !comparison.bestScore) {
+    return "NO Data";
+  }
+  if (comparison.selfExScore == null || comparison.bestScore.exScore == null) {
+    return `Rival ${formatInteger(comparison.bestScore.exScore ?? 0)}`;
+  }
+
+  const diff = comparison.selfExScore - comparison.bestScore.exScore;
+  if (diff > 0) {
+    return `WIN +${formatInteger(diff)}`;
+  }
+  if (diff < 0) {
+    return `LOSE ${formatInteger(diff)}`;
+  }
+  return "DRAW ±0";
+}
+
+function formatRivalLampResult(comparison) {
+  switch (comparison?.lampResult) {
+    case "win":
+      return "Lamp WIN";
+    case "lose":
+      return "Lamp LOSE";
+    case "draw":
+      return "Lamp DRAW";
+    default:
+      return "Lamp -";
+  }
+}
+
+function compareRivalValues(left, right, sortDirection) {
+  return compareNumericNullable(getRivalScoreDiff(left), getRivalScoreDiff(right), sortDirection);
+}
+
+function getRivalScoreDiff(chart) {
+  const comparison = getFilteredRivalComparison(chart);
+  if (!comparison || comparison.selfExScore == null || comparison.bestScore?.exScore == null) {
+    return null;
+  }
+  return comparison.selfExScore - comparison.bestScore.exScore;
+}
+
+function getFilteredRivalComparison(chart) {
+  const comparison = chart?.rivalComparison;
+  if (!comparison?.bestScore) {
+    return null;
+  }
+
+  const scores = Array.isArray(comparison.scores) ? comparison.scores : [comparison.bestScore];
+  const activeScores = scores.filter((score) => selectedRivalIds.has(String(score?.id ?? "").trim()));
+  if (!activeScores.length) {
+    return null;
+  }
+
+  const bestScore = [...activeScores].sort(compareRivalScoresForUi)[0];
+  const selfExScore = comparison.selfExScore ?? null;
+  const scoreDiff = selfExScore != null && bestScore.exScore != null ? selfExScore - bestScore.exScore : null;
+  const lampDiff = compareLampStatus(comparison.selfLamp || "NO PLAY", bestScore.lampStatus);
+
+  return {
+    ...comparison,
+    rivalCount: activeScores.length,
+    bestScore,
+    scoreDiff,
+    scoreResult: scoreDiff == null ? "unknown" : scoreDiff > 0 ? "win" : scoreDiff < 0 ? "lose" : "draw",
+    lampResult: lampDiff < 0 ? "win" : lampDiff > 0 ? "lose" : "draw",
+  };
+}
+
+function compareRivalScoresForUi(left, right) {
+  const leftEx = Number.isFinite(Number(left?.exScore)) ? Number(left.exScore) : -1;
+  const rightEx = Number.isFinite(Number(right?.exScore)) ? Number(right.exScore) : -1;
+  if (leftEx !== rightEx) {
+    return rightEx - leftEx;
+  }
+  return compareLampStatus(left?.lampStatus, right?.lampStatus);
+}
+
+function countRankOwnership(charts, targetRank) {
+  return charts.reduce((sum, chart) => {
+    const rank = extractIrRankingInfo(chart)?.rank ?? null;
+    return sum + (rank === targetRank ? 1 : 0);
+  }, 0);
+}
+
+function countRankOwnershipWithin(charts, maxRank) {
+  return charts.reduce((sum, chart) => {
+    const rank = extractIrRankingInfo(chart)?.rank ?? null;
+    return sum + (rank != null && rank <= maxRank ? 1 : 0);
+  }, 0);
+}
+
+function createMetricCard(label, value, subvalue, cardClass = "") {
+  const card = document.createElement("div");
+  card.className = "metric";
+  if (cardClass) {
+    card.classList.add(...String(cardClass).split(/\s+/).filter(Boolean));
+  }
+
+  const labelElement = document.createElement("div");
+  labelElement.className = "label";
+  labelElement.textContent = label;
+
+  const valueElement = document.createElement("div");
+  valueElement.className = "value";
+  valueElement.textContent = value;
+
+  card.append(labelElement, valueElement);
+
+  if (subvalue) {
+    const subvalueElement = document.createElement("div");
+    subvalueElement.className = "subvalue";
+    subvalueElement.textContent = subvalue;
+    card.append(subvalueElement);
+  }
+
+  return card;
+}
+
+function createLampPill(lamp, count) {
+  const pill = document.createElement("div");
+  pill.className = `lamp-pill lamp-pill-${toLampSlug(lamp)}`;
+
+  const countElement = document.createElement("div");
+  countElement.className = "count";
+  countElement.textContent = String(count);
+
+  const nameElement = document.createElement("div");
+  nameElement.className = "name";
+  nameElement.textContent = lampLabels[lamp];
+
+  pill.append(countElement, nameElement);
+  return pill;
+}
+
+function createScorePill(tier, count) {
+  const pill = document.createElement("div");
+  pill.className = `lamp-pill score-pill score-pill-${toScoreTierSlug(tier)}`;
+
+  const countElement = document.createElement("div");
+  countElement.className = "count";
+  countElement.textContent = String(count);
+
+  const nameElement = document.createElement("div");
+  nameElement.className = "name";
+  nameElement.textContent = levelChartScoreLabels[tier] || tier;
+
+  pill.append(countElement, nameElement);
+  return pill;
+}
+
+function getChartSearchText(chart) {
+  return [
+    chart.title,
+    chart.artist,
+    chart.level,
+    chart.statusDetail,
+    chart.md5,
+    chart.sha256,
+    chart.playCount,
+    getChartMissCountValue(chart),
+    chart.badCount,
+    chart.poorCount,
+    chart.exScore,
+    chart.maxExScore,
+    chart.scoreRate,
+    chart.maxOffset,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+function buildStatusMessage(analysis) {
+  const sourceLine = `LR2 score.db: ${analysis.player.registeredChartCount}譜面 / ${analysis.player.localDbPath || "-"}`;
+  const localSongDbLine = `song.db (IRキャッシュ): ${analysis.player.localSongDbPath || "見つかりません"}`;
+
+  const lines = [
+    analysis.tables.length
+      ? `${analysis.tables.length}件の難易度表を読み込みました。`
+      : "難易度表URL未入力のため、プレイヤーデータのみ読み込みました。",
+    `プレイヤー: ${analysis.player.name || "-"} / SP段位 ${formatPlayerGrade(analysis.player)}`,
+    sourceLine,
+    localSongDbLine,
+    `重複除外後の譜面数: ${analysis.overall.uniqueChartCount}`,
+  ].filter(Boolean);
+
+  if (analysis.tableErrors.length) {
+    lines.push(`読み込み失敗の難易度表: ${analysis.tableErrors.length}件`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildProfileOnlyStatusMessage(player, fetchedAt) {
+  const lines = [
+    "score.db からプロフィールを取得しました。",
+    `プレイヤー: ${player.name || "-"}`,
+    `SP段位: ${formatPlayerGrade(player)}`,
+  ];
+
+  if (player.gradeDp?.trim()) {
+    lines.push(`DP段位: ${player.gradeDp.trim()}`);
+  }
+
+  if (fetchedAt) {
+    const parsedDate = new Date(fetchedAt);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      lines.push(`取得時刻: ${parsedDate.toLocaleString("ja-JP")}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+async function autoFetchProfileFromScoreDb() {
+  const scoreDbPath = scoreDbPathInput.value.trim();
+  if (!scoreDbPath) {
+    return;
+  }
+
+  if (analyzeButton.disabled) {
+    return;
+  }
+
+  const token = ++autoDbProfileFetchToken;
+  setStatus("score.db からプレイヤー名と段位を取得しています。");
+
+  try {
+    const payload = await postJsonApi("/api/profile-from-db", {
+      scoreDbPath,
+      songDbPath: songDbPathInput.value.trim(),
+    });
+
+    if (token !== autoDbProfileFetchToken) {
+      return;
+    }
+
+    const fetchedPlayer = {
+      id: String(payload?.player?.id ?? "").trim() || "local",
+      sourceType: "local-score-db",
+      name: String(payload?.player?.name ?? "").trim(),
+      grade: String(payload?.player?.grade ?? "").trim(),
+      gradeSp: String(payload?.player?.gradeSp ?? "").trim(),
+      gradeDp: String(payload?.player?.gradeDp ?? "").trim(),
+      skillAnalyzer: payload?.player?.skillAnalyzer ?? null,
+      stellaSkill4th: payload?.player?.stellaSkill4th ?? null,
+      overjoyTripleCrown: Boolean(payload?.player?.overjoyTripleCrown),
+      irVerifiedId: String(payload?.player?.irVerifiedId ?? "").trim(),
+      irProfileFetched: Boolean(payload?.player?.irProfileFetched),
+    };
+
+    const currentAnalysisId = latestAnalysis?.player ? normalizePlayerCacheId(latestAnalysis.player.id) : "";
+    const fetchedPlayerId = normalizePlayerCacheId(fetchedPlayer.id);
+    if (latestAnalysis && currentAnalysisId && fetchedPlayerId && currentAnalysisId === fetchedPlayerId) {
+      latestAnalysis = {
+        ...latestAnalysis,
+        player: {
+          ...mergePlayerProfileFields(latestAnalysis.player, fetchedPlayer),
+          sourceType: latestAnalysis.player.sourceType,
+        },
+      };
+      renderAnalysis();
+      void persistLatestAnalysis(latestAnalysis).catch((error) => console.error("Failed to persist analysis", error));
+    }
+
+    void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+    setStatus(buildProfileOnlyStatusMessage(fetchedPlayer, payload?.fetchedAt));
+  } catch (error) {
+    if (token !== autoDbProfileFetchToken) {
+      return;
+    }
+    setStatus(error instanceof Error ? error.message : "score.db からプロフィールを取得できませんでした。");
+  }
+}
+
+function setStatus(message) {
+  statusBox.textContent = message;
+}
+
+function clearMainFeedbackTimeout() {
+  if (mainFeedbackTimeoutId != null) {
+    window.clearTimeout(mainFeedbackTimeoutId);
+    mainFeedbackTimeoutId = null;
+  }
+}
+
+function showMainLoadingFeedback() {
+  if (!mainFeedback) {
+    return;
+  }
+  clearMainFeedbackTimeout();
+  mainFeedback.textContent = "Now Loading...";
+  mainFeedback.classList.remove("hidden", "done");
+  mainFeedback.classList.add("loading");
+}
+
+function showMainDoneFeedback() {
+  if (!mainFeedback) {
+    return;
+  }
+  clearMainFeedbackTimeout();
+  mainFeedback.textContent = "Done.";
+  mainFeedback.classList.remove("hidden", "loading");
+  mainFeedback.classList.add("done");
+  mainFeedbackTimeoutId = window.setTimeout(() => {
+    hideMainFeedback();
+  }, 1000);
+}
+
+function hideMainFeedback() {
+  if (!mainFeedback) {
+    return;
+  }
+  clearMainFeedbackTimeout();
+  mainFeedback.classList.add("hidden");
+  mainFeedback.classList.remove("loading", "done");
+}
+
+function calculateRate(charts, acceptedLamps) {
+  if (!charts.length) {
+    return null;
+  }
+  const count = charts.filter((chart) => acceptedLamps.includes(chart.lampStatus)).length;
+  return (count / charts.length) * 100;
+}
+
+function countCharts(charts, lamp) {
+  return charts.filter((chart) => chart.lampStatus === lamp).length;
+}
+
+function formatPercent(value) {
+  if (value == null || Number.isNaN(value)) {
+    return "-";
+  }
+  return `${value.toFixed(2)}%`;
+}
+
+function formatInteger(value) {
+  return new Intl.NumberFormat("ja-JP").format(value);
+}
+
+function formatDateYmd(dateValue) {
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}/${month}/${day}`;
+}
+
+function toNonNegativeInteger(value) {
+  const numeric = Number.parseInt(value, 10);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return null;
+  }
+  return numeric;
+}
+
+function compareLevels(left, right, levelOrder = []) {
+  const indexMap = new Map(levelOrder.map((level, index) => [String(level), index]));
+  const leftIndex = indexMap.get(left);
+  const rightIndex = indexMap.get(right);
+
+  if (leftIndex != null && rightIndex != null) {
+    return leftIndex - rightIndex;
+  }
+  if (leftIndex != null) {
+    return -1;
+  }
+  if (rightIndex != null) {
+    return 1;
+  }
+
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  const leftNumeric = Number.isFinite(leftNumber);
+  const rightNumeric = Number.isFinite(rightNumber);
+
+  if (leftNumeric && rightNumeric) {
+    return leftNumber - rightNumber;
+  }
+
+  return String(left).localeCompare(String(right), "ja");
+}
+
+function formatLevelWithSymbol(level, symbol) {
+  const normalizedLevel = String(level ?? "").trim();
+  const normalizedSymbol = String(symbol ?? "").trim();
+  if (!normalizedLevel || !normalizedSymbol) {
+    return normalizedLevel;
+  }
+  if (normalizedLevel.toLowerCase().startsWith(normalizedSymbol.toLowerCase())) {
+    return normalizedLevel;
+  }
+  return `${normalizedSymbol}${normalizedLevel}`;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value);
+}
+
+function formatPlayerGrade(player) {
+  if (isMazaiouGradeOverride(player)) {
+    return "魔剤王";
+  }
+
+  const sp = player.gradeSp?.trim();
+  if (sp) {
+    return sp;
+  }
+
+  const combined = player.grade?.trim();
+  if (!combined) {
+    return "-";
+  }
+
+  return combined.split("/")[0]?.trim() || combined;
+}
+
+function createSkillAnalyzerMetricCards(player) {
+  const skill = getPlayerSkillAnalyzerInfo(player);
+  if (!skill) {
+    return [];
+  }
+
+  const cards = [];
+  const stGrade = normalizeSkillGradeText(skill.st?.grade, "st");
+  const slGrade = normalizeSkillGradeText(skill.sl?.grade, "sl");
+  const hasStGrade = Boolean(stGrade);
+
+  if (skill.st) {
+    cards.push(
+      createMetricCard(
+        "st段位",
+        stGrade || "-",
+        buildSkillAnalyzerFormalSupplement(skill.st, stGrade, "Stella Skill Simulator 4th"),
+        getSkillAnalyzerToneClass(stGrade),
+      ),
+    );
+  }
+
+  if (!hasStGrade && skill.sl) {
+    cards.push(
+      createMetricCard(
+        "sl段位",
+        slGrade || "-",
+        buildSkillAnalyzerFormalSupplement(skill.sl, slGrade, "Satellite Skill Analyzer 2nd"),
+        getSkillAnalyzerToneClass(slGrade),
+      ),
+    );
+  }
+
+  return cards;
+}
+
+function buildSkillAnalyzerFormalSupplement(entry, gradeText, fallbackName) {
+  const baseName = String(entry?.formalName ?? "").trim() || String(fallbackName ?? "").trim();
+  const normalizedGrade = normalizeSkillGradeText(gradeText || entry?.grade);
+
+  if (baseName && normalizedGrade) {
+    return `${baseName} ${normalizedGrade}`;
+  }
+  return baseName || normalizedGrade || "";
+}
+
+function getPlayerSkillAnalyzerInfo(player) {
+  if (!player || typeof player !== "object") {
+    return null;
+  }
+
+  const raw = player.skillAnalyzer && typeof player.skillAnalyzer === "object" ? player.skillAnalyzer : null;
+  const stFallback = player.stellaSkill4th && typeof player.stellaSkill4th === "object" ? player.stellaSkill4th : null;
+
+  const st = normalizeSkillAnalyzerEntry(raw?.st ?? stFallback);
+  const sl = normalizeSkillAnalyzerEntry(raw?.sl ?? null);
+
+  if (!st && !sl) {
+    return null;
+  }
+
+  return { st, sl };
+}
+
+function normalizeSkillAnalyzerEntry(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  const grade = String(entry.grade ?? "").trim().toLowerCase();
+  const formalName = String(entry.formalName ?? "").trim();
+  const clearedCount = toNonNegativeInteger(entry.clearedCount);
+  const playedCount = toNonNegativeInteger(entry.playedCount);
+  const totalCount = toNonNegativeInteger(entry.totalCount);
+
+  if (!grade && !formalName && totalCount == null && clearedCount == null && playedCount == null) {
+    return null;
+  }
+
+  return {
+    grade,
+    formalName,
+    clearedCount,
+    playedCount,
+    totalCount,
+  };
+}
+
+function normalizeSkillGradeText(value, expectedPrefix = "") {
+  const compact = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  const match = compact.match(/^(st|sl)0*(\d{1,2})$/);
+  if (!match) {
+    return "";
+  }
+  const prefix = match[1];
+  const level = Number.parseInt(match[2], 10);
+  if (!Number.isFinite(level)) {
+    return "";
+  }
+  if (expectedPrefix && prefix !== expectedPrefix) {
+    return "";
+  }
+  return `${prefix}${level}`;
+}
+
+function getSkillAnalyzerToneClass(gradeText) {
+  const grade = normalizeSkillGradeText(gradeText);
+  if (!grade) {
+    return "";
+  }
+
+  const match = grade.match(/^(st|sl)(\d{1,2})$/);
+  if (!match) {
+    return "";
+  }
+
+  const prefix = match[1];
+  const level = Number.parseInt(match[2], 10);
+  if (!Number.isFinite(level)) {
+    return "";
+  }
+
+  if (prefix === "st" && level === 12) {
+    return "skill-rainbow";
+  }
+
+  const stToneMap = {
+    0: "skill-green",
+    1: "skill-cyan",
+    2: "skill-blue",
+    3: "skill-magenta",
+    4: "skill-red",
+    5: "skill-orange",
+    6: "skill-green",
+    7: "skill-blue",
+    8: "skill-magenta",
+    9: "skill-red",
+    10: "skill-yellow",
+    11: "skill-gray",
+  };
+
+  const slToneMap = {
+    0: "skill-green",
+    1: "skill-cyan",
+    2: "skill-blue",
+    3: "skill-magenta",
+    4: "skill-red",
+    5: "skill-orange",
+    6: "skill-green",
+    7: "skill-cyan",
+    8: "skill-blue",
+    9: "skill-magenta",
+    10: "skill-red",
+    11: "skill-orange",
+    12: "skill-yellow",
+  };
+
+  if (prefix === "st") {
+    return stToneMap[level] || "";
+  }
+  return slToneMap[level] || "";
+}
+
+function getPlayerGradeFormalName(player) {
+  if (isMazaiouGradeOverride(player)) {
+    return "魔剤王";
+  }
+
+  const gradeText = formatPlayerGrade(player);
+  if (!gradeText || gradeText === "-") {
+    return "段位未取得";
+  }
+
+  if (isOverjoyGrade(gradeText)) {
+    if (player?.overjoyTripleCrown) {
+      return "あなたは歴代のOverjoyすべてに合格しました";
+    }
+    return "Overjoy";
+  }
+
+  const compact = normalizeDanToneText(gradeText);
+  if (compact.includes("★★") || compact.includes("発狂皆伝")) {
+    return "発狂皆伝";
+  }
+
+  const insaneMatch = compact.match(/★(\d{1,2})/);
+  if (insaneMatch) {
+    const level = Number.parseInt(insaneMatch[1], 10);
+    const danStep = formatDanStep(level);
+    return danStep ? `発狂${danStep}` : "発狂段位";
+  }
+
+  const normalMatch = compact.match(/☆(\d{1,2})/);
+  if (normalMatch) {
+    const level = Number.parseInt(normalMatch[1], 10);
+    const danStep = formatDanStep(level);
+    return danStep ? `SP${danStep}` : "SP段位";
+  }
+
+  return gradeText;
+}
+
+function formatDanStep(level) {
+  switch (level) {
+    case 1:
+      return "初段";
+    case 2:
+      return "二段";
+    case 3:
+      return "三段";
+    case 4:
+      return "四段";
+    case 5:
+      return "五段";
+    case 6:
+      return "六段";
+    case 7:
+      return "七段";
+    case 8:
+      return "八段";
+    case 9:
+      return "九段";
+    case 10:
+      return "十段";
+    default:
+      return "";
+  }
+}
+
+function getDanToneClass(gradeText, player = null) {
+  if (isMazaiouGradeOverride(player)) {
+    return "dan-mazaiou";
+  }
+
+  const normalized = String(gradeText ?? "").trim();
+  if (!normalized || normalized === "-") {
+    return "";
+  }
+
+  if (isOverjoyGrade(normalized)) {
+    return player?.overjoyTripleCrown ? "dan-overjoy dan-overjoy-triple" : "dan-overjoy";
+  }
+
+  const compact = normalizeDanToneText(normalized);
+
+  if (compact.includes("★★") || compact.includes("発狂皆伝")) {
+    return "dan-insane-kaiden";
+  }
+
+  const insaneMatch = compact.match(/★(\d{1,2})/);
+  if (insaneMatch) {
+    const level = Number.parseInt(insaneMatch[1], 10);
+    if (Number.isFinite(level) && level >= 1 && level <= 8) {
+      return "dan-insane";
+    }
+    if (level === 9 || level === 10) {
+      return "dan-insane-high";
+    }
+  }
+
+  const normalMatch = compact.match(/☆(\d{1,2})/);
+  if (normalMatch) {
+    const level = Number.parseInt(normalMatch[1], 10);
+    if (Number.isFinite(level) && level >= 1 && level <= 10) {
+      return "dan-normal";
+    }
+  }
+
+  if (compact.includes("発狂九段") || compact.includes("発狂十段")) {
+    return "dan-insane-high";
+  }
+  if (compact.includes("発狂")) {
+    return "dan-insane";
+  }
+  return "dan-normal";
+}
+
+function isMazaiouGradeOverride(player) {
+  if (!player || typeof player !== "object") {
+    return false;
+  }
+
+  if (player.sourceType !== "local-score-db") {
+    return false;
+  }
+
+  const irVerifiedId = normalizePlayerCacheId(player.irVerifiedId);
+  const localPlayerId = normalizePlayerCacheId(player.id);
+  return irVerifiedId === "80737" || localPlayerId === "80737";
+}
+
+function isOverjoyGrade(gradeText) {
+  const normalized = String(gradeText ?? "").trim();
+  if (!normalized) {
+    return false;
+  }
+
+  if (/over\s*joy/i.test(normalized)) {
+    return true;
+  }
+
+  const asciiLike = normalized
+    .replace(/[！-～]/g, (character) => String.fromCharCode(character.charCodeAt(0) - 0xfee0))
+    .replace(/　/g, " ")
+    .replace(/\s+/g, "");
+  return asciiLike.includes("(^^)");
+}
+
+function normalizeDanToneText(text) {
+  return String(text ?? "")
+    .replace(/[！-～]/g, (character) => String.fromCharCode(character.charCodeAt(0) - 0xfee0))
+    .replace(/　/g, " ")
+    .replace(/\s+/g, "");
+}
+
+function extractIrRankingInfo(chart) {
+  if (chart?.rankingRank != null) {
+    return {
+      rank: chart.rankingRank,
+      total: chart.rankingTotal ?? null,
+      rawText:
+        chart.rankingTotal != null ? `${chart.rankingRank}/${chart.rankingTotal}` : `${chart.rankingRank}`,
+    };
+  }
+
+  if (!chart?.rankingUrl || !chart?.statusDetail) {
+    return null;
+  }
+
+  if (isNoPlayableDataLamp(chart.lampStatus)) {
+    return null;
+  }
+
+  const normalized = normalizeRankingText(chart.statusDetail);
+  const withTotal =
+    normalized.match(/^順位[:：]?\s*#?(\d+)\s*位?\s*[\//]\s*(\d+)/i) ??
+    normalized.match(/^#?(\d+)\s*位?\s*[\//]\s*(\d+)/i) ??
+    normalized.match(/^#?(\d+)\s*位?\s*\(\s*(\d+)\s*人中\s*\)/i) ??
+    normalized.match(/^#?(\d+)\s*位?\s*of\s*(\d+)/i);
+
+  if (withTotal) {
+    return {
+      rank: Number.parseInt(withTotal[1], 10),
+      total: Number.parseInt(withTotal[2], 10),
+      rawText: chart.statusDetail,
+    };
+  }
+
+  const standalone =
+    normalized.match(/^順位[:：]?\s*#?(\d+)\s*位?$/i) ??
+    normalized.match(/^#?(\d+)\s*位?$/i);
+
+  if (standalone) {
+    return {
+      rank: Number.parseInt(standalone[1], 10),
+      total: null,
+      rawText: chart.statusDetail,
+    };
+  }
+
+  return null;
+}
+
+function normalizeRankingText(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0))
+    .replaceAll("／", "/")
+    .replaceAll("　", " ")
+    .replaceAll("＃", "#")
+    .replaceAll("，", ",")
+    .replace(/,/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function getIrRankTone(rank) {
+  if (rank === 1) {
+    return "rank-gold";
+  }
+  if (rank === 2) {
+    return "rank-silver";
+  }
+  if (rank === 3) {
+    return "rank-bronze";
+  }
+  if (rank <= 10) {
+    return "rank-top";
+  }
+  return "rank-standard";
+}
+
+function toLampSlug(lamp) {
+  return lamp.toLowerCase().replace(/\s+/g, "-");
+}
+
+function toScoreTierSlug(tier) {
+  return tier.toLowerCase().replace(/_/g, "-");
+}
+
+function classifyScoreTier(chart) {
+  const lamp = normalizeLampStatusForUi(chart?.lampStatus);
+  if (lamp === "NO SONG") {
+    return "NO_SONG";
+  }
+  if (lamp === "NO PLAY") {
+    return "NO_PLAY";
+  }
+
+  const rate = Number(chart?.scoreRate);
+  if (!Number.isFinite(rate)) {
+    return "NO_PLAY";
+  }
+  if (rate >= 88.89) {
+    return "AAA";
+  }
+  if (rate >= 77.78) {
+    return "AA";
+  }
+  if (rate >= 66.67) {
+    return "A";
+  }
+  if (rate >= 55.56) {
+    return "B";
+  }
+  if (rate >= 44.44) {
+    return "C";
+  }
+  if (rate >= 33.33) {
+    return "D";
+  }
+  if (rate >= 22.22) {
+    return "E";
+  }
+  return "F";
+}
+
+function normalizeLevelChartMode(mode) {
+  return mode === "score" ? "score" : "lamp";
+}
+
+function buildTableInfoStateKey(table) {
+  const source = String(table?.sourceUrl ?? "").trim();
+  const name = String(table?.name ?? "").trim();
+  return source || name || "unknown-table";
+}
+
+function buildChartIdentityKey(chart) {
+  const key = String(chart?.key ?? "").trim();
+  if (key) {
+    return key;
+  }
+
+  const md5 = String(chart?.md5 ?? "").trim().toLowerCase();
+  if (md5) {
+    return `md5:${md5}`;
+  }
+
+  const sha256 = String(chart?.sha256 ?? "").trim().toLowerCase();
+  if (sha256) {
+    return `sha256:${sha256}`;
+  }
+
+  const title = String(chart?.title ?? "").trim();
+  const artist = String(chart?.artist ?? "").trim();
+  const level = String(chart?.level ?? "").trim();
+  const index = String(chart?.index ?? "").trim();
+  return `fallback:${title}|${artist}|${level}|${index}`;
+}
+
+function getLampStrengthRank(lamp) {
+  const normalized = normalizeLampStatusForUi(lamp);
+  const index = lampOptions.indexOf(normalized);
+  return index === -1 ? lampOptions.length + 1 : index;
+}
+
+function compareLampImprovements(left, right) {
+  const kindDiff = getLampImprovementKindRank(left) - getLampImprovementKindRank(right);
+  if (kindDiff !== 0) {
+    return kindDiff;
+  }
+
+  const lampDiff = getLampStrengthRank(left?.currentLamp) - getLampStrengthRank(right?.currentLamp);
+  if (lampDiff !== 0) {
+    return lampDiff;
+  }
+
+  const leftSymbol = String(left?.sortSymbol ?? "").trim().toLowerCase();
+  const rightSymbol = String(right?.sortSymbol ?? "").trim().toLowerCase();
+  const symbolDiff = leftSymbol.localeCompare(rightSymbol, "ja");
+  if (symbolDiff !== 0) {
+    return symbolDiff;
+  }
+
+  const levelDiff = compareLevels(String(left?.sortLevelRaw ?? ""), String(right?.sortLevelRaw ?? ""));
+  if (levelDiff !== 0) {
+    return levelDiff;
+  }
+
+  const levelTextDiff = String(left?.levelText ?? "").localeCompare(String(right?.levelText ?? ""), "ja");
+  if (levelTextDiff !== 0) {
+    return levelTextDiff;
+  }
+
+  return String(left?.title ?? "").localeCompare(String(right?.title ?? ""), "ja");
+}
+
+function getLampImprovementKindRank(item) {
+  if (item?.updateKind === "bp") {
+    return 1;
+  }
+  if (item?.updateKind === "score") {
+    return 2;
+  }
+  return 0;
+}
+
+function isClearLampStatus(lamp) {
+  const normalized = normalizeLampStatusForUi(lamp);
+  return ["FULL COMBO", "HARD CLEAR", "CLEAR", "EASY CLEAR"].includes(normalized);
+}
+
+function buildLampImprovementAggregateKey(chart, previousLamp, currentLamp, updateKind = "lamp") {
+  const md5 = String(chart?.md5 ?? "").trim().toLowerCase();
+  if (md5) {
+    return `md5:${md5}|${previousLamp}|${currentLamp}|${updateKind}`;
+  }
+
+  const sha256 = String(chart?.sha256 ?? "").trim().toLowerCase();
+  if (sha256) {
+    return `sha256:${sha256}|${previousLamp}|${currentLamp}|${updateKind}`;
+  }
+
+  const key = String(chart?.key ?? "").trim().toLowerCase();
+  if (key) {
+    return `key:${key}|${previousLamp}|${currentLamp}|${updateKind}`;
+  }
+
+  const title = String(chart?.title ?? "")
+    .trim()
+    .toLowerCase();
+  const artist = String(chart?.artist ?? "")
+    .trim()
+    .toLowerCase();
+  return `title:${title}|artist:${artist}|${previousLamp}|${currentLamp}|${updateKind}`;
+}
+
+function addLampImprovementLevelEntry(entry, symbolValue, levelValue) {
+  if (!entry || typeof entry !== "object") {
+    return;
+  }
+
+  const symbol = String(symbolValue ?? "").trim();
+  const levelRaw = String(levelValue ?? "").trim();
+  const levelText = formatLevelWithSymbol(levelRaw, symbol) || levelRaw || symbol;
+  if (!levelText) {
+    return;
+  }
+
+  const dedupeKey = `${symbol.toLowerCase()}|${levelRaw.toLowerCase()}|${levelText.toLowerCase()}`;
+  if (entry.levelEntrySet.has(dedupeKey)) {
+    return;
+  }
+
+  entry.levelEntrySet.add(dedupeKey);
+  entry.levelEntries.push({
+    symbol,
+    levelRaw,
+    levelText,
+  });
+}
+
+function compareLampImprovementLevelEntries(left, right) {
+  const leftSymbol = String(left?.symbol ?? "").trim().toLowerCase();
+  const rightSymbol = String(right?.symbol ?? "").trim().toLowerCase();
+  const symbolDiff = leftSymbol.localeCompare(rightSymbol, "ja");
+  if (symbolDiff !== 0) {
+    return symbolDiff;
+  }
+  return compareLevels(String(left?.levelRaw ?? ""), String(right?.levelRaw ?? ""));
+}
+
+function mergeLampImprovementMissCount(currentMissCount, nextMissCount) {
+  if (currentMissCount == null) {
+    return nextMissCount;
+  }
+  if (nextMissCount == null) {
+    return currentMissCount;
+  }
+  return Math.min(currentMissCount, nextMissCount);
+}
+
+function mergeLampImprovementPreviousMissCount(currentMissCount, nextMissCount) {
+  if (currentMissCount == null) {
+    return nextMissCount;
+  }
+  if (nextMissCount == null) {
+    return currentMissCount;
+  }
+  return Math.max(currentMissCount, nextMissCount);
+}
+
+function mergeLampImprovementPreviousExScore(currentExScore, nextExScore) {
+  if (currentExScore == null) {
+    return nextExScore;
+  }
+  if (nextExScore == null) {
+    return currentExScore;
+  }
+  return Math.min(currentExScore, nextExScore);
+}
+
+function mergeLampImprovementExScore(currentExScore, nextExScore) {
+  if (currentExScore == null) {
+    return nextExScore;
+  }
+  if (nextExScore == null) {
+    return currentExScore;
+  }
+  return Math.max(currentExScore, nextExScore);
+}
+
+function mergeLampImprovementScoreRate(currentScoreRate, nextScoreRate) {
+  if (currentScoreRate == null) {
+    return nextScoreRate;
+  }
+  if (nextScoreRate == null) {
+    return currentScoreRate;
+  }
+  return Math.max(currentScoreRate, nextScoreRate);
+}
+
+function mergeLampImprovementIrRank(currentRank, currentTotal, nextRank, nextTotal) {
+  const normalizedCurrentRank = toPositiveRankInteger(currentRank);
+  const normalizedNextRank = toPositiveRankInteger(nextRank);
+  if (normalizedCurrentRank == null) {
+    return { rank: normalizedNextRank, total: nextTotal ?? null };
+  }
+  if (normalizedNextRank == null) {
+    return { rank: normalizedCurrentRank, total: currentTotal ?? null };
+  }
+  if (normalizedNextRank < normalizedCurrentRank) {
+    return { rank: normalizedNextRank, total: nextTotal ?? null };
+  }
+  return { rank: normalizedCurrentRank, total: currentTotal ?? null };
+}
+
+function toPositiveRankInteger(value) {
+  const numeric = Number.parseInt(value, 10);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+function toFiniteChartNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function didLampImprovementScoreUpdate(previousExScore, currentExScore, previousScoreRate, currentScoreRate) {
+  if (currentExScore != null && previousExScore != null && currentExScore !== previousExScore) {
+    return true;
+  }
+  if (
+    currentScoreRate != null &&
+    previousScoreRate != null &&
+    Math.abs(currentScoreRate - previousScoreRate) >= 0.0001
+  ) {
+    return true;
+  }
+  if (currentExScore != null && previousExScore == null) {
+    return true;
+  }
+  if (currentScoreRate != null && previousScoreRate == null) {
+    return true;
+  }
+  return false;
+}
+
+function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}) {
+  const includeBpUpdates = Boolean(options.includeBpUpdates);
+  if (
+    !previousAnalysis ||
+    !currentAnalysis ||
+    !Array.isArray(previousAnalysis.tables) ||
+    !Array.isArray(currentAnalysis.tables)
+  ) {
+    return [];
+  }
+
+  const previousByTable = new Map();
+  for (const table of previousAnalysis.tables) {
+    const tableKey = buildTableInfoStateKey(table);
+    const chartMap = new Map();
+    for (const chart of table?.charts ?? []) {
+      chartMap.set(buildChartIdentityKey(chart), {
+        lamp: normalizeLampStatusForUi(chart?.lampStatus),
+        exScore: toFiniteChartNumber(chart?.exScore),
+        scoreRate: toFiniteChartNumber(chart?.scoreRate),
+        missCount: getChartMissCountValue(chart),
+      });
+    }
+    previousByTable.set(tableKey, chartMap);
+  }
+
+  const improvementsByChart = new Map();
+
+  for (const table of currentAnalysis.tables) {
+    const tableKey = buildTableInfoStateKey(table);
+    const previousCharts = previousByTable.get(tableKey);
+    if (!previousCharts) {
+      continue;
+    }
+
+    for (const chart of table?.charts ?? []) {
+      const chartKey = buildChartIdentityKey(chart);
+      const previousState = previousCharts.get(chartKey);
+      if (!previousState) {
+        continue;
+      }
+      const previousLamp = previousState.lamp;
+
+      const currentLamp = normalizeLampStatusForUi(chart?.lampStatus);
+      const badCount = Number.isFinite(Number(chart?.badCount)) ? Number(chart.badCount) : null;
+      const poorCount = Number.isFinite(Number(chart?.poorCount)) ? Number(chart.poorCount) : null;
+      const rankingInfo = extractIrRankingInfo(chart);
+      const missCount = getChartMissCountValue(chart);
+      const previousMissCount = previousState.missCount;
+      const exScore = toFiniteChartNumber(chart?.exScore);
+      const scoreRate = toFiniteChartNumber(chart?.scoreRate);
+      const lampImproved =
+        currentLamp !== previousLamp &&
+        isClearLampStatus(currentLamp) &&
+        getLampStrengthRank(currentLamp) < getLampStrengthRank(previousLamp);
+      const bpImproved =
+        includeBpUpdates &&
+        missCount != null &&
+        previousMissCount != null &&
+        missCount < previousMissCount &&
+        !isNoPlayableDataLamp(currentLamp);
+      const scoreUpdated = didLampImprovementScoreUpdate(
+        previousState.exScore,
+        exScore,
+        previousState.scoreRate,
+        scoreRate,
+      );
+      const scoreUpdatedForGroup = scoreUpdated && !isNoPlayableDataLamp(currentLamp);
+      const primaryUpdateKind = lampImproved ? "lamp" : bpImproved ? "bp" : scoreUpdatedForGroup ? "score" : null;
+
+      if (!primaryUpdateKind && !scoreUpdatedForGroup) {
+        continue;
+      }
+
+      const updateKinds = [primaryUpdateKind];
+      if (scoreUpdatedForGroup && primaryUpdateKind !== "score") {
+        updateKinds.push("score");
+      }
+
+      for (const updateKind of updateKinds) {
+        if (!updateKind) {
+          continue;
+        }
+        const aggregateKey = buildLampImprovementAggregateKey(chart, previousLamp, currentLamp, updateKind);
+
+        let entry = improvementsByChart.get(aggregateKey);
+        if (!entry) {
+          entry = {
+            title: String(chart?.title ?? "").trim() || "タイトル不明",
+            previousLamp,
+            currentLamp,
+            updateKind,
+            badCount,
+            poorCount,
+            previousMissCount,
+            missCount,
+            previousExScore: previousState.exScore,
+            exScore,
+            scoreRate,
+            scoreUpdated,
+            irRank: rankingInfo?.rank ?? null,
+            irTotal: rankingInfo?.total ?? null,
+            levelEntries: [],
+            levelEntrySet: new Set(),
+          };
+          improvementsByChart.set(aggregateKey, entry);
+        } else {
+          entry.missCount = mergeLampImprovementMissCount(entry.missCount, missCount);
+          entry.previousMissCount = mergeLampImprovementPreviousMissCount(entry.previousMissCount, previousMissCount);
+          entry.previousExScore = mergeLampImprovementPreviousExScore(entry.previousExScore, previousState.exScore);
+          entry.exScore = mergeLampImprovementExScore(entry.exScore, exScore);
+          entry.scoreRate = mergeLampImprovementScoreRate(entry.scoreRate, scoreRate);
+          const mergedRank = mergeLampImprovementIrRank(entry.irRank, entry.irTotal, rankingInfo?.rank ?? null, rankingInfo?.total ?? null);
+          entry.irRank = mergedRank.rank;
+          entry.irTotal = mergedRank.total;
+          entry.scoreUpdated = entry.scoreUpdated || scoreUpdated;
+          if (entry.badCount == null && badCount != null) {
+            entry.badCount = badCount;
+          }
+          if (entry.poorCount == null && poorCount != null) {
+            entry.poorCount = poorCount;
+          }
+        }
+
+        addLampImprovementLevelEntry(entry, table?.symbol, chart?.level);
+      }
+    }
+  }
+
+  const improvements = [];
+  for (const entry of improvementsByChart.values()) {
+    const sortedLevelEntries = [...entry.levelEntries].sort(compareLampImprovementLevelEntries);
+    const levelText = sortedLevelEntries.map((levelEntry) => levelEntry.levelText).join(" ");
+    const primaryLevel = sortedLevelEntries[0] ?? null;
+
+    improvements.push({
+      title: entry.title,
+      lampStatus: entry.currentLamp,
+      previousLamp: entry.previousLamp,
+      currentLamp: entry.currentLamp,
+      updateKind: entry.updateKind,
+      badCount: entry.badCount,
+      poorCount: entry.poorCount,
+      previousMissCount: entry.previousMissCount,
+      missCount: entry.missCount,
+      previousExScore: entry.previousExScore,
+      exScore: entry.exScore,
+      scoreRate: entry.scoreRate,
+      scoreUpdated: Boolean(entry.scoreUpdated),
+      irRank: entry.irRank,
+      irTotal: entry.irTotal,
+      levelText,
+      sortSymbol: primaryLevel?.symbol ?? "",
+      sortLevelRaw: primaryLevel?.levelRaw ?? "",
+    });
+  }
+
+  return improvements;
+}
+
+function collectKeyHitCountDelta(previousAnalysis, currentAnalysis) {
+  const previousTotal = getAnalysisTotalHitCount(previousAnalysis);
+  const currentTotal = getAnalysisTotalHitCount(currentAnalysis);
+  if (previousTotal == null || currentTotal == null) {
+    return null;
+  }
+  const delta = currentTotal - previousTotal;
+  if (!Number.isFinite(delta) || delta <= 0) {
+    return null;
+  }
+  return delta;
+}
+
+function getAnalysisTotalHitCount(analysis) {
+  const totals = analysis?.player?.hitTotals;
+  if (!totals || typeof totals !== "object") {
+    return null;
+  }
+
+  const explicit = Number.parseInt(totals.total, 10);
+  if (Number.isFinite(explicit) && explicit >= 0) {
+    return explicit;
+  }
+
+  const perfect = Number.parseInt(totals.perfect, 10);
+  const great = Number.parseInt(totals.great, 10);
+  const good = Number.parseInt(totals.good, 10);
+  const bad = Number.parseInt(totals.bad, 10);
+  const poor = Number.parseInt(totals.poor, 10);
+  const values = [perfect, great, good, bad, poor];
+  if (values.every((value) => Number.isFinite(value) && value >= 0)) {
+    return values.reduce((sum, value) => sum + value, 0);
+  }
+
+  return null;
+}
+
+function getLevelSummaryTitle(mode) {
+  return normalizeLevelChartMode(mode) === "score" ? "SCORE LAMP" : "CLEAR LAMP";
+}
+
+function toChartLampLabel(lamp) {
+  return lampLabels[lamp] || lamp;
+}
+
+function createFloatingTooltip() {
+  const tooltip = document.createElement("div");
+  tooltip.className = "floating-tooltip hidden";
+  document.body.append(tooltip);
+  return tooltip;
+}
+
+function showFloatingTooltip(text, event) {
+  if (!text || !event) {
+    return;
+  }
+  levelChartTooltip.textContent = text;
+  levelChartTooltip.classList.remove("hidden");
+  levelChartTooltip.style.left = `${event.clientX + 12}px`;
+  levelChartTooltip.style.top = `${event.clientY + 12}px`;
+}
+
+function hideFloatingTooltip() {
+  levelChartTooltip.classList.add("hidden");
+}
+
+function normalizeLampStatusForUi(status) {
+  const normalized = String(status ?? "")
+    .trim()
+    .toUpperCase();
+  if (normalized === "UNMATCHED" || normalized === "UNSUPPORTED") {
+    return "NO PLAY";
+  }
+  if (lampOptions.includes(normalized)) {
+    return normalized;
+  }
+  return "NO PLAY";
+}
+
+function isNoPlayableDataLamp(status) {
+  const normalized = normalizeLampStatusForUi(status);
+  return normalized === "NO PLAY" || normalized === "NO SONG";
+}
+
+function buildLampSummaryFromCharts(charts) {
+  const summary = createEmptyLampSummary();
+  for (const chart of charts) {
+    const lamp = normalizeLampStatusForUi(chart?.lampStatus);
+    summary[lamp] = (summary[lamp] ?? 0) + 1;
+  }
+  return summary;
+}
+
+function countClearFromCharts(charts) {
+  return charts.filter((chart) => ["FULL COMBO", "HARD CLEAR", "CLEAR", "EASY CLEAR"].includes(chart.lampStatus)).length;
+}
+
+function countPlayedFromCharts(charts) {
+  return charts.filter((chart) =>
+    ["FULL COMBO", "HARD CLEAR", "CLEAR", "EASY CLEAR", "FAILED"].includes(chart.lampStatus),
+  ).length;
+}
+
+function buildLevelSummariesForUi(charts, levelOrder = []) {
+  const grouped = new Map();
+  for (const chart of charts) {
+    if (!grouped.has(chart.level)) {
+      grouped.set(chart.level, []);
+    }
+    grouped.get(chart.level).push(chart);
+  }
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => compareLevels(left, right, levelOrder))
+    .map(([level, levelCharts]) => {
+      const totalCharts = levelCharts.length;
+      const clearCount = countClearFromCharts(levelCharts);
+      const playedCount = countPlayedFromCharts(levelCharts);
+      return {
+        level,
+        totalCharts,
+        summary: buildLampSummaryFromCharts(levelCharts),
+        clearRate: totalCharts ? (clearCount / totalCharts) * 100 : null,
+        playedRate: totalCharts ? (playedCount / totalCharts) * 100 : null,
+      };
+    });
+}
+
+function normalizeAnalysisLampStatuses(analysis) {
+  if (!analysis || typeof analysis !== "object" || !Array.isArray(analysis.tables)) {
+    return analysis;
+  }
+
+  const normalizedTables = analysis.tables.map((table) => {
+    const normalizedCharts = Array.isArray(table?.charts)
+      ? table.charts.map((chart) => ({
+          ...chart,
+          lampStatus: normalizeLampStatusForUi(chart?.lampStatus),
+        }))
+      : [];
+    const totalCharts = normalizedCharts.length;
+    const clearCount = countClearFromCharts(normalizedCharts);
+    const playedCount = countPlayedFromCharts(normalizedCharts);
+    return {
+      ...table,
+      charts: normalizedCharts,
+      summary: buildLampSummaryFromCharts(normalizedCharts),
+      levelSummaries: buildLevelSummariesForUi(normalizedCharts, table.levelOrder),
+      stats: {
+        ...table.stats,
+        totalCharts,
+        clearCount,
+        playedCount,
+        matchableCount: totalCharts,
+        clearRate: totalCharts ? (clearCount / totalCharts) * 100 : null,
+        playedRate: totalCharts ? (playedCount / totalCharts) * 100 : null,
+      },
+    };
+  });
+
+  const overallCharts = normalizedTables.flatMap((table) => table.charts ?? []);
+  const overallTotal = overallCharts.length;
+  const overallClearCount = countClearFromCharts(overallCharts);
+  const overallPlayedCount = countPlayedFromCharts(overallCharts);
+
+  return {
+    ...analysis,
+    tables: normalizedTables,
+    overall: {
+      ...analysis.overall,
+      tableCount: normalizedTables.length,
+      tableEntryCount: normalizedTables.reduce((sum, table) => sum + (table.charts?.length ?? 0), 0),
+      summary: buildLampSummaryFromCharts(overallCharts),
+      clearCount: overallClearCount,
+      playedCount: overallPlayedCount,
+      matchableCount: overallTotal,
+      clearRate: overallTotal ? (overallClearCount / overallTotal) * 100 : null,
+      playedRate: overallTotal ? (overallPlayedCount / overallTotal) * 100 : null,
+    },
+  };
+}
+
+function mergePlayerProfileFields(primary, fallback) {
+  const left = primary && typeof primary === "object" ? primary : {};
+  const right = fallback && typeof fallback === "object" ? fallback : {};
+  const leftSkillAnalyzer = left.skillAnalyzer && typeof left.skillAnalyzer === "object" ? left.skillAnalyzer : null;
+  const rightSkillAnalyzer = right.skillAnalyzer && typeof right.skillAnalyzer === "object" ? right.skillAnalyzer : null;
+  const mergedSkillAnalyzer = leftSkillAnalyzer || rightSkillAnalyzer || null;
+  const leftStella = left.stellaSkill4th && typeof left.stellaSkill4th === "object" ? left.stellaSkill4th : null;
+  const rightStella = right.stellaSkill4th && typeof right.stellaSkill4th === "object" ? right.stellaSkill4th : null;
+  return {
+    ...right,
+    ...left,
+    id: String(left.id ?? "").trim() || String(right.id ?? "").trim(),
+    name: String(left.name ?? "").trim() || String(right.name ?? "").trim(),
+    grade: String(left.grade ?? "").trim() || String(right.grade ?? "").trim(),
+    gradeSp: String(left.gradeSp ?? "").trim() || String(right.gradeSp ?? "").trim(),
+    gradeDp: String(left.gradeDp ?? "").trim() || String(right.gradeDp ?? "").trim(),
+    skillAnalyzer: mergedSkillAnalyzer,
+    stellaSkill4th: leftStella || rightStella || mergedSkillAnalyzer?.st || null,
+    overjoyTripleCrown: Boolean(left.overjoyTripleCrown) || Boolean(right.overjoyTripleCrown),
+    irVerifiedId: String(left.irVerifiedId ?? "").trim() || String(right.irVerifiedId ?? "").trim(),
+    irProfileFetched: Boolean(left.irProfileFetched) || Boolean(right.irProfileFetched),
+  };
+}
+
+function normalizePlayerCacheId(value) {
+  const text = String(value ?? "").trim();
+  if (!text || text.toLowerCase() === "manual") {
+    return "";
+  }
+  return text;
+}
+
+function isMazaiouPreviewRequested() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const flag = String(params.get(MAZAIOU_PREVIEW_QUERY_KEY) ?? "").trim().toLowerCase();
+    return flag === "1" || flag === "true" || flag === "yes";
+  } catch {
+    return false;
+  }
+}
+
+function createEmptyLampSummary() {
+  return Object.fromEntries(lampOptions.map((lamp) => [lamp, 0]));
+}
+
+function applyMazaiouPreview() {
+  scoreDbPathInput.value = scoreDbPathInput.value.trim() || "C:\\LR2\\LR2files\\Database\\Score\\preview.db";
+  songDbPathInput.value = songDbPathInput.value.trim() || "C:\\LR2\\LR2files\\Database\\song.db";
+
+  latestAnalysis = {
+    analyzedAt: new Date().toISOString(),
+    overall: {
+      tableCount: 0,
+      tableEntryCount: 0,
+      uniqueChartCount: 0,
+      summary: createEmptyLampSummary(),
+      clearRate: null,
+      playedRate: null,
+      clearCount: 0,
+      playedCount: 0,
+      matchableCount: 0,
+    },
+    player: {
+      id: "80737",
+      sourceType: "local-score-db",
+      name: "魔剤王プレビュー",
+      grade: "☆10/☆10",
+      gradeSp: "☆10",
+      gradeDp: "☆10",
+      irVerifiedId: "80737",
+      irProfileFetched: true,
+      registeredChartCount: 0,
+      fetchedPages: null,
+      localDbPath: scoreDbPathInput.value,
+      localSongDbPath: songDbPathInput.value,
+    },
+    tableErrors: [],
+    tables: [],
+  };
+
+  renderAnalysis();
+  resultsRoot.classList.remove("hidden");
+  setStatus("80737 条件プレビュー表示中です（実データ取得ではありません）。");
+}
+
+initializePersistence().catch((error) => {
+  console.error("Failed to initialize persistence", error);
+});
+
+async function initializePersistence() {
+  if (isMazaiouPreviewRequested()) {
+    applyMazaiouPreview();
+    return;
+  }
+
+  await restoreTablePresetSelection();
+  syncPresetCheckboxesFromState();
+  const restoredFormState = await restoreFormState();
+  const restoredAnalysis = await restoreLatestAnalysis();
+
+  if (restoredAnalysis) {
+    const autoReloaded = await maybeAutoReloadOnDbUpdate(restoredAnalysis);
+    if (autoReloaded) {
+      return;
+    }
+    setStatus("保存された前回の読み込み結果を復元しました。必要なら再読み込みで最新状態を取得してください。");
+    return;
+  }
+
+  if (restoredFormState) {
+    setStatus("保存された入力内容を復元しました。");
+  } else {
+    setStatus("まずはメニューから読み込み設定を行ってください。");
+  }
+  renderAnalysis();
+}
+
+async function maybeAutoReloadOnDbUpdate(restoredAnalysis) {
+  const scoreDbPath = scoreDbPathInput.value.trim();
+  if (!scoreDbPath || !restoredAnalysis) {
+    return false;
+  }
+
+  const previousState = normalizeLocalDbStateForCompare(restoredAnalysis.localDbState);
+  if (!previousState.scoreDb.path) {
+    return false;
+  }
+
+  try {
+    const currentState = normalizeLocalDbStateForCompare(
+      await fetchLocalDbState(scoreDbPath, songDbPathInput.value.trim()),
+    );
+    if (!hasLocalDbStateChanged(previousState, currentState)) {
+      return false;
+    }
+
+    setStatus("score.db / song.db の更新を検知したため、自動で再読み込みしています。");
+    window.setTimeout(() => {
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      }
+    }, 0);
+    return true;
+  } catch (error) {
+    console.error("Failed to check local DB update state", error);
+    return false;
+  }
+}
+
+async function fetchLocalDbState(scoreDbPath, songDbPath) {
+  return postJsonApi("/api/local-db-state", {
+    scoreDbPath: String(scoreDbPath ?? "").trim(),
+    songDbPath: String(songDbPath ?? "").trim(),
+  });
+}
+
+function normalizeLocalDbStateForCompare(state) {
+  return {
+    scoreDb: normalizeLocalDbFileState(state?.scoreDb),
+    songDb: normalizeLocalDbFileState(state?.songDb),
+  };
+}
+
+function normalizeLocalDbFileState(fileState) {
+  const size = Number(fileState?.size);
+  const mtimeMs = Number(fileState?.mtimeMs);
+  return {
+    path: normalizePathForCompare(fileState?.path),
+    exists: Boolean(fileState?.exists),
+    size: Number.isFinite(size) ? size : null,
+    mtimeMs: Number.isFinite(mtimeMs) ? Math.trunc(mtimeMs) : null,
+  };
+}
+
+function normalizePathForCompare(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/[\\/]+/g, "/")
+    .toLowerCase();
+}
+
+function hasLocalDbStateChanged(previousState, currentState) {
+  if (hasLocalDbFileChanged(previousState?.scoreDb, currentState?.scoreDb)) {
+    return true;
+  }
+  if (hasLocalDbFileChanged(previousState?.songDb, currentState?.songDb)) {
+    return true;
+  }
+  return false;
+}
+
+function hasLocalDbFileChanged(previousFile, currentFile) {
+  const previous = normalizeLocalDbFileState(previousFile);
+  const current = normalizeLocalDbFileState(currentFile);
+
+  if (!previous.path && !current.path) {
+    return false;
+  }
+  if (previous.path !== current.path) {
+    return true;
+  }
+  if (previous.exists !== current.exists) {
+    return true;
+  }
+  if (!current.exists) {
+    return false;
+  }
+
+  return previous.size !== current.size || previous.mtimeMs !== current.mtimeMs;
+}
+
+async function restoreTablePresetSelection() {
+  const persisted = await readPersistedValue(TABLE_PRESET_SELECTION_KEY);
+  if (!Array.isArray(persisted)) {
+    selectedTablePresetIds = new Set();
+    return false;
+  }
+
+  const validPresetIds = new Set(TABLE_PRESETS.map((preset) => preset.id));
+  selectedTablePresetIds = new Set(
+    persisted.map((value) => String(value)).filter((value) => validPresetIds.has(value)),
+  );
+  return true;
+}
+
+async function persistTablePresetSelection() {
+  await writePersistedValue(TABLE_PRESET_SELECTION_KEY, [...selectedTablePresetIds]);
+}
+
+async function restoreFormState() {
+  const persisted = await readPersistedValue(FORM_STATE_KEY);
+  if (!persisted) {
+    return false;
+  }
+
+  scoreDbPathInput.value = persisted.scoreDbPath ?? "";
+  songDbPathInput.value = persisted.songDbPath ?? "";
+  if (screenshotDirPathInput) {
+    screenshotDirPathInput.value = persisted.screenshotDirPath ?? "";
+  }
+  if (rivalFolderPathInput) {
+    rivalFolderPathInput.value = persisted.rivalFolderPath ?? "";
+  }
+  tableUrlsInput.value = persisted.tableUrlsText ?? "";
+  disabledManualTableUrls = new Set(Array.isArray(persisted.disabledManualTableUrls) ? persisted.disabledManualTableUrls : []);
+  renderManualTableUrlToggles();
+  levelChartMode = normalizeLevelChartMode(persisted.levelChartMode);
+  updateLevelModeToggleButton();
+  irRankDisplayMode = normalizeIrRankDisplayMode(persisted.irRankDisplayMode);
+  if (irRankDisplaySelect) {
+    irRankDisplaySelect.value = irRankDisplayMode;
+  }
+  includeBpUpdatesInLampUpdates = Boolean(persisted.includeBpUpdatesInLampUpdates);
+  if (includeBpUpdatesInput) {
+    includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
+  }
+  applyTheme(persisted.themeMode, { persist: false });
+  return true;
+}
+
+async function restoreLatestAnalysis() {
+  const persisted = await readPersistedValue(LAST_ANALYSIS_KEY);
+  if (!persisted) {
+    return false;
+  }
+
+  latestAnalysis = normalizeAnalysisLampStatuses(persisted);
+  renderAnalysis();
+  resultsRoot.classList.remove("hidden");
+  return true;
+}
+
+async function persistFormState() {
+  await writePersistedValue(FORM_STATE_KEY, {
+    scoreDbPath: scoreDbPathInput.value.trim(),
+    songDbPath: songDbPathInput.value.trim(),
+    screenshotDirPath: getScreenshotDirectoryPath(),
+    rivalFolderPath: rivalFolderPathInput?.value.trim() ?? "",
+    tableUrlsText: tableUrlsInput.value,
+    disabledManualTableUrls: [...disabledManualTableUrls],
+    levelChartMode,
+    themeMode: selectedThemeMode,
+    irRankDisplayMode,
+    includeBpUpdatesInLampUpdates,
+  });
+}
+
+async function persistLatestAnalysis(analysis) {
+  await writePersistedValue(LAST_ANALYSIS_KEY, analysis);
+}
+
+async function clearPersistedState() {
+  await deletePersistedValue(FORM_STATE_KEY);
+  await deletePersistedValue(LAST_ANALYSIS_KEY);
+  await deletePersistedValue("player-profile-cache");
+}
+
+async function openPersistenceDb() {
+  if (!("indexedDB" in window)) {
+    return null;
+  }
+
+  if (!persistenceDbPromise) {
+    persistenceDbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(PERSISTENCE_DB_NAME, 1);
+
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains(PERSISTENCE_STORE_NAME)) {
+          request.result.createObjectStore(PERSISTENCE_STORE_NAME);
+        }
+      };
+
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  return persistenceDbPromise;
+}
+
+async function readPersistedValue(key) {
+  const db = await openPersistenceDb();
+  if (!db) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(PERSISTENCE_STORE_NAME, "readonly");
+    const request = transaction.objectStore(PERSISTENCE_STORE_NAME).get(key);
+
+    request.onsuccess = () => {
+      const record = request.result;
+      if (!record || record.version !== PERSISTENCE_SCHEMA_VERSION) {
+        resolve(null);
+        return;
+      }
+      resolve(record.value);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function writePersistedValue(key, value) {
+  const db = await openPersistenceDb();
+  if (!db) {
+    return false;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(PERSISTENCE_STORE_NAME, "readwrite");
+    transaction.oncomplete = () => resolve(true);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.objectStore(PERSISTENCE_STORE_NAME).put(
+      {
+        version: PERSISTENCE_SCHEMA_VERSION,
+        savedAt: new Date().toISOString(),
+        value,
+      },
+      key,
+    );
+  });
+}
+
+async function deletePersistedValue(key) {
+  const db = await openPersistenceDb();
+  if (!db) {
+    return false;
+  }
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(PERSISTENCE_STORE_NAME, "readwrite");
+    transaction.oncomplete = () => resolve(true);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.objectStore(PERSISTENCE_STORE_NAME).delete(key);
+  });
+}
+
+function debounce(callback, delayMs) {
+  let timeoutId = null;
+
+  return (...args) => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    timeoutId = window.setTimeout(() => {
+      callback(...args);
+    }, delayMs);
+  };
+}
