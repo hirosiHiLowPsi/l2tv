@@ -1,9 +1,10 @@
 {
   "name": "lr2ir-table-lamp-viewer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "main": "electron-main.js",
   "description": "L2TV (LR2 Table Viewer)",
+  "author": "HiLowPsi",
   "executableName": "L2TV",
   "scripts": {
     "start": "node server.js",
@@ -17,6 +18,7 @@
   "build": {
     "appId": "com.lr2ir.tablelampviewer",
     "productName": "L2TV",
+    "copyright": "Copyright 2026 HiLowPsi",
     "files": [
       "electron-main.js",
       "electron-preload.js",
@@ -28,6 +30,14 @@
       {
         "from": "readme.txt",
         "to": "readme.txt"
+      },
+      {
+        "from": "readme_en.txt",
+        "to": "readme_en.txt"
+      },
+      {
+        "from": "更新履歴.txt",
+        "to": "更新履歴.txt"
       }
     ],
     "win": {

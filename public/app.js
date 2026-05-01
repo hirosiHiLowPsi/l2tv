@@ -9,6 +9,7 @@ const browseScreenshotDirButton = document.getElementById("browse-screenshot-dir
 const browseRivalFolderButton = document.getElementById("browse-rival-folder");
 const tableUrlsInput = document.getElementById("table-urls");
 const manualTableUrlTogglesContainer = document.getElementById("manual-table-url-toggles");
+const languageSelect = document.getElementById("language-select");
 const themeSelect = document.getElementById("theme-select");
 const irRankDisplaySelect = document.getElementById("ir-rank-display-select");
 const includeBpUpdatesInput = document.getElementById("include-bp-updates");
@@ -102,11 +103,12 @@ const chartSortColumns = [
   { key: "title", label: "Title" },
   { key: "artist", label: "Artist" },
   { key: "lampStatus", label: "Lamp" },
+  { key: "scoreTier", label: "Rank" },
   { key: "scoreRate", label: "EX/Rate" },
   { key: "missCount", label: "BP" },
   { key: "irRank", label: "IR順位" },
+  { key: "playCount", label: "Play Count" },
   { key: "rival", label: "Rival" },
-  { key: "playCount", label: "プレイ回数" },
 ];
 
 const TABLE_PRESETS = [
@@ -139,6 +141,8 @@ const TABLE_PRESETS = [
 
 const THEME_MODES = ["l2tv-pop", "lr2ir-dark"];
 const DEFAULT_THEME_MODE = "l2tv-pop";
+const LANGUAGE_OPTIONS = ["ja", "en"];
+const DEFAULT_LANGUAGE = "ja";
 const IR_RANK_DISPLAY_MODES = ["count", "percent"];
 const DEFAULT_IR_RANK_DISPLAY_MODE = "count";
 
@@ -154,6 +158,8 @@ let latestAnalysis = null;
 let persistenceDbPromise = null;
 let levelChartMode = "lamp";
 let selectedThemeMode = DEFAULT_THEME_MODE;
+let selectedLanguage = DEFAULT_LANGUAGE;
+let hasStoredLanguagePreference = false;
 let irRankDisplayMode = DEFAULT_IR_RANK_DISPLAY_MODE;
 let includeBpUpdatesInLampUpdates = false;
 let disabledManualTableUrls = new Set();
@@ -163,9 +169,17 @@ let selectedRivalIds = new Set();
 let knownRivalIds = new Set();
 let rivalSelectionInitialized = false;
 let selectedRivalStatsScope = "all";
+let selectedRivalSortKey = "win";
 const tableInfoPanelOpenState = new Map();
 const chartDetailsOpenState = new Map();
 const chartListOpenLevelsState = new Map();
+const chartListStateByTable = new Map();
+let activeLevelGroupCloseButton = null;
+let activeLevelGroupCloseTarget = null;
+let activeLevelGroupOptionButton = null;
+let floatingChartHeaderRequested = false;
+let floatingChartHeader = null;
+let floatingChartHeaderSource = null;
 let latestLampImprovements = [];
 let latestComparisonBaseAnalysis = null;
 let hasComparedLampImprovements = false;
@@ -176,6 +190,169 @@ const persistFormStateDebounced = debounce(() => {
   persistFormState().catch((error) => console.error("Failed to persist form state", error));
 }, 250);
 const levelChartTooltip = createFloatingTooltip();
+const localizedTextNodeOriginals = new WeakMap();
+
+const I18N_TEXT = {
+  "メニュー": "Menu",
+  "閉じる": "Close",
+  "読み込み設定": "Load Settings",
+  "難易度表URLは任意です。1行に1件ずつ入力できます。": "Table URLs are optional. Enter one URL per line.",
+  "LR2 score.db パス": "LR2 score.db Path",
+  "song.db パス": "song.db Path",
+  "スクショ保存先": "Screenshot Folder",
+  "ライバルフォルダ": "Rival Folder",
+  "難易度表URL": "Table URLs",
+  "URLを残したまま、チェックを外すとその表だけ読み込み対象から外せます。": "Uncheck a table to exclude it while keeping the URL.",
+  "表示言語": "Language",
+  "日本語": "Japanese",
+  "テーマ": "Theme",
+  "IR順位表示": "IR Rank Display",
+  "IR順位": "IR Rank",
+  "プレイ回数": "Play Count",
+  "人数表示": "Count",
+  "割合表示": "Percent",
+  "本日更新にBPが減った譜面も表示する": "Include charts with lower BP in Lamp Updates",
+  "難易度表プリセット": "Table Presets",
+  "チェックしたプリセットはURL未入力でも読み込み対象になります。": "Checked presets are loaded even without manual URLs.",
+  "表とランプを読み込む": "Load Tables and Lamps",
+  "保存データを消す": "Clear Saved Data",
+  "進行状況": "Status",
+  "バックエンドが難易度表またはプレイヤーデータを読み込みます。": "The backend loads table or player data.",
+  "待機中です。": "Waiting.",
+  "ランプ内訳": "Lamp Breakdown",
+  "スコア内訳": "Score Breakdown",
+  "譜面一覧を開く": "Open Chart List",
+  "譜面一覧を閉じる": "Close Chart List",
+  "参照": "Browse",
+  "すべて": "All",
+  "検索": "Search",
+  "全譜面": "All Charts",
+  "難易度表": "Table",
+  "勝敗表示": "Win/Loss Scope",
+  "WIN数順": "Win Rate",
+  "LOSE順": "Loss Rate",
+  "WIN率順": "Win Rate",
+  "LOSE率順": "Loss Rate",
+  "名前順": "Name",
+  "全選択": "Select All",
+  "全解除": "Clear All",
+  "対戦なし": "No matches",
+  "プレイヤー名": "Player Name",
+  "SP段位": "SP Grade",
+  "st段位": "st Grade",
+  "sl段位": "sl Grade",
+  "今回の打鍵回数": "Key Hits This Run",
+  "今日の更新を画像出力": "Export Today's Updates",
+  "出力中…": "Exporting...",
+  "スクショ保存完了！": "Screenshot saved!",
+  "新規 FC": "New FC",
+  "新規 HC": "New HC",
+  "新規 NC": "New NC",
+  "新規 EC": "New EC",
+  "新規 FL": "New FL",
+  "新規 NP": "New NP",
+  "新規 NS": "New NS",
+  "BP更新": "BP Update",
+  "スコア更新": "Score Update",
+  "総譜面数": "Total Charts",
+  "クリア率": "Clear Rate",
+  "プレイ率": "Played Rate",
+  "IR1位保持数": "IR Rank 1",
+  "IR2位保持数": "IR Rank 2",
+  "IR3位保持数": "IR Rank 3",
+  "IRTOP10保持数": "IR Top 10",
+  "この画面を画像出力": "Export This View",
+  "条件に一致する譜面はありません。": "No charts match the current filters.",
+  "曲名 / アーティスト / EX / Rate / IR順位 / プレイ回数": "Title / Artist / EX / Rate / IR Rank / Play Count",
+  "タイトル不明": "Unknown Title",
+  "見つかりません": "Not Found",
+  "未設定": "Not Set",
+  "段位未取得": "No Grade",
+  "魔剤王": "Mazaiou",
+  "発狂皆伝": "Insane Kaiden",
+  "発狂段位": "Insane Grade",
+  "初段": "1st Dan",
+  "二段": "2nd Dan",
+  "三段": "3rd Dan",
+  "四段": "4th Dan",
+  "五段": "5th Dan",
+  "六段": "6th Dan",
+  "七段": "7th Dan",
+  "八段": "8th Dan",
+  "九段": "9th Dan",
+  "十段": "10th Dan",
+  "あなたは歴代のOverjoyすべてに合格しました": "You have cleared every historical Overjoy course",
+  "まずはメニューから読み込み設定を行ってください。": "Open Menu and configure loading settings first.",
+  "表示対象の難易度表がありません。": "No tables are currently visible.",
+  "難易度表URL未入力のため、プレイヤーデータのみ表示しています。": "No table URL was entered, so only player data is shown.",
+  "API設定の取得に失敗しました。": "Failed to load API settings.",
+  "APIリクエストに失敗しました。": "API request failed.",
+  "参照ボタンはデスクトップ版(.exe)で利用できます。ブラウザ版ではパスを直接入力してください。": "Browse is available in the desktop app (.exe). In the browser version, enter the path directly.",
+  "LR2 score.db パスを入力してください。": "Enter the LR2 score.db path.",
+  "プレイヤーデータを読み込んでいます。": "Loading player data.",
+  "難易度表とローカルのLR2 score.dbを読み込んでいます。\n表の数や曲数によっては少し時間がかかります。": "Loading tables and the local LR2 score.db.\nThis may take a little while depending on the number of tables and charts.",
+  "ローカルのLR2 score.dbからプレイヤーデータを読み込んでいます。": "Loading player data from the local LR2 score.db.",
+  "score.db を選択": "Select score.db",
+  "song.db を選択": "Select song.db",
+  "スクショ保存先を選択": "Select Screenshot Folder",
+  "LR2 Rival フォルダを選択": "Select LR2 Rival Folder",
+  "保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表プリセットの選択状態は保持されます。": "Delete saved input and the previous load result?\nTable preset selections will be kept.",
+  "保存済みデータを削除しました。難易度表プリセットの選択状態は保持しています。": "Saved data was deleted. Table preset selections were kept.",
+  "画像出力が完了しました。": "Image export finished.",
+  "前回読み込みから更新されたクリアランプ、BP、スコアはありません。": "No clear lamp, BP, or score updates since the previous load.",
+  "前回読み込みから更新されたクリアランプまたはスコアはありません。": "No clear lamp or score updates since the previous load.",
+  "score.db からプロフィールを取得しました。": "Loaded the profile from score.db.",
+  "score.db からプレイヤー名と段位を取得しています。": "Loading the player name and grade from score.db.",
+  "score.db からプロフィールを取得できませんでした。": "Could not load the profile from score.db.",
+  "80737 条件プレビュー表示中です（実データ取得ではありません）。": "Showing the 80737 condition preview. This is not real fetched data.",
+  "Canvas初期化に失敗しました。": "Failed to initialize the canvas.",
+  "更新データはありません。": "No update data.",
+  "URLが空です。": "The URL is empty.",
+  "許可されていないホストです。": "This host is not allowed.",
+  "許可されていないメソッドです。": "This method is not allowed.",
+  "不明なエラーが発生しました。": "An unknown error occurred.",
+  "LR2 score.db のパスを入力してください。": "Enter the LR2 score.db path.",
+  "難易度表の読み込みに失敗しました。": "Failed to load the difficulty table.",
+  "難易度表を1件も読み込めませんでした。": "No difficulty tables could be loaded.",
+  "指定された LR2 score.db が見つかりません。": "The specified LR2 score.db was not found.",
+  "score.db の player テーブルを読み取れませんでした。": "Could not read the player table in score.db.",
+  "アクセスできません。": "Access denied.",
+  "ファイルが見つかりません。": "File not found.",
+  "許可されていない送信元です。": "This origin is not allowed.",
+  "Content-Type は application/json を指定してください。": "Content-Type must be application/json.",
+  "APIトークンが不正です。": "Invalid API token.",
+  "リクエストが大きすぎます。": "The request is too large.",
+  "JSONの解析に失敗しました。": "Failed to parse JSON.",
+  "URLは table.html または header.json を指定してください。": "The URL must point to table.html or header.json.",
+  "bmstableメタタグを見つけられませんでした。": "Could not find the bmstable meta tag.",
+  "ヘッダーJSONの形式が不正です。": "The header JSON format is invalid.",
+  "header.json に data_url がありません。": "header.json does not contain data_url.",
+  "score.json は配列形式である必要があります。": "score.json must be an array.",
+  "score.db の読み込みに失敗しました。": "Failed to load score.db.",
+  "http / https のURLのみ読み込めます。": "Only http / https URLs can be loaded.",
+  "ローカルURLは読み込めません。": "Local URLs cannot be loaded.",
+  "URLのホスト名が空です。": "The URL host name is empty.",
+  "ローカルネットワーク宛てのURLは読み込めません。": "URLs to local networks cannot be loaded.",
+  "ローカルまたはプライベートネットワーク宛てのURLは読み込めません。": "URLs to local or private networks cannot be loaded.",
+  "リダイレクト回数が多すぎます。": "Too many redirects.",
+  "取得先のデータサイズが大きすぎます。": "The fetched data is too large.",
+  "URL取得がタイムアウトしました。": "Fetching the URL timed out.",
+  "未設定": "Not Set",
+  "PNGデータの保存に失敗しました。": "Failed to save PNG data.",
+  "画像データが大きすぎます。": "The image data is too large.",
+  "画像データが空です。": "The image data is empty.",
+  "許可されていない画面からの操作です。": "This operation is not allowed from this screen.",
+  "指定されたスクショ保存先に書き込めませんでした。": "Could not write to the selected screenshot folder.",
+  "スクリーンショット保存先フォルダを作成できませんでした。": "Could not create the screenshot save folder.",
+};
+
+const I18N_ATTRS = {
+  "例: D:\\LR2\\LR2files\\Database\\Score\\player.db": "Example: D:\\LR2\\LR2files\\Database\\Score\\player.db",
+  "例: D:\\LR2\\LR2files\\Database\\song.db": "Example: D:\\LR2\\LR2files\\Database\\song.db",
+  "空欄の場合は既定のscreenshotフォルダに保存": "Leave blank to use the default screenshot folder",
+  "例: D:\\LR2\\LR2files\\Rival": "Example: D:\\LR2\\LR2files\\Rival",
+  "参照ボタンはデスクトップ版(.exe)で利用できます。": "Browse is available in the desktop app (.exe).",
+};
 
 renderTablePresetPicker();
 renderManualTableUrlToggles();
@@ -185,9 +362,12 @@ configureRivalFolderBrowseButton();
 initializeControlMenu();
 initializeRivalPanel();
 initializeLevelModeToggleButton();
+initializeLanguageSelector();
 initializeThemeSelector();
 initializeExportMessageDialog();
+initializeFloatingChartHeader();
 applyTheme(selectedThemeMode, { persist: false });
+applyLanguage(selectedLanguage, { persist: false });
 
 function initializeControlMenu() {
   if (!menuToggleButton || !menuBackdrop || !controlDrawer) {
@@ -242,6 +422,7 @@ function setControlMenuOpen(open, options = {}) {
   updateDrawerBackdrop();
 
   if (!restoreFocus) {
+    translateApp();
     return;
   }
 
@@ -250,6 +431,7 @@ function setControlMenuOpen(open, options = {}) {
   } else {
     menuToggleButton.focus();
   }
+  translateApp();
 }
 
 function initializeRivalPanel() {
@@ -314,7 +496,7 @@ function showExportMessage(message, options = {}) {
   }
 
   const { closable = true } = options;
-  exportMessageText.textContent = String(message ?? "");
+  setLocalizedText(exportMessageText, message);
   exportMessageOkButton.classList.toggle("hidden", !closable);
   exportMessageModal.classList.remove("hidden");
   exportMessageModal.setAttribute("aria-hidden", "false");
@@ -387,6 +569,241 @@ function initializeThemeSelector() {
       }
     });
   }
+}
+
+function initializeLanguageSelector() {
+  if (!languageSelect) {
+    return;
+  }
+
+  languageSelect.value = selectedLanguage;
+  languageSelect.addEventListener("change", () => {
+    applyLanguage(languageSelect.value);
+  });
+}
+
+function normalizeLanguage(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return LANGUAGE_OPTIONS.includes(normalized) ? normalized : DEFAULT_LANGUAGE;
+}
+
+function applyLanguage(language, options = {}) {
+  const { persist = true } = options;
+  selectedLanguage = normalizeLanguage(language);
+  hasStoredLanguagePreference = hasStoredLanguagePreference || persist;
+  document.documentElement.lang = selectedLanguage;
+  if (languageSelect) {
+    languageSelect.value = selectedLanguage;
+  }
+  translateApp();
+  if (persist) {
+    void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+  }
+}
+
+function showInitialLanguagePrompt() {
+  if (document.querySelector(".language-startup-modal")) {
+    return;
+  }
+
+  const overlay = document.createElement("div");
+  overlay.className = "language-startup-modal";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.dataset.i18nSkip = "true";
+
+  const card = document.createElement("div");
+  card.className = "language-startup-card";
+
+  const title = document.createElement("h2");
+  title.textContent = "表示言語 / Display Language";
+
+  const description = document.createElement("p");
+  description.textContent = "最初に表示言語を選択してください。Please choose a display language.";
+
+  const actions = document.createElement("div");
+  actions.className = "language-startup-actions";
+
+  const japaneseButton = document.createElement("button");
+  japaneseButton.type = "button";
+  japaneseButton.textContent = "日本語";
+
+  const englishButton = document.createElement("button");
+  englishButton.type = "button";
+  englishButton.className = "button-secondary";
+  englishButton.textContent = "English";
+
+  const chooseLanguage = (language) => {
+    overlay.remove();
+    hasStoredLanguagePreference = true;
+    applyLanguage(language);
+  };
+
+  japaneseButton.addEventListener("click", () => chooseLanguage("ja"));
+  englishButton.addEventListener("click", () => chooseLanguage("en"));
+
+  actions.append(japaneseButton, englishButton);
+  card.append(title, description, actions);
+  overlay.append(card);
+  document.body.append(overlay);
+  japaneseButton.focus();
+}
+
+function setLocalizedText(element, value) {
+  if (!element) {
+    return;
+  }
+
+  const original = String(value ?? "");
+  element.textContent = selectedLanguage === "en" ? localizeString(original) : original;
+  if (element.firstChild) {
+    localizedTextNodeOriginals.set(element.firstChild, original);
+  }
+}
+
+function setUntranslatedText(element, value) {
+  if (!element) {
+    return;
+  }
+
+  element.dataset.i18nSkip = "true";
+  element.textContent = String(value ?? "");
+}
+
+function translateApp(root = document.body) {
+  if (!root) {
+    return;
+  }
+
+  translateTextNodes(root);
+  translateAttributes(root);
+}
+
+function translateTextNodes(root) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      const text = String(node.nodeValue ?? "");
+      if (!text.trim()) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      const parent = node.parentElement;
+      if (!parent || ["SCRIPT", "STYLE", "TEXTAREA"].includes(parent.tagName)) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      if (parent.closest("[data-i18n-skip]")) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      if (parent.tagName === "INPUT") {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const nodes = [];
+  while (walker.nextNode()) {
+    nodes.push(walker.currentNode);
+  }
+
+  for (const node of nodes) {
+    if (!localizedTextNodeOriginals.has(node)) {
+      localizedTextNodeOriginals.set(node, String(node.nodeValue ?? ""));
+    }
+    const original = localizedTextNodeOriginals.get(node);
+    node.nodeValue = selectedLanguage === "en" ? localizeString(original) : original;
+  }
+}
+
+function translateAttributes(root) {
+  const elements = root.querySelectorAll("[placeholder], [title]");
+  for (const element of elements) {
+    if (element.closest("[data-i18n-skip]")) {
+      continue;
+    }
+    for (const attr of ["placeholder", "title"]) {
+      if (!element.hasAttribute(attr)) {
+        continue;
+      }
+      const originalAttr = `data-i18n-original-${attr}`;
+      if (!element.hasAttribute(originalAttr)) {
+        element.setAttribute(originalAttr, element.getAttribute(attr) ?? "");
+      }
+      const original = element.getAttribute(originalAttr) ?? "";
+      element.setAttribute(attr, selectedLanguage === "en" ? localizeString(original) : original);
+    }
+  }
+}
+
+function localizeString(value) {
+  if (selectedLanguage !== "en") {
+    return value;
+  }
+
+  const text = String(value ?? "");
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return text;
+  }
+
+  const exact = I18N_TEXT[trimmed] ?? I18N_ATTRS[trimmed];
+  if (exact) {
+    return text.replace(trimmed, exact);
+  }
+
+  return text
+    .replace(/前回読み込みからランプ、BP、スコアが更新された譜面: ([0-9,]+)件/g, "Updated charts with lamp, BP, or score changes since the previous load: $1")
+    .replace(/前回読み込みからランプまたはスコアが更新された譜面: ([0-9,]+)件/g, "Updated charts with lamp or score changes since the previous load: $1")
+    .replace(/LR2 score\.db: ([0-9,]+)譜面/g, "LR2 score.db: $1 charts")
+    .replace(/song\.db \(IRキャッシュ\)/g, "song.db (IR Cache)")
+    .replace(/([0-9,]+)件の難易度表を読み込みました。/g, "Loaded $1 tables.")
+    .replace(/難易度表URL未入力のため、プレイヤーデータのみ読み込みました。/g, "No table URL was entered, so only player data was loaded.")
+    .replace(/score\.db からプロフィールを取得しました。/g, "Loaded the profile from score.db.")
+    .replace(/score\.db からプレイヤー名と段位を取得しています。/g, "Loading the player name and grade from score.db.")
+    .replace(/score\.db からプロフィールを取得できませんでした。/g, "Could not load the profile from score.db.")
+    .replace(/URL取得に失敗しました:\s*/g, "Failed to fetch URL: ")
+    .replace(/URLが不正です:\s*/g, "Invalid URL: ")
+    .replace(/ホスト名を解決できませんでした:\s*/g, "Could not resolve host name: ")
+    .replace(/(.+?) のJSON解析に失敗しました。/g, "Failed to parse JSON for $1.")
+    .replace(/プレイヤー:\s*/g, "Player: ")
+    .replace(/SP段位:\s*/g, "SP Grade: ")
+    .replace(/DP段位:\s*/g, "DP Grade: ")
+    .replace(/SP段位\s*/g, "SP Grade ")
+    .replace(/取得時刻:\s*/g, "Fetched At: ")
+    .replace(/IRキャッシュ/g, "IR Cache")
+    .replace(/ヘッダーJSON/g, "Header JSON")
+    .replace(/見つかりません/g, "Not Found")
+    .replace(/勝敗表示:\s*/g, "Win/Loss Scope: ")
+    .replace(/上位([0-9.]+)%/g, "Top $1%")
+    .replace(/(\d[\d,]*)人中/g, "of $1")
+    .replace(/(\d[\d,]*)位/g, "Rank $1")
+    .replace(/(\d[\d,]*)件/g, "$1 items")
+    .replace(/(\d[\d,]*)譜面/g, "$1 charts")
+    .replace(/(\d[\d,]*)スコア/g, "$1 scores")
+    .replace(/(\d[\d,]*)人/g, "$1 players")
+    .replace(/(\d[\d,]*)回/g, "$1 plays")
+    .replace(/今回の打鍵数/g, "Key Hits This Run")
+    .replace(/更新譜面数/g, "Updated Charts")
+    .replace(/読み込み失敗の難易度表/g, "Failed Tables")
+    .replace(/重複除外後の譜面数/g, "Unique Charts")
+    .replace(/プレイヤー/g, "Player")
+    .replace(/取得時刻/g, "Fetched At")
+    .replace(/DP段位/g, "DP Grade")
+    .replace(/SP段位/g, "SP Grade")
+    .replace(/難易度表/g, "Table")
+    .replace(/譜面/g, "charts")
+    .replace(/保存された前回の読み込み結果を復元しました。必要なら再読み込みで最新状態を取得してください。/g, "Restored the previous load result. Reload if you need the latest data.")
+    .replace(/保存された入力内容を復元しました。/g, "Restored saved input.")
+    .replace(/score\.db \/ song\.db の更新を検知したため、自動で再読み込みしています。/g, "Detected score.db / song.db changes. Reloading automatically.")
+    .replace(/画像を保存しました/g, "Image saved")
+    .replace(/画像をダウンロードしました。/g, "Image downloaded.")
+    .replace(/画像出力に失敗しました。/g, "Image export failed.")
+    .replace(/出力に失敗しました/g, "Export failed")
+    .replace(/画像保存に失敗しました/g, "Image save failed")
+    .replace(/読み込みに失敗しました。/g, "Loading failed.")
+    .replace(/ファイル選択に失敗しました。/g, "File selection failed.")
+    .replace(/フォルダ選択に失敗しました。/g, "Folder selection failed.");
 }
 
 function normalizeThemeMode(value) {
@@ -548,11 +965,12 @@ function renderManualTableUrlToggles() {
     });
 
     const text = document.createElement("span");
-    text.textContent = getManualTableUrlDisplayName(tableUrl);
+    setUntranslatedText(text, getManualTableUrlDisplayName(tableUrl));
 
     label.append(checkbox, text);
     manualTableUrlTogglesContainer.append(label);
   }
+  translateApp(manualTableUrlTogglesContainer);
 }
 
 function getManualTableUrlDisplayName(tableUrl) {
@@ -607,7 +1025,7 @@ function renderTablePresetPicker() {
     textWrap.className = "table-preset-text";
 
     const name = document.createElement("strong");
-    name.textContent = preset.name;
+    setUntranslatedText(name, preset.name);
 
     const url = document.createElement("small");
     url.textContent = preset.url;
@@ -616,6 +1034,7 @@ function renderTablePresetPicker() {
     label.append(checkbox, textWrap);
     tablePresetsContainer.append(label);
   }
+  translateApp(tablePresetsContainer);
 }
 
 function syncPresetCheckboxesFromState() {
@@ -637,7 +1056,7 @@ async function pickDbPath({ title, defaultPath }) {
 
   try {
     const picked = await window.lr2irDesktop.pickFile({
-      title,
+      title: localizeString(title),
       defaultPath,
       filters: [{ name: "DB", extensions: ["db"] }],
     });
@@ -656,7 +1075,7 @@ async function pickDirectoryPath({ title, defaultPath }) {
 
   try {
     const picked = await window.lr2irDesktop.pickDirectory({
-      title,
+      title: localizeString(title),
       defaultPath,
     });
     return String(picked ?? "").trim();
@@ -807,7 +1226,7 @@ scoreDbPathInput.addEventListener("change", () => {
 
 clearSavedButton.addEventListener("click", async () => {
   const shouldClear = window.confirm(
-    "保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表プリセットの選択状態は保持されます。",
+    localizeString("保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表プリセットの選択状態は保持されます。"),
   );
   if (!shouldClear) {
     return;
@@ -826,6 +1245,7 @@ clearSavedButton.addEventListener("click", async () => {
   tableInfoPanelOpenState.clear();
   chartDetailsOpenState.clear();
   chartListOpenLevelsState.clear();
+  chartListStateByTable.clear();
   form.reset();
   scoreDbPathInput.value = "";
   songDbPathInput.value = "";
@@ -840,6 +1260,8 @@ clearSavedButton.addEventListener("click", async () => {
   renderManualTableUrlToggles();
   levelChartMode = "lamp";
   updateLevelModeToggleButton();
+  hasStoredLanguagePreference = false;
+  applyLanguage(DEFAULT_LANGUAGE, { persist: false });
   irRankDisplayMode = DEFAULT_IR_RANK_DISPLAY_MODE;
   if (irRankDisplaySelect) {
     irRankDisplaySelect.value = irRankDisplayMode;
@@ -854,9 +1276,12 @@ clearSavedButton.addEventListener("click", async () => {
 });
 
 function renderAnalysis() {
+  hideLevelGroupFloatingCloseButton();
+  hideFloatingChartHeader();
   if (!latestAnalysis) {
     renderRivalPanel();
     renderInitialGuidePanel();
+    translateApp();
     return;
   }
   syncSelectedRivalsWithAnalysis(latestAnalysis);
@@ -897,12 +1322,14 @@ function renderAnalysis() {
         ? '<p class="helper">難易度表URL未入力のため、プレイヤーデータのみ表示しています。</p>'
         : '<p class="helper">表示対象の難易度表がありません。</p>';
     resultsRoot.append(emptyPanel);
+    translateApp();
     return;
   }
 
   for (const table of visibleTables) {
     resultsRoot.append(renderTableSection(table, table.charts));
   }
+  translateApp();
 }
 
 function renderInitialGuidePanel() {
@@ -922,6 +1349,7 @@ function renderInitialGuidePanel() {
   section.append(title, description);
   resultsRoot.append(section);
   resultsRoot.classList.remove("hidden");
+  translateApp(section);
 }
 
 function syncSelectedRivalsWithAnalysis(analysis) {
@@ -1015,7 +1443,15 @@ function renderRivalPanel() {
 
   const scopeSummary = document.createElement("summary");
   scopeSummary.className = "rival-panel-scope-summary";
-  scopeSummary.textContent = `勝敗表示: ${currentScope?.label ?? "全譜面"}`;
+  const scopeSummaryPrefix = document.createElement("span");
+  scopeSummaryPrefix.textContent = "勝敗表示: ";
+  const scopeSummaryName = document.createElement("span");
+  if (currentScope?.isTable) {
+    setUntranslatedText(scopeSummaryName, currentScope.label);
+  } else {
+    scopeSummaryName.textContent = currentScope?.label ?? "全譜面";
+  }
+  scopeSummary.append(scopeSummaryPrefix, scopeSummaryName);
   scopePicker.append(scopeSummary);
 
   const scopeList = document.createElement("div");
@@ -1025,7 +1461,11 @@ function renderRivalPanel() {
     optionButton.type = "button";
     optionButton.className = "rival-panel-scope-option";
     optionButton.setAttribute("aria-pressed", scope.id === selectedRivalStatsScope ? "true" : "false");
-    optionButton.textContent = scope.label;
+    if (scope.isTable) {
+      setUntranslatedText(optionButton, scope.label);
+    } else {
+      optionButton.textContent = scope.label;
+    }
     optionButton.addEventListener("click", () => {
       selectedRivalStatsScope = scope.id;
       renderAnalysis();
@@ -1036,6 +1476,30 @@ function renderRivalPanel() {
   rivalPanel.append(scopePicker);
 
   const rivalStats = buildRivalWinLossStats(latestAnalysis, selectedRivalStatsScope);
+
+  const sortControls = document.createElement("div");
+  sortControls.className = "rival-panel-sort-controls";
+  const rivalSortOptions = [
+    { key: "win", label: "WIN率順" },
+    { key: "lose", label: "LOSE率順" },
+    { key: "name", label: "名前順" },
+  ];
+  if (!rivalSortOptions.some((option) => option.key === selectedRivalSortKey)) {
+    selectedRivalSortKey = "win";
+  }
+  for (const option of rivalSortOptions) {
+    const sortButton = document.createElement("button");
+    sortButton.type = "button";
+    sortButton.className = "rival-panel-sort-button";
+    sortButton.setAttribute("aria-pressed", option.key === selectedRivalSortKey ? "true" : "false");
+    sortButton.textContent = option.label;
+    sortButton.addEventListener("click", () => {
+      selectedRivalSortKey = option.key;
+      renderRivalPanel();
+    });
+    sortControls.append(sortButton);
+  }
+  rivalPanel.append(sortControls);
 
   const actions = document.createElement("div");
   actions.className = "rival-panel-actions";
@@ -1061,7 +1525,8 @@ function renderRivalPanel() {
   actions.append(selectAllButton, clearAllButton);
   rivalPanel.append(actions);
 
-  for (const rival of rivals) {
+  const sortedRivals = sortRivalsForPanel(rivals, rivalStats, selectedRivalSortKey);
+  for (const rival of sortedRivals) {
     const rivalId = String(rival?.id ?? "").trim();
     if (!rivalId) {
       continue;
@@ -1106,6 +1571,48 @@ function renderRivalPanel() {
     label.append(checkbox, name, meta);
     rivalPanel.append(label);
   }
+  translateApp(rivalPanel);
+}
+
+function sortRivalsForPanel(rivals, rivalStats, sortKey) {
+  return [...rivals].sort((left, right) => {
+    const leftId = String(left?.id ?? "").trim();
+    const rightId = String(right?.id ?? "").trim();
+    const leftStats = rivalStats.get(leftId) ?? { wins: 0, losses: 0 };
+    const rightStats = rivalStats.get(rightId) ?? { wins: 0, losses: 0 };
+    const leftName = String(left?.name || leftId).trim();
+    const rightName = String(right?.name || rightId).trim();
+
+    const leftTotal = leftStats.wins + leftStats.losses;
+    const rightTotal = rightStats.wins + rightStats.losses;
+    const leftWinRate = leftTotal > 0 ? leftStats.wins / leftTotal : -1;
+    const rightWinRate = rightTotal > 0 ? rightStats.wins / rightTotal : -1;
+    const leftLossRate = leftTotal > 0 ? leftStats.losses / leftTotal : -1;
+    const rightLossRate = rightTotal > 0 ? rightStats.losses / rightTotal : -1;
+
+    if (sortKey === "lose") {
+      const lossDiff = rightLossRate - leftLossRate;
+      if (lossDiff !== 0) {
+        return lossDiff;
+      }
+    } else if (sortKey === "name") {
+      const nameDiff = leftName.localeCompare(rightName, "ja");
+      if (nameDiff !== 0) {
+        return nameDiff;
+      }
+    } else {
+      const winDiff = rightWinRate - leftWinRate;
+      if (winDiff !== 0) {
+        return winDiff;
+      }
+    }
+
+    const decidedDiff = rightTotal - leftTotal;
+    if (decidedDiff !== 0) {
+      return decidedDiff;
+    }
+    return leftName.localeCompare(rightName, "ja");
+  });
 }
 
 function getRivalStatsScopeOptions(analysis) {
@@ -1117,7 +1624,7 @@ function getRivalStatsScopeOptions(analysis) {
       continue;
     }
     const label = String(table?.name ?? "").trim() || String(table?.symbol ?? "").trim() || "難易度表";
-    scopes.push({ id: tableId, label });
+    scopes.push({ id: tableId, label, isTable: true });
   }
   return scopes;
 }
@@ -1238,11 +1745,10 @@ function renderLampImprovementsPanel(improvements, compared) {
   const saveImageButton = document.createElement("button");
   saveImageButton.type = "button";
   saveImageButton.className = "button-secondary lamp-improvements-save-button";
-  saveImageButton.textContent = "今日の更新を画像出力";
+  setLocalizedText(saveImageButton, "今日の更新を画像出力");
   saveImageButton.addEventListener("click", async () => {
-    const defaultLabel = "今日の更新を画像出力";
     saveImageButton.disabled = true;
-    saveImageButton.textContent = "出力中…";
+    setLocalizedText(saveImageButton, "出力中…");
     setStatus("出力中…");
     showExportMessage("出力中…", { closable: false });
     try {
@@ -1259,7 +1765,7 @@ function renderLampImprovementsPanel(improvements, compared) {
       showExportMessage(`出力に失敗しました: ${details}`);
     } finally {
       saveImageButton.disabled = false;
-      saveImageButton.textContent = defaultLabel;
+      setLocalizedText(saveImageButton, "今日の更新を画像出力");
     }
   });
   heading.append(saveImageButton);
@@ -1672,7 +2178,7 @@ function renderTableSummarySnapshotDataUrl({ table, charts, mode, themeMode }) {
   ctx.fillStyle = palette.page;
   ctx.fillRect(0, 0, metrics.width, height);
 
-  const tableName = String(table?.name ?? "難易度表").trim() || "難易度表";
+  const tableName = String(table?.name ?? localizeString("難易度表")).trim() || localizeString("難易度表");
   ctx.textBaseline = "top";
   ctx.font = "700 30px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
@@ -1680,7 +2186,7 @@ function renderTableSummarySnapshotDataUrl({ table, charts, mode, themeMode }) {
 
   ctx.font = "600 17px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textMuted;
-  const dateText = new Date().toLocaleString("ja-JP");
+  const dateText = new Date().toLocaleString(getCurrentLocale());
   const dateWidth = ctx.measureText(dateText).width;
   ctx.fillText(dateText, metrics.width - metrics.padding - dateWidth, metrics.padding + 8);
 
@@ -1756,7 +2262,7 @@ function drawSnapshotLampSummary(ctx, charts, metrics) {
   const { x, y, width, padding, palette } = metrics;
   ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
-  ctx.fillText("ランプ内訳", x + padding, y + padding);
+  ctx.fillText(localizeString("ランプ内訳"), x + padding, y + padding);
 
   const columns = 3;
   const cardGap = 12;
@@ -1782,7 +2288,7 @@ function drawSnapshotLampSummary(ctx, charts, metrics) {
   const scoreTitleY = startY + lampRows * cardHeight + Math.max(0, lampRows - 1) * cardGap + 34;
   ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
-  ctx.fillText("スコア内訳", x + padding, scoreTitleY);
+  ctx.fillText(localizeString("スコア内訳"), x + padding, scoreTitleY);
 
   const scoreColumns = 4;
   const scoreCardGap = 10;
@@ -2016,7 +2522,7 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
   ctx.textBaseline = "top";
   ctx.fillText("L2TV Lamp Updates", metrics.paddingX, y);
 
-  const timestampText = new Date().toLocaleString("ja-JP");
+  const timestampText = new Date().toLocaleString(getCurrentLocale());
   ctx.font = "600 18px 'Segoe UI', 'Meiryo', sans-serif";
   const timestampWidth = ctx.measureText(timestampText).width;
   ctx.fillStyle = palette.textMuted;
@@ -2025,11 +2531,15 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
   y += metrics.headerHeight;
 
   const keyHitText =
-    keyHitCountDelta != null && keyHitCountDelta > 0 ? `${formatInteger(keyHitCountDelta)}回` : "NO Data";
+    keyHitCountDelta != null && keyHitCountDelta > 0
+      ? selectedLanguage === "en"
+        ? formatInteger(keyHitCountDelta)
+        : `${formatInteger(keyHitCountDelta)}回`
+      : "NO Data";
   ctx.font = "700 20px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
-  ctx.fillText(`今回の打鍵数: ${keyHitText}`, metrics.paddingX, y);
-  ctx.fillText(`更新譜面数: ${sortedImprovements.length}件`, metrics.paddingX + 350, y);
+  ctx.fillText(`${localizeString("今回の打鍵数")}: ${keyHitText}`, metrics.paddingX, y);
+  ctx.fillText(`${localizeString("更新譜面数")}: ${formatInteger(sortedImprovements.length)}`, metrics.paddingX + 350, y);
 
   y += metrics.metaHeight;
 
@@ -2038,7 +2548,7 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
     drawRoundedRect(ctx, metrics.paddingX, y, metrics.width - metrics.paddingX * 2, 72, 10, palette.groupNeutralBg);
     ctx.font = "600 20px 'Segoe UI', 'Meiryo', sans-serif";
     ctx.fillStyle = palette.textMuted;
-    ctx.fillText("更新データはありません。", metrics.paddingX + 16, y + 22);
+    ctx.fillText(localizeString("更新データはありません。"), metrics.paddingX + 16, y + 22);
     return canvas.toDataURL("image/png");
   }
 
@@ -2082,7 +2592,7 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
     );
     ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
     ctx.fillStyle = palette.groupTitleText;
-    const groupTitle = group.title;
+    const groupTitle = localizeString(group.title);
     const groupTitleWidth = ctx.measureText(groupTitle).width;
     ctx.fillText(groupTitle, metrics.width / 2 - groupTitleWidth / 2, y + metrics.groupPaddingTop + 5);
 
@@ -2548,7 +3058,7 @@ function renderTableSection(table, filteredCharts) {
   const tableInfoPanel = root.querySelector(".table-info-panel");
   const tableStateKey = buildTableInfoStateKey(table);
   const isOpen = Boolean(tableInfoPanelOpenState.get(tableStateKey));
-  tableName.textContent = table.name;
+  setUntranslatedText(tableName, table.name);
   tableInfoPanel.classList.toggle("hidden", !isOpen);
   tableNameToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
 
@@ -2608,11 +3118,10 @@ function renderTableSection(table, filteredCharts) {
     const exportSummaryButton = document.createElement("button");
     exportSummaryButton.type = "button";
     exportSummaryButton.className = "button-secondary summary-export-button";
-    exportSummaryButton.textContent = "この画面を画像出力";
+    setLocalizedText(exportSummaryButton, "この画面を画像出力");
     exportSummaryButton.addEventListener("click", async () => {
-      const defaultLabel = exportSummaryButton.textContent;
       exportSummaryButton.disabled = true;
-      exportSummaryButton.textContent = "出力中…";
+      setLocalizedText(exportSummaryButton, "出力中…");
       showExportMessage("出力中…", { closable: false });
       try {
         await exportTableSummarySnapshot({
@@ -2626,7 +3135,7 @@ function renderTableSection(table, filteredCharts) {
         showExportMessage(error instanceof Error ? error.message : "画像出力に失敗しました。");
       } finally {
         exportSummaryButton.disabled = false;
-        exportSummaryButton.textContent = defaultLabel;
+        setLocalizedText(exportSummaryButton, "この画面を画像出力");
       }
     });
     summaryActions.append(exportSummaryButton);
@@ -2795,6 +3304,7 @@ function createChartListPanel(table, charts, summaryElement) {
   const panel = document.createElement("div");
   panel.className = "chart-list-panel";
   const tableStateKey = buildTableInfoStateKey(table);
+  const savedListState = chartListStateByTable.get(tableStateKey) ?? {};
 
   const toolbar = document.createElement("div");
   toolbar.className = "chart-list-toolbar";
@@ -2805,6 +3315,7 @@ function createChartListPanel(table, charts, summaryElement) {
   const searchInput = document.createElement("input");
   searchInput.type = "search";
   searchInput.placeholder = "曲名 / アーティスト / EX / Rate / IR順位 / プレイ回数";
+  searchInput.value = savedListState.query ?? "";
 
   const lampSelect = document.createElement("select");
   lampSelect.innerHTML = '<option value="">すべて</option>';
@@ -2814,6 +3325,7 @@ function createChartListPanel(table, charts, summaryElement) {
     option.textContent = lampLabels[lamp];
     lampSelect.append(option);
   }
+  lampSelect.value = savedListState.lamp ?? "";
 
   const levelSelect = document.createElement("select");
   levelSelect.innerHTML = '<option value="">すべて</option>';
@@ -2826,6 +3338,7 @@ function createChartListPanel(table, charts, summaryElement) {
     option.textContent = level;
     levelSelect.append(option);
   }
+  levelSelect.value = levels.includes(savedListState.level) ? savedListState.level : "";
 
   filterGrid.append(
     createChartListField("検索", searchInput),
@@ -2838,15 +3351,26 @@ function createChartListPanel(table, charts, summaryElement) {
   const savedOpenLevels = chartListOpenLevelsState.get(tableStateKey);
 
   const state = {
-    query: "",
-    lamp: "",
-    level: "",
-    sortKey: "level",
-    sortDirection: "asc",
+    query: searchInput.value.trim().toLowerCase(),
+    lamp: lampSelect.value,
+    level: levelSelect.value,
+    sortKey: savedListState.sortKey ?? "level",
+    sortDirection: savedListState.sortDirection ?? "asc",
     openLevels: savedOpenLevels instanceof Set ? new Set(savedOpenLevels) : new Set(),
   };
 
+  const saveState = () => {
+    chartListStateByTable.set(tableStateKey, {
+      query: state.query,
+      lamp: state.lamp,
+      level: state.level,
+      sortKey: state.sortKey,
+      sortDirection: state.sortDirection,
+    });
+  };
+
   const update = () => {
+    saveState();
     const visibleCharts = charts.filter((chart) =>
       chartMatchesChartListFilters(chart, state.query, state.lamp, state.level),
     );
@@ -2860,19 +3384,23 @@ function createChartListPanel(table, charts, summaryElement) {
       empty.className = "chart-list-empty dimmed";
       empty.textContent = "条件に一致する譜面はありません。";
       content.append(empty);
+      translateApp(content);
       return;
     }
 
     content.append(renderGroupedChartTables(table, visibleCharts, state, update));
+    translateApp(content);
   };
 
   searchInput.addEventListener("input", () => {
     state.query = searchInput.value.trim().toLowerCase();
+    saveState();
     update();
   });
 
   lampSelect.addEventListener("change", () => {
     state.lamp = lampSelect.value;
+    saveState();
     update();
   });
 
@@ -2881,6 +3409,7 @@ function createChartListPanel(table, charts, summaryElement) {
     if (state.level) {
       state.openLevels.add(state.level);
     }
+    saveState();
     chartListOpenLevelsState.set(tableStateKey, new Set(state.openLevels));
     update();
   });
@@ -2889,6 +3418,7 @@ function createChartListPanel(table, charts, summaryElement) {
   panel.append(toolbar, content);
 
   update();
+  translateApp(panel);
   return panel;
 }
 
@@ -2933,9 +3463,20 @@ function renderGroupedChartTables(table, charts, state, rerender) {
     const summary = document.createElement("summary");
     summary.className = "level-group-summary";
 
+    const groupLabel = document.createElement("span");
+    groupLabel.className = "level-group-label";
+
     const groupName = document.createElement("span");
     groupName.className = "level-group-name";
     groupName.textContent = formatLevelWithSymbol(level, table.symbol);
+    groupLabel.append(groupName);
+
+    if (completedLamp) {
+      const groupLampBadge = document.createElement("span");
+      groupLampBadge.className = `lamp-badge level-group-lamp-badge lamp-${toLampSlug(completedLamp)}`;
+      groupLampBadge.textContent = lampLabels[completedLamp] || completedLamp;
+      groupLabel.append(groupLampBadge);
+    }
 
     const breakdown = createLevelGroupBreakdown(levelCharts);
 
@@ -2943,7 +3484,7 @@ function renderGroupedChartTables(table, charts, state, rerender) {
     groupCount.className = "level-group-count";
     groupCount.textContent = `${levelCharts.length}譜面`;
 
-    summary.append(groupName, breakdown, groupCount);
+    summary.append(groupLabel, breakdown, groupCount);
 
     const sortedCharts = sortChartsForList(levelCharts, table, {
       ...state,
@@ -2959,21 +3500,37 @@ function renderGroupedChartTables(table, charts, state, rerender) {
         return;
       }
       groupContent.append(renderChartTable(sortedCharts, table, state, rerender));
+      translateApp(groupContent);
     };
 
     if (group.open) {
       renderGroupContent();
+      showLevelGroupFloatingCloseButton(group, level, table, state);
     }
 
     group.addEventListener("toggle", () => {
       if (group.open) {
         state.openLevels.add(level);
         renderGroupContent();
+        showLevelGroupFloatingCloseButton(group, level, table, state);
       } else {
         state.openLevels.delete(level);
         groupContent.innerHTML = "";
+        hideLevelGroupFloatingCloseButton(group);
       }
       chartListOpenLevelsState.set(buildTableInfoStateKey(table), new Set(state.openLevels));
+    });
+
+    group.addEventListener("mouseenter", () => {
+      if (group.open) {
+        showLevelGroupFloatingCloseButton(group, level, table, state);
+      }
+    });
+
+    group.addEventListener("focusin", () => {
+      if (group.open) {
+        showLevelGroupFloatingCloseButton(group, level, table, state);
+      }
     });
 
     group.append(summary, groupContent);
@@ -2983,14 +3540,193 @@ function renderGroupedChartTables(table, charts, state, rerender) {
   return wrapper;
 }
 
+function showLevelGroupFloatingCloseButton(group, level, table, state) {
+  if (!activeLevelGroupCloseButton) {
+    activeLevelGroupCloseButton = document.createElement("button");
+    activeLevelGroupCloseButton.type = "button";
+    activeLevelGroupCloseButton.className = "button-secondary level-group-floating-close-button";
+    document.body.append(activeLevelGroupCloseButton);
+  }
+
+  activeLevelGroupCloseTarget = group;
+  activeLevelGroupCloseButton.textContent = `${formatLevelWithSymbol(level, table.symbol)} Folder Close`;
+  activeLevelGroupCloseButton.onclick = () => {
+    state.openLevels.delete(level);
+    chartListOpenLevelsState.set(buildTableInfoStateKey(table), new Set(state.openLevels));
+    group.open = false;
+    hideLevelGroupFloatingCloseButton(group);
+  };
+
+  showLevelGroupOptionButton(group);
+}
+
+function hideLevelGroupFloatingCloseButton(group = null) {
+  if (group && activeLevelGroupCloseTarget !== group) {
+    return;
+  }
+  activeLevelGroupCloseButton?.remove();
+  activeLevelGroupCloseButton = null;
+  activeLevelGroupCloseTarget = null;
+  floatingChartHeaderRequested = false;
+  hideLevelGroupOptionButton();
+  hideFloatingChartHeader();
+}
+
+function initializeFloatingChartHeader() {
+  window.addEventListener("scroll", updateLevelGroupFloatingControls, { passive: true });
+  window.addEventListener("resize", updateLevelGroupFloatingControls);
+}
+
+function getFloatingChartHeaderTop() {
+  return 112;
+}
+
+function updateLevelGroupFloatingControls() {
+  const top = getFloatingChartHeaderTop();
+  const groups = [...document.querySelectorAll(".level-group[open]")];
+  const activeGroup = groups.find((group) => {
+    const rect = group.getBoundingClientRect();
+    return rect.top < top && rect.bottom > top + 100;
+  });
+
+  if (!activeGroup) {
+    floatingChartHeaderRequested = false;
+    hideLevelGroupOptionButton();
+    hideFloatingChartHeader();
+    return;
+  }
+
+  showLevelGroupOptionButton(activeGroup);
+  if (floatingChartHeaderSource && !activeGroup.contains(floatingChartHeaderSource)) {
+    hideFloatingChartHeader();
+  }
+  if (floatingChartHeaderRequested && !floatingChartHeader) {
+    const table = activeGroup.querySelector(".chart-table");
+    if (table) {
+      showFloatingChartHeader(table);
+    }
+  }
+}
+
+function showLevelGroupOptionButton(group) {
+  if (!activeLevelGroupOptionButton) {
+    activeLevelGroupOptionButton = document.createElement("button");
+    activeLevelGroupOptionButton.type = "button";
+    activeLevelGroupOptionButton.className = "button-secondary level-group-option-button";
+    document.body.append(activeLevelGroupOptionButton);
+  }
+
+  activeLevelGroupOptionButton.textContent = floatingChartHeaderRequested ? "Option Close" : "Folder Option";
+  activeLevelGroupOptionButton.onclick = () => {
+    const table = group.querySelector(".chart-table");
+    if (!table) {
+      return;
+    }
+    if (floatingChartHeaderRequested && floatingChartHeaderSource === table) {
+      floatingChartHeaderRequested = false;
+      hideFloatingChartHeader();
+    } else {
+      floatingChartHeaderRequested = true;
+      showFloatingChartHeader(table);
+    }
+    activeLevelGroupOptionButton.textContent = floatingChartHeaderRequested ? "Option Close" : "Folder Option";
+  };
+}
+
+function hideLevelGroupOptionButton() {
+  activeLevelGroupOptionButton?.remove();
+  activeLevelGroupOptionButton = null;
+}
+
+function showFloatingChartHeader(table) {
+  const meta = table.__l2tvFloatingHeader;
+  const group = table.closest(".level-group");
+  const summary = group?.querySelector(".level-group-summary");
+  if (!meta || !summary) {
+    hideFloatingChartHeader();
+    return;
+  }
+
+  if (!floatingChartHeader) {
+    floatingChartHeader = document.createElement("div");
+    floatingChartHeader.className = "floating-chart-header";
+    document.body.append(floatingChartHeader);
+  }
+
+  if (floatingChartHeaderSource === table) {
+    return;
+  }
+
+  floatingChartHeaderSource = table;
+  floatingChartHeader.innerHTML = "";
+
+  const summaryClone = summary.cloneNode(true);
+  summaryClone.classList.add("floating-chart-header-summary");
+
+  const columnRow = document.createElement("div");
+  columnRow.className = "floating-chart-header-columns";
+  for (const column of chartSortColumns.filter((column) => column.key !== "level")) {
+    const cell = document.createElement("div");
+    cell.className = "floating-chart-header-cell";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "sort-button";
+    button.classList.toggle("is-active", meta.state.sortKey === column.key);
+    button.innerHTML =
+      `<span>${escapeHtml(column.label)}</span>` +
+      `<span class="sort-indicator">${getSortIndicator(column.key, meta.state)}</span>`;
+    button.addEventListener("click", () => {
+      if (meta.state.sortKey === column.key) {
+        meta.state.sortDirection = meta.state.sortDirection === "asc" ? "desc" : "asc";
+      } else {
+        meta.state.sortKey = column.key;
+        meta.state.sortDirection = "asc";
+      }
+      chartListStateByTable.set(buildTableInfoStateKey(meta.tableInfo), {
+        query: meta.state.query,
+        lamp: meta.state.lamp,
+        level: meta.state.level,
+        sortKey: meta.state.sortKey,
+        sortDirection: meta.state.sortDirection,
+      });
+      meta.rerender();
+      window.requestAnimationFrame(() => {
+        if (floatingChartHeaderRequested) {
+          updateLevelGroupFloatingControls();
+        }
+      });
+    });
+    cell.append(button);
+    columnRow.append(cell);
+  }
+
+  floatingChartHeader.append(summaryClone, columnRow);
+  translateApp(floatingChartHeader);
+}
+
+function hideFloatingChartHeader() {
+  floatingChartHeader?.remove();
+  floatingChartHeader = null;
+  floatingChartHeaderSource = null;
+  if (activeLevelGroupOptionButton) {
+    activeLevelGroupOptionButton.textContent = floatingChartHeaderRequested ? "Option Close" : "Folder Option";
+  }
+}
+
 function renderChartTable(charts, tableInfo, state, rerender) {
   const table = document.createElement("table");
   table.className = "chart-table";
+  table.__l2tvFloatingHeader = { tableInfo, state, rerender };
 
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
   for (const column of chartSortColumns) {
     const th = document.createElement("th");
+    if (column.key === "level") {
+      th.textContent = column.label;
+      headRow.append(th);
+      continue;
+    }
     const button = document.createElement("button");
     button.type = "button";
     button.className = "sort-button";
@@ -3005,6 +3741,13 @@ function renderChartTable(charts, tableInfo, state, rerender) {
         state.sortKey = column.key;
         state.sortDirection = "asc";
       }
+      chartListStateByTable.set(buildTableInfoStateKey(tableInfo), {
+        query: state.query,
+        lamp: state.lamp,
+        level: state.level,
+        sortKey: state.sortKey,
+        sortDirection: state.sortDirection,
+      });
       rerender();
     });
     th.append(button);
@@ -3049,11 +3792,12 @@ function renderChartTable(charts, tableInfo, state, rerender) {
       titleCell,
       artistCell,
       lampCell,
+      createScoreTierCell(chart),
       createScoreCell(chart),
       createMissCountCell(chart),
       createIrRankCell(chart),
-      createRivalCell(chart),
       createPlayCountCell(chart),
+      createRivalCell(chart),
     );
     tbody.append(row);
   }
@@ -3125,7 +3869,7 @@ function chartMatchesChartListFilters(chart, query, lamp, level) {
 }
 
 function updateChartListSummary(summaryElement) {
-  summaryElement.textContent = "譜面一覧を開く";
+  setLocalizedText(summaryElement, "譜面一覧を開く");
 }
 
 function sortChartsForList(charts, table, state) {
@@ -3162,6 +3906,8 @@ function compareChartsForSort(left, right, table, sortKey, sortDirection) {
       return compareChartsByBp(left, right, sortDirection);
     case "rival":
       return compareRivalValues(left, right, sortDirection);
+    case "scoreTier":
+      return compareScoreTierValues(left, right, sortDirection);
     case "scoreRate":
       return compareNumericNullable(left.scoreRate, right.scoreRate, sortDirection);
     default:
@@ -3337,6 +4083,17 @@ function createScoreCell(chart) {
   return cell;
 }
 
+function createScoreTierCell(chart) {
+  const tier = classifyScoreTier(chart);
+  const cell = document.createElement("td");
+  cell.className = "score-tier-cell";
+  const badge = document.createElement("span");
+  badge.className = `score-tier-badge score-tier-${toScoreTierSlug(tier)}`;
+  badge.textContent = levelChartScoreLabels[tier] || tier;
+  cell.append(badge);
+  return cell;
+}
+
 function createRivalCell(chart) {
   const cell = document.createElement("td");
   cell.className = "rival-cell";
@@ -3409,6 +4166,16 @@ function formatRivalLampResult(comparison) {
 
 function compareRivalValues(left, right, sortDirection) {
   return compareNumericNullable(getRivalScoreDiff(left), getRivalScoreDiff(right), sortDirection);
+}
+
+function compareScoreTierValues(left, right, sortDirection) {
+  const leftTier = classifyScoreTier(left);
+  const rightTier = classifyScoreTier(right);
+  const leftIndex = levelChartScoreOrder.indexOf(leftTier);
+  const rightIndex = levelChartScoreOrder.indexOf(rightTier);
+  const normalizedLeft = leftIndex === -1 ? levelChartScoreOrder.length : leftIndex;
+  const normalizedRight = rightIndex === -1 ? levelChartScoreOrder.length : rightIndex;
+  return sortDirection === "desc" ? normalizedRight - normalizedLeft : normalizedLeft - normalizedRight;
 }
 
 function getRivalScoreDiff(chart) {
@@ -3585,7 +4352,7 @@ function buildProfileOnlyStatusMessage(player, fetchedAt) {
   if (fetchedAt) {
     const parsedDate = new Date(fetchedAt);
     if (!Number.isNaN(parsedDate.getTime())) {
-      lines.push(`取得時刻: ${parsedDate.toLocaleString("ja-JP")}`);
+      lines.push(`取得時刻: ${parsedDate.toLocaleString(getCurrentLocale())}`);
     }
   }
 
@@ -3654,7 +4421,7 @@ async function autoFetchProfileFromScoreDb() {
 }
 
 function setStatus(message) {
-  statusBox.textContent = message;
+  setLocalizedText(statusBox, message);
 }
 
 function clearMainFeedbackTimeout() {
@@ -3716,7 +4483,11 @@ function formatPercent(value) {
 }
 
 function formatInteger(value) {
-  return new Intl.NumberFormat("ja-JP").format(value);
+  return new Intl.NumberFormat(getCurrentLocale()).format(value);
+}
+
+function getCurrentLocale() {
+  return selectedLanguage === "en" ? "en-US" : "ja-JP";
 }
 
 function formatDateYmd(dateValue) {
@@ -4929,13 +5700,20 @@ async function initializePersistence() {
   syncPresetCheckboxesFromState();
   const restoredFormState = await restoreFormState();
   const restoredAnalysis = await restoreLatestAnalysis();
+  const shouldShowLanguagePrompt = !hasStoredLanguagePreference;
 
   if (restoredAnalysis) {
     const autoReloaded = await maybeAutoReloadOnDbUpdate(restoredAnalysis);
     if (autoReloaded) {
+      if (shouldShowLanguagePrompt) {
+        showInitialLanguagePrompt();
+      }
       return;
     }
     setStatus("保存された前回の読み込み結果を復元しました。必要なら再読み込みで最新状態を取得してください。");
+    if (shouldShowLanguagePrompt) {
+      showInitialLanguagePrompt();
+    }
     return;
   }
 
@@ -4945,6 +5723,9 @@ async function initializePersistence() {
     setStatus("まずはメニューから読み込み設定を行ってください。");
   }
   renderAnalysis();
+  if (shouldShowLanguagePrompt) {
+    showInitialLanguagePrompt();
+  }
 }
 
 async function maybeAutoReloadOnDbUpdate(restoredAnalysis) {
@@ -5080,6 +5861,9 @@ async function restoreFormState() {
   renderManualTableUrlToggles();
   levelChartMode = normalizeLevelChartMode(persisted.levelChartMode);
   updateLevelModeToggleButton();
+  hasStoredLanguagePreference =
+    Boolean(persisted.languagePromptSeen) || Object.prototype.hasOwnProperty.call(persisted, "language");
+  applyLanguage(persisted.language, { persist: false });
   irRankDisplayMode = normalizeIrRankDisplayMode(persisted.irRankDisplayMode);
   if (irRankDisplaySelect) {
     irRankDisplaySelect.value = irRankDisplayMode;
@@ -5113,6 +5897,8 @@ async function persistFormState() {
     tableUrlsText: tableUrlsInput.value,
     disabledManualTableUrls: [...disabledManualTableUrls],
     levelChartMode,
+    language: selectedLanguage,
+    languagePromptSeen: hasStoredLanguagePreference,
     themeMode: selectedThemeMode,
     irRankDisplayMode,
     includeBpUpdatesInLampUpdates,

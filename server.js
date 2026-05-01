@@ -451,12 +451,35 @@ function validateApiPostRequest(req, res) {
 }
 
 function isAllowedLocalRequestHost(req) {
+  if (!isLoopbackRemoteAddress(req?.socket?.remoteAddress)) {
+    return false;
+  }
+
   const parsed = parseHostHeader(req.headers.host);
   if (!parsed) {
     return false;
   }
 
   return isAllowedLoopbackHostAndPort(parsed.hostname, parsed.port, req);
+}
+
+function isLoopbackRemoteAddress(remoteAddress) {
+  const value = String(remoteAddress ?? "").trim().toLowerCase().replace(/^\[|\]$/g, "");
+  if (!value) {
+    return false;
+  }
+  if (value === "::1" || value === "127.0.0.1") {
+    return true;
+  }
+  const mappedIpv4 = value.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (mappedIpv4) {
+    return mappedIpv4[1] === "127.0.0.1";
+  }
+  if (net.isIP(value) === 4) {
+    const parts = value.split(".").map((part) => Number.parseInt(part, 10));
+    return parts.length === 4 && parts[0] === 127 && parts.every((part) => Number.isInteger(part));
+  }
+  return false;
 }
 
 function isAllowedLocalOrigin(origin, req) {
