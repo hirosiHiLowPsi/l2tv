@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-  [switch]$SkipInstall
+  [switch]$SkipInstall,
+  [switch]$Installer
 )
 
 $ErrorActionPreference = "Stop"
@@ -68,7 +69,9 @@ if (-not $SkipInstall) {
   Write-Host "`n[2/4] Skip dependency install (-SkipInstall)"
 }
 
-Invoke-Step "`n[3/4] Build installer (.exe)" { npm run dist:win }
+$buildCommand = if ($Installer) { "dist:win:installer" } else { "dist:win" }
+$buildLabel = if ($Installer) { "Build installer (.exe)" } else { "Build portable zip" }
+Invoke-Step "`n[3/4] $buildLabel" { npm run $buildCommand }
 
 Write-Host "`n[4/4] Locate artifacts"
 $distDir = Join-Path $projectRoot "dist"
@@ -76,14 +79,22 @@ if (-not (Test-Path $distDir)) {
   throw "dist フォルダが見つかりません。ビルドログを確認してください。"
 }
 
-$installer = Get-ChildItem -Path $distDir -Filter "*.exe" -File -ErrorAction SilentlyContinue |
+$zip = Get-ChildItem -Path $distDir -Filter "*.zip" -File -ErrorAction SilentlyContinue |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+
+if ($zip) {
+  Write-Host "Zip:       $($zip.FullName)" -ForegroundColor Green
+} else {
+  Write-Warning "dist 直下に zip が見つかりませんでした。ビルドログにエラーがないか確認してください。"
+}
+
+$installer = Get-ChildItem -Path $distDir -Filter "*Setup*.exe" -File -ErrorAction SilentlyContinue |
   Sort-Object LastWriteTime -Descending |
   Select-Object -First 1
 
 if ($installer) {
   Write-Host "Installer: $($installer.FullName)" -ForegroundColor Green
-} else {
-  Write-Warning "dist 直下にインストーラー .exe が見つかりませんでした。ビルドログにエラーがないか確認してください。"
 }
 
 $unpackedExe = Get-ChildItem -Path (Join-Path $distDir "win-unpacked") -Filter "*.exe" -File -ErrorAction SilentlyContinue |

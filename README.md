@@ -30,19 +30,32 @@ npm install
 npm run desktop
 ```
 
-## Windows 用 `.exe` を作る
+## Windows 用 zip を作る
 
 ```bash
 npm install
 npm run dist:win
 ```
 
-ビルド完了後、`dist` フォルダにインストーラー `.exe` が出力されます。
+ビルド完了後、`dist` フォルダに `L2TV-<version>-win-x64.zip` が出力されます。
+zipを空のフォルダに解凍して、中の `L2TV.exe` を起動すれば使えます。インストールは不要です。
+
+インストーラーを作りたい場合だけ、次を実行します。
+
+```bash
+npm run dist:win:installer
+```
 
 または PowerShell スクリプトでもビルドできます:
 
 ```powershell
 .\build-win.ps1
+```
+
+インストーラーを作りたい場合:
+
+```powershell
+.\build-win.ps1 -Installer
 ```
 
 依存インストールを省略したい場合:
@@ -56,11 +69,9 @@ npm run dist:win
 - 管理者権限の PowerShell で実行
 - Windows の開発者モードを ON にして実行
 
-インストーラーの既定インストール先は、`All Users (Program Files)` が選ばれる設定です。
-
 ## データ保存先
 
-インストール版は既定で `exe` と同じフォルダ配下の  
+zip版は既定で `exe` と同じフォルダ配下の
 `lr2ir-table-lamp-viewer-data` に保存します。
 
 例:

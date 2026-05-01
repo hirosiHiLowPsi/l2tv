@@ -96,7 +96,7 @@
     <main>
       <h1>L2TV 構造説明書</h1>
       <p class="muted small">
-        対象バージョン: <code>1.0.3</code> / 生成日: 2026-04-26<br />
+        対象バージョン: <code>1.0.4</code> / 生成日: 2026-04-26<br />
         この文書は現在の実装（<code>server.js</code> / <code>electron-main.js</code> / <code>public/app.js</code>）をもとに、機能とコード構造を把握しやすくまとめたものです。
       </p>
 
@@ -245,7 +245,8 @@ Node HTTP Server (server.js)
           <tbody>
             <tr><td>ブラウザ版起動</td><td><code>node server.js</code></td></tr>
             <tr><td>Electron起動</td><td><code>npm run desktop</code></td></tr>
-            <tr><td>Windowsインストーラー作成</td><td><code>npm run dist:win</code></td></tr>
+            <tr><td>Windows zip作成</td><td><code>npm run dist:win</code></td></tr>
+            <tr><td>Windowsインストーラー作成</td><td><code>npm run dist:win:installer</code></td></tr>
             <tr><td>PowerShellビルド補助</td><td><code>.\build-win.ps1</code></td></tr>
           </tbody>
         </table>

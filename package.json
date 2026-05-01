@@ -1,6 +1,6 @@
 {
   "name": "lr2ir-table-lamp-viewer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "main": "electron-main.js",
   "description": "L2TV (LR2 Table Viewer)",
@@ -9,7 +9,9 @@
   "scripts": {
     "start": "node server.js",
     "desktop": "electron .",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win zip",
+    "dist:win:zip": "electron-builder --win zip",
+    "dist:win:installer": "electron-builder --win nsis"
   },
   "devDependencies": {
     "electron": "^41.3.0",
@@ -42,11 +44,12 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        "zip"
       ],
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-${version}-win-x64.${ext}"
     },
     "nsis": {
+      "artifactName": "${productName}-Setup-${version}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": false,
       "perMachine": true,
