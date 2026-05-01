@@ -12,6 +12,8 @@ const manualTableUrlTogglesContainer = document.getElementById("manual-table-url
 const languageSelect = document.getElementById("language-select");
 const themeSelect = document.getElementById("theme-select");
 const includeBpUpdatesInput = document.getElementById("include-bp-updates");
+const enableIrBetaInput = document.getElementById("enable-ir-beta");
+const irPlayerIdInput = document.getElementById("ir-player-id");
 const tablePresetsContainer = document.getElementById("table-presets");
 const analyzeButton = document.getElementById("analyze-button");
 const clearSavedButton = document.getElementById("clear-saved-button");
@@ -97,7 +99,7 @@ const scoreSnapshotColors = {
   NO_SONG: "#111827",
 };
 
-const chartSortColumns = [
+const baseChartSortColumns = [
   { key: "level", label: "Lv" },
   { key: "title", label: "Title" },
   { key: "artist", label: "Artist" },
@@ -108,6 +110,17 @@ const chartSortColumns = [
   { key: "playCount", label: "Play Count" },
   { key: "rival", label: "Rival" },
 ];
+const irBetaSortColumn = { key: "irBeta", label: "IR β" };
+
+function getChartSortColumns() {
+  if (!isIrBetaEnabledForUi()) {
+    return baseChartSortColumns;
+  }
+  const columns = [...baseChartSortColumns];
+  const insertIndex = columns.findIndex((column) => column.key === "playCount");
+  columns.splice(insertIndex === -1 ? columns.length : insertIndex, 0, irBetaSortColumn);
+  return columns;
+}
 
 const TABLE_PRESETS = [
   {
@@ -148,6 +161,8 @@ const PERSISTENCE_SCHEMA_VERSION = 1;
 const FORM_STATE_KEY = "form-state";
 const LAST_ANALYSIS_KEY = "last-analysis";
 const TABLE_PRESET_SELECTION_KEY = "table-preset-selection";
+const IR_BETA_CLIENT_MAX_CHARTS = 25;
+const IR_BETA_CLIENT_MAX_PAGES = 5;
 
 let latestAnalysis = null;
 let persistenceDbPromise = null;
@@ -156,6 +171,7 @@ let selectedThemeMode = DEFAULT_THEME_MODE;
 let selectedLanguage = DEFAULT_LANGUAGE;
 let hasStoredLanguagePreference = false;
 let includeBpUpdatesInLampUpdates = false;
+let enableIrBetaRanking = false;
 let disabledManualTableUrls = new Set();
 let autoDbProfileFetchToken = 0;
 let selectedTablePresetIds = new Set();
@@ -202,6 +218,14 @@ const I18N_TEXT = {
   "テーマ": "Theme",
   "プレイ回数": "Play Count",
   "本日更新にBPが減った譜面も表示する": "Include charts with lower BP in Lamp Updates",
+  "LR2IRランキング取得βを有効にする": "Enable LR2IR Ranking Beta",
+  "LR2ID（β）": "LR2ID (Beta)",
+  "IR β取得": "Fetch IR β",
+  "IR β": "IR β",
+  "未取得": "Not Fetched",
+  "未発見": "Not Found",
+  "取得失敗": "Fetch Failed",
+  "照合差": "Local Diff",
   "難易度表プリセット": "Table Presets",
   "チェックしたプリセットはURL未入力でも読み込み対象になります。": "Checked presets are loaded even without manual URLs.",
   "表とランプを読み込む": "Load Tables and Lamps",
@@ -296,6 +320,10 @@ const I18N_TEXT = {
   "許可されていないメソッドです。": "This method is not allowed.",
   "不明なエラーが発生しました。": "An unknown error occurred.",
   "LR2 score.db のパスを入力してください。": "Enter the LR2 score.db path.",
+  "LR2IR β取得にはLR2IDが必要です。": "LR2ID is required for LR2IR Beta.",
+  "LR2IR β取得に失敗しました。": "Failed to fetch LR2IR Beta data.",
+  "LR2IR参照用のMD5またはBMS IDがありません。": "This chart has no MD5 or BMS ID for LR2IR lookup.",
+  "指定LR2IDの行は取得範囲内に見つかりませんでした。": "The specified LR2ID was not found in the fetched range.",
   "難易度表の読み込みに失敗しました。": "Failed to load the difficulty table.",
   "難易度表を1件も読み込めませんでした。": "No difficulty tables could be loaded.",
   "指定された LR2 score.db が見つかりません。": "The specified LR2 score.db was not found.",
@@ -335,6 +363,7 @@ const I18N_ATTRS = {
   "例: D:\\LR2\\LR2files\\Database\\song.db": "Example: D:\\LR2\\LR2files\\Database\\song.db",
   "空欄の場合は既定のscreenshotフォルダに保存": "Leave blank to use the default screenshot folder",
   "例: D:\\LR2\\LR2files\\Rival": "Example: D:\\LR2\\LR2files\\Rival",
+  "空欄ならscore.dbのiridを使用": "Blank uses score.db irid",
   "参照ボタンはデスクトップ版(.exe)で利用できます。": "Browse is available in the desktop app (.exe).",
 };
 
@@ -348,6 +377,7 @@ initializeRivalPanel();
 initializeLevelModeToggleButton();
 initializeLanguageSelector();
 initializeThemeSelector();
+initializeIrBetaSettings();
 initializeExportMessageDialog();
 initializeFloatingChartHeader();
 applyTheme(selectedThemeMode, { persist: false });
@@ -543,6 +573,35 @@ function initializeThemeSelector() {
   }
 }
 
+function initializeIrBetaSettings() {
+  if (enableIrBetaInput) {
+    enableIrBetaInput.checked = enableIrBetaRanking;
+    enableIrBetaInput.addEventListener("change", () => {
+      enableIrBetaRanking = enableIrBetaInput.checked;
+      persistFormStateDebounced();
+      if (latestAnalysis) {
+        latestAnalysis = {
+          ...latestAnalysis,
+          irBeta: {
+            ...(latestAnalysis.irBeta ?? {}),
+            enabled: enableIrBetaRanking,
+            playerId: getIrBetaPlayerId(),
+          },
+        };
+        renderAnalysis();
+        void persistLatestAnalysis(latestAnalysis).catch((error) => console.error("Failed to persist analysis", error));
+      }
+    });
+  }
+
+  irPlayerIdInput?.addEventListener("input", () => {
+    if (irPlayerIdInput.value !== normalizeIrBetaPlayerId(irPlayerIdInput.value)) {
+      irPlayerIdInput.value = normalizeIrBetaPlayerId(irPlayerIdInput.value);
+    }
+    persistFormStateDebounced();
+  });
+}
+
 function initializeLanguageSelector() {
   if (!languageSelect) {
     return;
@@ -732,6 +791,12 @@ function localizeString(value) {
     .replace(/score\.db からプロフィールを取得しました。/g, "Loaded the profile from score.db.")
     .replace(/score\.db からプレイヤー名と段位を取得しています。/g, "Loading the player name and grade from score.db.")
     .replace(/score\.db からプロフィールを取得できませんでした。/g, "Could not load the profile from score.db.")
+    .replace(/LR2IR β取得中: ([0-9,]+)譜面 \/ 最大([0-9,]+)ページ/g, "Fetching LR2IR β: $1 charts / up to $2 pages")
+    .replace(/LR2IR β取得完了: ([0-9,]+)\/([0-9,]+)譜面で自分の行を検出しました。/g, "LR2IR β fetch complete: found your row on $1/$2 charts.")
+    .replace(/順位 -/g, "Rank -")
+    .replace(/([0-9,]+)位/g, "#$1")
+    .replace(/上位([\d.]+)%/g, "Top $1%")
+    .replace(/照合差/g, "Local Diff")
     .replace(/URL取得に失敗しました:\s*/g, "Failed to fetch URL: ")
     .replace(/URLが不正です:\s*/g, "Invalid URL: ")
     .replace(/ホスト名を解決できませんでした:\s*/g, "Could not resolve host name: ")
@@ -1082,9 +1147,19 @@ form.addEventListener("submit", async (event) => {
   setStatus(loadingMessage);
 
   try {
-    const payload = await postJsonApi("/api/analyze", { scoreDbPath, songDbPath, rivalFolderPath, tableUrls });
+    const payload = await postJsonApi("/api/analyze", {
+      scoreDbPath,
+      songDbPath,
+      rivalFolderPath,
+      tableUrls,
+      irBeta: {
+        enabled: enableIrBetaRanking,
+        playerId: normalizeIrBetaPlayerId(irPlayerIdInput?.value),
+      },
+    });
 
     latestAnalysis = normalizeAnalysisLampStatuses(payload);
+    syncIrBetaPlayerIdFromAnalysis(latestAnalysis);
     syncSelectedRivalsWithAnalysis(latestAnalysis);
     latestLampImprovements = collectLampImprovements(previousAnalysis, latestAnalysis, {
       includeBpUpdates: includeBpUpdatesInLampUpdates,
@@ -1225,6 +1300,13 @@ clearSavedButton.addEventListener("click", async () => {
   includeBpUpdatesInLampUpdates = false;
   if (includeBpUpdatesInput) {
     includeBpUpdatesInput.checked = false;
+  }
+  enableIrBetaRanking = false;
+  if (enableIrBetaInput) {
+    enableIrBetaInput.checked = false;
+  }
+  if (irPlayerIdInput) {
+    irPlayerIdInput.value = "";
   }
   renderAnalysis();
   setStatus("保存済みデータを削除しました。難易度表プリセットの選択状態は保持しています。");
@@ -3190,6 +3272,7 @@ function createChartListPanel(table, charts, summaryElement) {
   const content = document.createElement("div");
   content.className = "chart-list-content";
   const savedOpenLevels = chartListOpenLevelsState.get(tableStateKey);
+  let currentVisibleCharts = [];
 
   const state = {
     query: searchInput.value.trim().toLowerCase(),
@@ -3215,6 +3298,7 @@ function createChartListPanel(table, charts, summaryElement) {
     const visibleCharts = charts.filter((chart) =>
       chartMatchesChartListFilters(chart, state.query, state.lamp, state.level),
     );
+    currentVisibleCharts = visibleCharts;
 
     updateChartListSummary(summaryElement);
 
@@ -3256,6 +3340,18 @@ function createChartListPanel(table, charts, summaryElement) {
   });
 
   toolbar.append(filterGrid);
+  if (isIrBetaEnabledForUi()) {
+    const irBetaButton = document.createElement("button");
+    irBetaButton.type = "button";
+    irBetaButton.className = "button-secondary chart-list-ir-beta-button";
+    irBetaButton.textContent = "IR β取得";
+    irBetaButton.addEventListener("click", () => {
+      fetchIrBetaForChartList(table, currentVisibleCharts, update, irBetaButton).catch((error) => {
+        setStatus(error instanceof Error ? error.message : "LR2IR β取得に失敗しました。");
+      });
+    });
+    toolbar.append(irBetaButton);
+  }
   panel.append(toolbar, content);
 
   update();
@@ -3272,6 +3368,109 @@ function createChartListField(label, control) {
 
   field.append(labelText, control);
   return field;
+}
+
+async function fetchIrBetaForChartList(table, visibleCharts, rerender, triggerButton) {
+  const playerId = getIrBetaPlayerId();
+  if (!playerId) {
+    setStatus("LR2IR β取得にはLR2IDが必要です。");
+    return;
+  }
+
+  const targetCharts = visibleCharts
+    .filter((chart) => chart?.md5 || chart?.hintedBmsMd5 || chart?.hintedBmsId || chart?.bmsId)
+    .slice(0, IR_BETA_CLIENT_MAX_CHARTS);
+
+  if (!targetCharts.length) {
+    setStatus("LR2IR参照用のMD5またはBMS IDがありません。");
+    return;
+  }
+
+  if (triggerButton) {
+    triggerButton.disabled = true;
+  }
+  setStatus(`LR2IR β取得中: ${targetCharts.length}譜面 / 最大${IR_BETA_CLIENT_MAX_PAGES}ページ`);
+
+  try {
+    const payload = await postJsonApi("/api/ir-ranking-beta", {
+      playerId,
+      maxPages: IR_BETA_CLIENT_MAX_PAGES,
+      charts: targetCharts.map(toIrBetaRequestChart),
+    });
+    applyIrBetaResultsToTable(table, payload.results);
+    if (latestAnalysis) {
+      latestAnalysis = {
+        ...latestAnalysis,
+        irBeta: {
+          ...(latestAnalysis.irBeta ?? {}),
+          enabled: true,
+          playerId: payload.playerId || playerId,
+          fetchedAt: payload.fetchedAt,
+        },
+      };
+      enableIrBetaRanking = true;
+      if (enableIrBetaInput) {
+        enableIrBetaInput.checked = true;
+      }
+      syncIrBetaPlayerIdFromAnalysis(latestAnalysis);
+      void persistLatestAnalysis(latestAnalysis).catch((error) => console.error("Failed to persist analysis", error));
+      void persistFormState().catch((error) => console.error("Failed to persist form state", error));
+    }
+    const foundCount = (payload.results ?? []).filter((result) => result?.status === "found").length;
+    setStatus(`LR2IR β取得完了: ${foundCount}/${payload.results?.length ?? 0}譜面で自分の行を検出しました。`);
+    rerender();
+  } finally {
+    if (triggerButton) {
+      triggerButton.disabled = false;
+    }
+  }
+}
+
+function toIrBetaRequestChart(chart) {
+  return {
+    key: chart.key,
+    md5: chart.md5 || chart.hintedBmsMd5 || "",
+    hintedBmsId: chart.hintedBmsId || chart.bmsId || null,
+    title: chart.title,
+    exScore: chart.exScore,
+    maxExScore: chart.maxExScore,
+    scoreRate: chart.scoreRate,
+    missCount: getChartMissCountValue(chart),
+  };
+}
+
+function applyIrBetaResultsToTable(table, results) {
+  const resultMap = new Map((Array.isArray(results) ? results : []).map((result) => [String(result?.key ?? ""), result]));
+  for (const chart of table?.charts ?? []) {
+    const result = resultMap.get(String(chart?.key ?? ""));
+    if (result) {
+      chart.irBeta = result;
+    }
+  }
+}
+
+function normalizeIrBetaPlayerId(value) {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+function getIrBetaPlayerId() {
+  return (
+    normalizeIrBetaPlayerId(irPlayerIdInput?.value) ||
+    normalizeIrBetaPlayerId(latestAnalysis?.irBeta?.playerId) ||
+    normalizeIrBetaPlayerId(latestAnalysis?.player?.irPlayerId)
+  );
+}
+
+function syncIrBetaPlayerIdFromAnalysis(analysis) {
+  const playerId = normalizeIrBetaPlayerId(analysis?.irBeta?.playerId || analysis?.player?.irPlayerId);
+  if (!playerId || !irPlayerIdInput || irPlayerIdInput.value.trim()) {
+    return;
+  }
+  irPlayerIdInput.value = playerId;
+}
+
+function isIrBetaEnabledForUi() {
+  return enableIrBetaRanking || Boolean(latestAnalysis?.irBeta?.enabled);
 }
 
 function renderGroupedChartTables(table, charts, state, rerender) {
@@ -3506,7 +3705,7 @@ function showFloatingChartHeader(table) {
 
   const columnRow = document.createElement("div");
   columnRow.className = "floating-chart-header-columns";
-  for (const column of chartSortColumns.filter((column) => column.key !== "level")) {
+  for (const column of getChartSortColumns().filter((column) => column.key !== "level")) {
     const cell = document.createElement("div");
     cell.className = "floating-chart-header-cell";
     const button = document.createElement("button");
@@ -3557,11 +3756,13 @@ function hideFloatingChartHeader() {
 function renderChartTable(charts, tableInfo, state, rerender) {
   const table = document.createElement("table");
   table.className = "chart-table";
+  table.classList.toggle("has-ir-beta", isIrBetaEnabledForUi());
   table.__l2tvFloatingHeader = { tableInfo, state, rerender };
+  const columns = getChartSortColumns();
 
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
-  for (const column of chartSortColumns) {
+  for (const column of columns) {
     const th = document.createElement("th");
     if (column.key === "level") {
       th.textContent = column.label;
@@ -3601,7 +3802,7 @@ function renderChartTable(charts, tableInfo, state, rerender) {
 
   if (!charts.length) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="${chartSortColumns.length}" class="dimmed">条件に一致する譜面はありません。</td>`;
+    row.innerHTML = `<td colspan="${columns.length}" class="dimmed">条件に一致する譜面はありません。</td>`;
     tbody.append(row);
     table.append(tbody);
     return table;
@@ -3628,7 +3829,7 @@ function renderChartTable(charts, tableInfo, state, rerender) {
     lampCell.className = "chart-lamp-cell";
     lampCell.textContent = lampLabels[chart.lampStatus] || chart.lampStatus;
 
-    row.append(
+    const cells = [
       levelCell,
       titleCell,
       artistCell,
@@ -3636,9 +3837,15 @@ function renderChartTable(charts, tableInfo, state, rerender) {
       createScoreTierCell(chart),
       createScoreCell(chart),
       createMissCountCell(chart),
+    ];
+    if (isIrBetaEnabledForUi()) {
+      cells.push(createIrBetaCell(chart));
+    }
+    cells.push(
       createPlayCountCell(chart),
       createRivalCell(chart),
     );
+    row.append(...cells);
     tbody.append(row);
   }
 
@@ -3730,7 +3937,7 @@ function sortChartsForList(charts, table, state) {
 
 function normalizeChartSortKey(value) {
   const key = String(value ?? "").trim();
-  return chartSortColumns.some((column) => column.key === key) ? key : "level";
+  return getChartSortColumns().some((column) => column.key === key) ? key : "level";
 }
 
 function compareChartsForSort(left, right, table, sortKey, sortDirection) {
@@ -3747,6 +3954,8 @@ function compareChartsForSort(left, right, table, sortKey, sortDirection) {
       return compareNumericNullable(left.playCount, right.playCount, sortDirection);
     case "missCount":
       return compareChartsByBp(left, right, sortDirection);
+    case "irBeta":
+      return compareIrBetaValues(left, right, sortDirection);
     case "rival":
       return compareRivalValues(left, right, sortDirection);
     case "scoreTier":
@@ -3836,6 +4045,77 @@ function getChartMissCountValue(chart) {
   const badCount = Number.isFinite(Number(chart?.badCount)) ? Number(chart.badCount) : null;
   const poorCount = Number.isFinite(Number(chart?.poorCount)) ? Number(chart.poorCount) : null;
   return badCount != null && poorCount != null ? badCount + poorCount : null;
+}
+
+function createIrBetaCell(chart) {
+  const cell = document.createElement("td");
+  cell.className = "ir-beta-cell";
+  const result = chart?.irBeta;
+
+  if (!result) {
+    cell.innerHTML = '<span class="dimmed">未取得</span>';
+    return cell;
+  }
+
+  if (result.status === "found" && result.row) {
+    const badge = document.createElement("a");
+    badge.className = "ir-beta-badge is-found";
+    if (result.local?.scoreMatchesLocal === false) {
+      badge.classList.add("is-mismatch");
+    }
+    if (result.rankingUrl) {
+      badge.href = result.rankingUrl;
+      badge.target = "_blank";
+      badge.rel = "noopener noreferrer";
+    }
+
+    const rankLine = document.createElement("span");
+    rankLine.className = "ir-beta-rank";
+    rankLine.textContent = result.row.rank != null ? `${formatInteger(result.row.rank)}位` : "順位 -";
+
+    const subLine = document.createElement("span");
+    subLine.className = "ir-beta-sub";
+    subLine.textContent =
+      result.row.topPercent != null
+        ? `上位${result.row.topPercent.toFixed(2)}%`
+        : result.row.exScore != null
+          ? `IR ${formatInteger(result.row.exScore)}`
+          : "IR -";
+
+    badge.append(rankLine, subLine);
+    cell.append(badge);
+
+    if (result.local?.scoreMatchesLocal === false && result.local.scoreDiff != null) {
+      const diffLine = document.createElement("div");
+      diffLine.className = "ir-beta-local-diff";
+      const sign = result.local.scoreDiff > 0 ? "+" : "";
+      diffLine.textContent = `照合差 ${sign}${formatInteger(result.local.scoreDiff)}`;
+      cell.append(diffLine);
+    }
+    return cell;
+  }
+
+  const status = document.createElement("span");
+  status.className = `ir-beta-status ir-beta-status-${String(result.status || "unknown").replace(/[^a-z0-9_-]/gi, "-")}`;
+  switch (result.status) {
+    case "not_found":
+      status.textContent = "未発見";
+      break;
+    case "error":
+      status.textContent = "取得失敗";
+      break;
+    case "unsupported":
+      status.textContent = "NO Data";
+      break;
+    default:
+      status.textContent = "未取得";
+      break;
+  }
+  if (result.message) {
+    status.title = result.message;
+  }
+  cell.append(status);
+  return cell;
 }
 
 function compareChartsByBp(left, right, sortDirection) {
@@ -3977,6 +4257,32 @@ function compareRivalValues(left, right, sortDirection) {
   return compareNumericNullable(getRivalScoreDiff(left), getRivalScoreDiff(right), sortDirection);
 }
 
+function compareIrBetaValues(left, right, sortDirection) {
+  const leftGroup = getIrBetaSortGroup(left);
+  const rightGroup = getIrBetaSortGroup(right);
+  if (leftGroup !== rightGroup) {
+    return leftGroup - rightGroup;
+  }
+
+  const leftRank = left?.irBeta?.row?.rank ?? null;
+  const rightRank = right?.irBeta?.row?.rank ?? null;
+  return compareNumericNullable(leftRank, rightRank, sortDirection);
+}
+
+function getIrBetaSortGroup(chart) {
+  const status = chart?.irBeta?.status;
+  if (status === "found") {
+    return 0;
+  }
+  if (status === "not_found") {
+    return 1;
+  }
+  if (status === "error") {
+    return 2;
+  }
+  return 3;
+}
+
 function compareScoreTierValues(left, right, sortDirection) {
   const leftTier = classifyScoreTier(left);
   const rightTier = classifyScoreTier(right);
@@ -4106,6 +4412,10 @@ function getChartSearchText(chart) {
     chart.maxExScore,
     chart.scoreRate,
     chart.maxOffset,
+    chart.irBeta?.status,
+    chart.irBeta?.row?.rank,
+    chart.irBeta?.row?.playerName,
+    chart.irBeta?.row?.scoreTier,
   ]
     .filter(Boolean)
     .join(" ")
@@ -5474,6 +5784,13 @@ async function restoreFormState() {
   if (includeBpUpdatesInput) {
     includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
   }
+  enableIrBetaRanking = Boolean(persisted.enableIrBetaRanking);
+  if (enableIrBetaInput) {
+    enableIrBetaInput.checked = enableIrBetaRanking;
+  }
+  if (irPlayerIdInput) {
+    irPlayerIdInput.value = normalizeIrBetaPlayerId(persisted.irPlayerId);
+  }
   applyTheme(persisted.themeMode, { persist: false });
   return true;
 }
@@ -5503,6 +5820,8 @@ async function persistFormState() {
     languagePromptSeen: hasStoredLanguagePreference,
     themeMode: selectedThemeMode,
     includeBpUpdatesInLampUpdates,
+    enableIrBetaRanking,
+    irPlayerId: normalizeIrBetaPlayerId(irPlayerIdInput?.value),
   });
 }
 
