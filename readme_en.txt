@@ -4,7 +4,7 @@ L2TV User Guide / Safety Notes
 Important Notice: Uninstalling and Using the zip Version
 -------------------------------------------------------
 
-- If you use the zip version, extract L2TV-1.0.5-win-x64.zip into an empty folder before running L2TV.exe.
+- If you use the zip version, extract L2TV-1.0.4-win-x64.zip into an empty folder before running L2TV.exe.
 - The zip version does not need installation. To remove it, do not use the Windows uninstaller. Move the extracted dedicated L2TV folder to the Recycle Bin instead.
 - Only delete the dedicated L2TV folder you extracted. Do not delete parent folders such as Desktop or Downloads.
 - If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
@@ -69,7 +69,6 @@ Chart list:
 
 - Show chart lists by level
 - Show Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / Rival
-- When LR2IR Beta is enabled, show the IR β column and manually fetch LR2IR ranking rows.
 - Show Rank such as AAA / AA / A as a colored badge
 - Lv is shown as a heading only
 - Sort by Title, Artist, and other columns
@@ -107,14 +106,6 @@ RIVAL:
 - Select All / Clear All.
 - Switch win/loss scope between all charts and each difficulty table.
 - Sort rivals by win rate, loss rate, or name.
-
-LR2IR Beta:
-
-- Disabled by default.
-- Uses LR2ID to identify your row only when it matches playerid on the LR2IR ranking page.
-- Does not guess your row from score or player name alone.
-- Fetches up to 25 currently visible charts when you press Fetch IR β.
-- Searches up to 5 pages per chart.
 
 Image export:
 
@@ -165,13 +156,13 @@ If you are unsure, look for LR2files inside your LR2 folder.
 
 zip version:
 
-1. Extract L2TV-1.0.5-win-x64.zip into an empty folder.
+1. Extract L2TV-1.0.4-win-x64.zip into an empty folder.
 2. Run L2TV.exe inside the extracted folder.
 3. Installation is not required.
 
 Installer version:
 
-1. Run L2TV-Setup-1.0.5.exe.
+1. Run L2TV-Setup-1.0.4.exe.
 2. Install the app.
 3. Start L2TV.
 
@@ -210,8 +201,6 @@ Display settings:
 - On first launch, a message asks you to choose the display language.
 - Choose the theme from Light Aqua / Geek Dark.
 - Choose whether BP updates are included in Lamp Updates.
-- Enable LR2IR Ranking Beta.
-- Enter LR2ID (Beta), or use the irid value from score.db.
 
 Saved data:
 
@@ -278,13 +267,6 @@ Lamp Updates:
 
 RIVAL:
   Shows score win/loss against loaded rivals.
-
-LR2IR Beta:
-  An experimental feature available only when enabled from Menu.
-  Press Fetch IR β in the chart list to fetch LR2IR ranking pages for up to 25 currently visible charts.
-  Your row is identified only when LR2ID matches playerid on the ranking page.
-  L2TV does not guess your row from score or player name alone.
-  Up to 5 pages are fetched per chart.
 
 
 8. RIVAL Feature
@@ -398,7 +380,6 @@ L2TV saves the following information so it can be used immediately next time:
 - Selected display language
 - Selected theme
 - Whether BP updates are included in Lamp Updates
-- LR2IR Ranking Beta settings
 - Previous load result
 
 How to clear saved data:
@@ -495,12 +476,12 @@ If you are unsure, confirm the distribution source before running it.
 zip version:
 
 1. Close L2TV.
-2. Extract the new L2TV-1.0.5-win-x64.zip.
+2. Extract the new L2TV-1.0.4-win-x64.zip.
 3. Replace the old L2TV folder with the new one.
 
 Installer version:
 
-1. Run the new L2TV-Setup-1.0.5.exe.
+1. Run the new L2TV-Setup-1.0.4.exe.
 2. Install over the previous version.
 
 Notes:
@@ -586,4 +567,4 @@ A. A compact option display for the open level folder. It can show the sort head
 20. Version
 -----------
 
-L2TV 1.0.5
+L2TV 1.0.4

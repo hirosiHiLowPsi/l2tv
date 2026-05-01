@@ -2057,13 +2057,6 @@ button:disabled {
   min-width: 0;
 }
 
-.chart-list-ir-beta-button {
-  justify-self: start;
-  width: auto;
-  padding: 8px 14px;
-  border-radius: 12px;
-}
-
 .sort-button {
   border: 1px solid rgba(75, 170, 227, 0.24);
   border-radius: 12px;
@@ -2586,58 +2579,6 @@ body[data-theme="lr2ir-dark"] .floating-chart-header-columns {
 .rival-cell {
   min-width: 108px;
   text-align: center;
-}
-
-.ir-beta-cell {
-  min-width: 108px;
-  text-align: center;
-}
-
-.ir-beta-badge {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  min-width: 72px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(22, 40, 64, 0.18);
-  background: rgba(18, 37, 64, 0.9);
-  color: #f8fafc;
-  font-weight: 900;
-  line-height: 1.15;
-  text-decoration: none;
-  box-shadow: 0 2px 5px rgba(16, 32, 51, 0.18);
-}
-
-.ir-beta-badge:hover {
-  transform: none;
-}
-
-.ir-beta-badge.is-mismatch {
-  border-color: rgba(180, 83, 9, 0.7);
-  background: #8a3b08;
-}
-
-.ir-beta-rank {
-  font-size: 0.86rem;
-}
-
-.ir-beta-sub,
-.ir-beta-local-diff {
-  font-size: 0.72rem;
-}
-
-.ir-beta-local-diff {
-  margin-top: 4px;
-  color: #7c2d12;
-  font-weight: 800;
-}
-
-.ir-beta-status {
-  color: var(--muted);
-  font-weight: 800;
 }
 
 .chart-table tbody tr > td.rival-cell.rival-lamp-full-combo {

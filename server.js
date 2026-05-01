@@ -19,9 +19,6 @@ const MAX_REMOTE_RESPONSE_BYTES = 25 * 1024 * 1024;
 const MAX_CACHE_ENTRIES = 300;
 const MAX_REDIRECTS = 5;
 const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "localhost", "::1"]);
-const LR2IR_BASE_URL = "http://www.dream-pro.info/~lavalse/LR2IR/search.cgi";
-const IR_BETA_MAX_CHARTS = 25;
-const IR_BETA_MAX_PAGES = 5;
 
 const LAMP_ORDER = [
   "FULL COMBO",
@@ -143,16 +140,6 @@ function createAppServer() {
         return;
       }
 
-      if (req.method === "POST" && requestUrl.pathname === "/api/ir-ranking-beta") {
-        if (!validateApiPostRequest(req, res)) {
-          return;
-        }
-        const body = await readJsonBody(req);
-        const ranking = await loadIrRankingBetaRequest(body);
-        sendJson(res, 200, ranking);
-        return;
-      }
-
       if (req.method === "POST" && requestUrl.pathname === "/api/local-db-state") {
         if (!validateApiPostRequest(req, res)) {
           return;
@@ -192,7 +179,6 @@ async function analyzeRequest(body) {
   const scoreDbPath = normalizeLocalPath(body?.scoreDbPath);
   const songDbPath = normalizeLocalPath(body?.songDbPath);
   const rivalFolderPath = normalizeLocalPath(body?.rivalFolderPath);
-  const irBetaOptions = normalizeIrBetaOptions(body?.irBeta);
   const useLocalScoreDb = Boolean(scoreDbPath);
   const tableUrls = Array.isArray(body?.tableUrls)
     ? [...new Set(body.tableUrls.map((url) => String(url ?? "").trim()).filter(Boolean))]
@@ -224,9 +210,7 @@ async function analyzeRequest(body) {
     throw new Error("難易度表を1件も読み込めませんでした。");
   }
 
-  const playerMyList = await loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath, {
-    includeIrPlayerId: irBetaOptions.enabled,
-  });
+  const playerMyList = await loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath);
   const rivalData = await loadRivalFolderData(rivalFolderPath);
   const playerProfile = playerMyList.localProfile ?? {
     playerId: playerMyList.playerId || "",
@@ -244,9 +228,6 @@ async function analyzeRequest(body) {
   const enrichedTables = hasTableInputs ? tables.map((table) => enrichTable(table, lookupMap, playerMyList, rivalData)) : [];
   const overall = buildOverallSummary(enrichedTables);
   const localDbState = useLocalScoreDb ? await buildLocalDbState(scoreDbPath, songDbPath) : null;
-  const irBetaPlayerId = irBetaOptions.enabled
-    ? irBetaOptions.playerId || playerMyList.localProfile?.irPlayerId || ""
-    : "";
 
   return {
     analyzedAt: new Date().toISOString(),
@@ -269,14 +250,7 @@ async function analyzeRequest(body) {
       overjoyTripleCrown: Boolean(playerProfile.overjoyTripleCrown || playerMyList.localProfile?.overjoyTripleCrown),
       localDbPath: playerMyList.localDbPath || "",
       localSongDbPath: playerMyList.localSongDbPath || "",
-      irPlayerId: irBetaPlayerId,
       hitTotals: playerMyList.localProfile?.hitTotals ?? null,
-    },
-    irBeta: {
-      enabled: irBetaOptions.enabled,
-      playerId: irBetaPlayerId,
-      maxCharts: IR_BETA_MAX_CHARTS,
-      maxPages: IR_BETA_MAX_PAGES,
     },
     rivals: {
       folderPath: rivalData.path,
@@ -698,23 +672,10 @@ function extractIrHints(item) {
   };
 }
 
-function normalizeIrBetaOptions(value) {
-  const options = value && typeof value === "object" ? value : {};
-  return {
-    enabled: Boolean(options.enabled),
-    playerId: normalizeNumericText(options.playerId),
-  };
-}
-
-function normalizeNumericText(value) {
-  return String(value ?? "").replace(/\D/g, "");
-}
-
-async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "", options = {}) {
+async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
   const resolvedPath = path.resolve(scoreDbPath);
   const resolvedSongDbPath = resolveSongDbPathFromScoreDb(resolvedPath, songDbPath);
-  const includeIrPlayerId = Boolean(options.includeIrPlayerId);
-  const cacheKey = `scoredb:${resolvedPath}|songdb:${resolvedSongDbPath || "-"}|ir:${includeIrPlayerId ? 1 : 0}`;
+  const cacheKey = `scoredb:${resolvedPath}|songdb:${resolvedSongDbPath || "-"}`;
 
   if (playerMyListCache.has(cacheKey)) {
     return playerMyListCache.get(cacheKey);
@@ -795,7 +756,6 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "", options
       localProfile: {
         playerId: localPlayerId,
         name: localPlayerName,
-        irPlayerId: includeIrPlayerId ? normalizeNumericText(playerRow.irid) : "",
         grade: combineLocalGrades(inferredGradeSp, localGradeDp),
         gradeSp: inferredGradeSp,
         gradeDp: localGradeDp,
@@ -813,209 +773,6 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "", options
   } finally {
     database?.close();
   }
-}
-
-async function loadIrRankingBetaRequest(body) {
-  const playerId = normalizeNumericText(body?.playerId);
-  if (!playerId) {
-    throw new Error("LR2IR β取得にはLR2IDが必要です。");
-  }
-
-  const maxPages = clampInteger(body?.maxPages, 1, IR_BETA_MAX_PAGES, IR_BETA_MAX_PAGES);
-  const inputCharts = Array.isArray(body?.charts) ? body.charts : [];
-  const charts = inputCharts.slice(0, IR_BETA_MAX_CHARTS).map((chart, index) => normalizeIrBetaRequestChart(chart, index));
-
-  const results = await mapWithConcurrency(charts, 2, async (chart) => {
-    try {
-      return await fetchIrBetaForChart(playerId, chart, maxPages);
-    } catch (error) {
-      return {
-        key: chart.key,
-        status: "error",
-        message: error instanceof Error ? error.message : "LR2IR β取得に失敗しました。",
-      };
-    }
-  });
-
-  return {
-    fetchedAt: new Date().toISOString(),
-    playerId,
-    maxCharts: IR_BETA_MAX_CHARTS,
-    maxPages,
-    results,
-  };
-}
-
-function normalizeIrBetaRequestChart(chart, index) {
-  const value = chart && typeof chart === "object" ? chart : {};
-  const md5 = normalizeHex(value.md5 || value.hintedBmsMd5, 32);
-  const hintedBmsId = normalizePositiveInteger(value.hintedBmsId ?? value.bmsId);
-  return {
-    key: normalizeText(value.key) || `chart:${index}`,
-    md5,
-    hintedBmsId,
-    title: normalizeText(value.title),
-    exScore: normalizeNullableInteger(value.exScore),
-    maxExScore: normalizeNullableInteger(value.maxExScore),
-    scoreRate: normalizeNullableNumber(value.scoreRate),
-    missCount: normalizeNullableInteger(value.missCount),
-  };
-}
-
-async function fetchIrBetaForChart(playerId, chart, maxPages) {
-  if (!chart.md5 && !chart.hintedBmsId) {
-    return {
-      key: chart.key,
-      status: "unsupported",
-      message: "LR2IR参照用のMD5またはBMS IDがありません。",
-    };
-  }
-
-  let bmsId = chart.hintedBmsId;
-  let totalPlayers = null;
-  let rankingUrl = buildIrRankingUrl({ md5: chart.md5, bmsId });
-  let pagesSearched = 0;
-
-  for (let page = 1; page <= maxPages; page += 1) {
-    const pageUrl = page === 1 ? rankingUrl : buildIrRankingUrl({ bmsId, page });
-    const response = await fetchRemoteText(pageUrl, { useCache: false });
-    const parsed = parseIrBetaRankingPage(response.text);
-    pagesSearched = page;
-    rankingUrl = response.finalUrl || pageUrl;
-    bmsId = bmsId || parsed.bmsId;
-    totalPlayers = totalPlayers ?? parsed.totalPlayers;
-
-    const matchedRow = parsed.rows.find((row) => row.playerId === playerId);
-    if (matchedRow) {
-      return {
-        key: chart.key,
-        status: "found",
-        rankingUrl,
-        pagesSearched,
-        totalPlayers,
-        bmsId,
-        row: {
-          ...matchedRow,
-          topPercent:
-            totalPlayers && matchedRow.rank != null ? roundPercent((matchedRow.rank / totalPlayers) * 100) : null,
-        },
-        local: buildIrBetaLocalComparison(chart, matchedRow),
-      };
-    }
-
-    if (!bmsId || parsed.rows.length === 0) {
-      break;
-    }
-  }
-
-  return {
-    key: chart.key,
-    status: "not_found",
-    rankingUrl,
-    pagesSearched,
-    totalPlayers,
-    bmsId,
-    message: "指定LR2IDの行は取得範囲内に見つかりませんでした。",
-  };
-}
-
-function buildIrRankingUrl({ md5 = "", bmsId = null, page = 1 } = {}) {
-  const url = new URL(LR2IR_BASE_URL);
-  url.searchParams.set("mode", "ranking");
-  if (bmsId) {
-    url.searchParams.set("bmsid", String(bmsId));
-  } else {
-    url.searchParams.set("bmsmd5", md5);
-  }
-  if (page > 1) {
-    url.searchParams.set("page", String(page));
-  }
-  return url.toString();
-}
-
-function parseIrBetaRankingPage(html) {
-  const text = String(html ?? "");
-  const bmsId = normalizePositiveInteger(text.match(/\bbmsid=(\d+)/i)?.[1]);
-  const totalPlayers = parseIrTotalPlayers(text);
-  const rows = [];
-  const rowPattern =
-    /<tr[^>]*>\s*<td[^>]*rowspan\s*=\s*["']?2["']?[^>]*>\s*([\d,]+)\s*<\/td>\s*<td[^>]*>\s*<a[^>]*\bplayerid=(\d+)[^>]*>([\s\S]*?)<\/a>\s*<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>/gi;
-
-  for (const match of text.matchAll(rowPattern)) {
-    const scoreInfo = parseIrScoreText(match[7]);
-    rows.push({
-      rank: parseIntegerText(match[1]),
-      playerId: normalizeNumericText(match[2]),
-      playerName: htmlToText(match[3]),
-      grade: htmlToText(match[4]),
-      clear: htmlToText(match[5]),
-      scoreTier: htmlToText(match[6]),
-      scoreText: htmlToText(match[7]),
-      exScore: scoreInfo.exScore,
-      maxExScore: scoreInfo.maxExScore,
-      scoreRate: scoreInfo.scoreRate,
-      comboText: htmlToText(match[8]),
-      missCount: parseIntegerText(htmlToText(match[9])),
-    });
-  }
-
-  return { bmsId, totalPlayers, rows };
-}
-
-function parseIrTotalPlayers(html) {
-  const match = String(html ?? "").match(/<tr[^>]*>\s*<th[^>]*>\s*人数\s*<\/th>\s*<td[^>]*>\s*([\d,]+)\s*<\/td>/i);
-  return match ? parseIntegerText(match[1]) : null;
-}
-
-function parseIrScoreText(value) {
-  const text = htmlToText(value);
-  const match = text.match(/([\d,]+)\s*\/\s*([\d,]+)\s*\(\s*([\d.]+)\s*%\s*\)/);
-  return {
-    exScore: match ? parseIntegerText(match[1]) : null,
-    maxExScore: match ? parseIntegerText(match[2]) : null,
-    scoreRate: match ? Number.parseFloat(match[3]) : null,
-  };
-}
-
-function buildIrBetaLocalComparison(chart, row) {
-  const localExScore = normalizeNullableInteger(chart.exScore);
-  const irExScore = normalizeNullableInteger(row.exScore);
-  return {
-    exScore: localExScore,
-    maxExScore: normalizeNullableInteger(chart.maxExScore),
-    scoreRate: normalizeNullableNumber(chart.scoreRate),
-    missCount: normalizeNullableInteger(chart.missCount),
-    irExScore,
-    scoreDiff: localExScore != null && irExScore != null ? localExScore - irExScore : null,
-    scoreMatchesLocal: localExScore != null && irExScore != null ? localExScore === irExScore : null,
-  };
-}
-
-function clampInteger(value, min, max, fallback) {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-  if (!Number.isFinite(parsed)) {
-    return fallback;
-  }
-  return Math.max(min, Math.min(max, parsed));
-}
-
-function normalizePositiveInteger(value) {
-  const parsed = Number.parseInt(String(value ?? "").replace(/[^\d]/g, ""), 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function normalizeNullableInteger(value) {
-  const parsed = Number.parseInt(String(value ?? "").replace(/[^\d-]/g, ""), 10);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function normalizeNullableNumber(value) {
-  const parsed = Number.parseFloat(String(value ?? "").replace(/[^\d.-]/g, ""));
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function parseIntegerText(value) {
-  return normalizeNullableInteger(String(value ?? "").replace(/,/g, ""));
 }
 
 function enrichTable(table, _lookupMap, playerMyList, rivalData = null) {
