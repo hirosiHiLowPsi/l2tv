@@ -1652,6 +1652,7 @@ function renderOverviewPanel(analysis) {
   const danValue = formatPlayerGrade(analysis.player);
   const danFormalName = getPlayerGradeFormalName(analysis.player);
   metricGrid.append(createMetricCard("プレイヤー名", analysis.player.name || "-", ""));
+  metricGrid.append(createMetricCard("ID", getPlayerDisplayId(analysis.player), ""));
   metricGrid.append(createMetricCard("SP段位", danValue, danFormalName, getDanToneClass(danValue, analysis.player)));
   for (const card of createSkillAnalyzerMetricCards(analysis.player)) {
     metricGrid.append(card);
@@ -1680,6 +1681,19 @@ function renderOverviewPanel(analysis) {
   }
 
   return section;
+}
+
+function getPlayerDisplayId(player) {
+  const lr2Id = String(player?.lr2Id ?? "").trim();
+  if (lr2Id) {
+    return lr2Id;
+  }
+
+  const localId = String(player?.id ?? "").trim();
+  if (!localId || localId.toLowerCase() === "manual" || localId.toLowerCase() === "local") {
+    return "-";
+  }
+  return localId;
 }
 
 function renderLampImprovementsPanel(improvements, compared) {
@@ -5276,6 +5290,7 @@ function mergePlayerProfileFields(primary, fallback) {
     ...left,
     id: String(left.id ?? "").trim() || String(right.id ?? "").trim(),
     name: String(left.name ?? "").trim() || String(right.name ?? "").trim(),
+    lr2Id: String(left.lr2Id ?? "").trim() || String(right.lr2Id ?? "").trim(),
     grade: String(left.grade ?? "").trim() || String(right.grade ?? "").trim(),
     gradeSp: String(left.gradeSp ?? "").trim() || String(right.gradeSp ?? "").trim(),
     gradeDp: String(left.gradeDp ?? "").trim() || String(right.gradeDp ?? "").trim(),

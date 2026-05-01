@@ -46,6 +46,7 @@ Difficulty tables:
 Player Data:
 
 - Player name
+- ID
 - SP grade
 - Official SP grade name
 - st/sl grades
@@ -226,7 +227,7 @@ After loading, tables are displayed by table title instead of URL.
 --------------------------
 
 Player Data:
-  Shows player name, SP grade, st/sl grades, and related data.
+  Shows player name, ID, SP grade, st/sl grades, and related data.
 
 Lamp Breakdown:
   Shows clear lamp counts for the whole difficulty table.

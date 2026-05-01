@@ -215,6 +215,7 @@ async function analyzeRequest(body) {
   const playerProfile = playerMyList.localProfile ?? {
     playerId: playerMyList.playerId || "",
     name: "",
+    lr2Id: "",
     grade: "",
     gradeSp: "",
     gradeDp: "",
@@ -237,6 +238,7 @@ async function analyzeRequest(body) {
       id: playerMyList.playerId || "local",
       sourceType: playerMyList.sourceType,
       name: playerProfile.name,
+      lr2Id: playerProfile.lr2Id || playerMyList.localProfile?.lr2Id || "",
       grade: playerProfile.grade,
       gradeSp: playerProfile.gradeSp,
       gradeDp: playerProfile.gradeDp,
@@ -333,9 +335,7 @@ async function loadProfileFromScoreDbRequest(body) {
   let database;
   try {
     database = new DatabaseSync(resolvedPath, { readonly: true });
-    const playerRow = database
-      .prepare("SELECT id, name, grade_7, grade_14 FROM player LIMIT 1")
-      .get();
+    const playerRow = database.prepare("SELECT * FROM player LIMIT 1").get();
 
     if (!playerRow) {
       throw new Error("score.db の player テーブルを読み取れませんでした。");
@@ -352,6 +352,7 @@ async function loadProfileFromScoreDbRequest(body) {
     const localProfile = {
       playerId: localPlayerId,
       name: sanitizeLocalPlayerName(playerRow.name) || "",
+      lr2Id: normalizeText(playerRow.irid),
       grade: "",
       gradeSp: inferredGradeSp,
       gradeDp: formatLocalGrade(playerRow.grade_14),
@@ -367,6 +368,7 @@ async function loadProfileFromScoreDbRequest(body) {
         id: localProfile.playerId || "local",
         sourceType: "local-score-db",
         name: localProfile.name || "",
+        lr2Id: localProfile.lr2Id || "",
         grade: localProfile.grade || "",
         gradeSp: localProfile.gradeSp || "",
         gradeDp: localProfile.gradeDp || "",
@@ -756,6 +758,7 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
       localProfile: {
         playerId: localPlayerId,
         name: localPlayerName,
+        lr2Id: normalizeText(playerRow.irid),
         grade: combineLocalGrades(inferredGradeSp, localGradeDp),
         gradeSp: inferredGradeSp,
         gradeDp: localGradeDp,

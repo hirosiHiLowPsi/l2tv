@@ -10,6 +10,10 @@ L2TV 更新履歴
 - zip を解凍して L2TV.exe を起動すれば使えるようにしました。
 - インストーラー作成は必要な場合だけ npm run dist:win:installer で実行する形にしました。
 
+Player Data:
+
+- score.db 内にIDがある場合、Player Data に名前とIDを表示するようにしました。
+
 1.0.3 - 2026/05/01
 ------------------
 

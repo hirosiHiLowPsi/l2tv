@@ -12,7 +12,7 @@ L2TV（LR2 Table Viewer）は、LR2 のローカル `score.db` / `song.db` と B
 ## できること
 
 - 複数の難易度表 URL をまとめて読み込み
-- `score.db` からプレイヤーネーム、クリアランプ、スコア、BP、プレイ回数を取得
+- `score.db` からプレイヤーネーム、ID、クリアランプ、スコア、BP、プレイ回数を取得
 - `song.db` の曲カタログを使った NO SONG 判定
 - `score.db` の `grade_7/grade_14` から段位文字列を復元し、オフラインでも段位表示
 - デスクトップ版では `score.db` / `song.db` を「参照」ボタンから選択可能
