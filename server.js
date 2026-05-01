@@ -88,10 +88,11 @@ const LOCAL_DAN_TEXT_LEVELS = new Map([
   ["十", 10],
 ]);
 
-const OVERJOY_TRIPLE_CROWN_TITLES = new Set([
+const GENOSIDE2018_OVERJOY_TITLE_KEY = "genoside2018段位認定overjoy";
+const HISTORICAL_OVERJOY_TITLE_KEYS = new Set([
   "overjoy",
   "段位認定overjoy",
-  "genoside2018段位認定overjoy",
+  GENOSIDE2018_OVERJOY_TITLE_KEY,
 ]);
 
 function createAppServer() {
@@ -350,14 +351,20 @@ async function loadProfileFromScoreDbRequest(body) {
       .prepare("SELECT hash, clear, playcount FROM score")
       .all();
     const inferredGradeSp = await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows);
+    const passedGenoside2018Overjoy = await hasPassedLocalGenoside2018Overjoy(resolvedSongDbPath, scoreRows);
     const overjoyTripleCrown = await hasLocalOverjoyTripleCrown(resolvedSongDbPath, scoreRows);
     const localSkillAnalyzer = await loadLocalSkillAnalyzerProgress(resolvedSongDbPath, scoreRows);
+    const localGradeSp = resolveLocalSpGrade(
+      formatLocalGrade(playerRow.grade_7),
+      inferredGradeSp,
+      passedGenoside2018Overjoy,
+    );
 
     const localProfile = {
       playerId: localPlayerId,
       name: sanitizeLocalPlayerName(playerRow.irname) || sanitizeLocalPlayerName(playerRow.name) || "",
       grade: "",
-      gradeSp: formatLocalGrade(playerRow.grade_7) || inferredGradeSp,
+      gradeSp: localGradeSp,
       gradeDp: formatLocalGrade(playerRow.grade_14),
       irVerifiedId: "",
       irProfileFetched: false,
@@ -708,7 +715,7 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
       sanitizeLocalPlayerName(playerRow.irname) ||
       sanitizeLocalPlayerName(playerRow.name) ||
       "";
-    let localGradeSp = formatLocalGrade(playerRow.grade_7);
+    const rawLocalGradeSp = formatLocalGrade(playerRow.grade_7);
     const localGradeDp = formatLocalGrade(playerRow.grade_14);
     const irData = await loadSongDbIrData(resolvedSongDbPath);
     let scoreRows = [];
@@ -754,9 +761,9 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
       byHash.set(md5, entry);
     }
 
-    if (!localGradeSp) {
-      localGradeSp = await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows);
-    }
+    const inferredGradeSp = await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows);
+    const passedGenoside2018Overjoy = await hasPassedLocalGenoside2018Overjoy(resolvedSongDbPath, scoreRows);
+    const localGradeSp = resolveLocalSpGrade(rawLocalGradeSp, inferredGradeSp, passedGenoside2018Overjoy);
     const overjoyTripleCrown = await hasLocalOverjoyTripleCrown(resolvedSongDbPath, scoreRows);
     const localSkillAnalyzer = await loadLocalSkillAnalyzerProgress(resolvedSongDbPath, scoreRows);
 
@@ -1809,14 +1816,24 @@ async function inferLocalGradeFromSongDbGrades(songDbPath, scoreRows) {
 }
 
 async function hasLocalOverjoyTripleCrown(songDbPath, scoreRows) {
+  const passedTitles = await collectPassedLocalGradeTitleKeys(songDbPath, scoreRows, HISTORICAL_OVERJOY_TITLE_KEYS);
+  return passedTitles.size === HISTORICAL_OVERJOY_TITLE_KEYS.size;
+}
+
+async function hasPassedLocalGenoside2018Overjoy(songDbPath, scoreRows) {
+  const passedTitles = await collectPassedLocalGradeTitleKeys(songDbPath, scoreRows, new Set([GENOSIDE2018_OVERJOY_TITLE_KEY]));
+  return passedTitles.has(GENOSIDE2018_OVERJOY_TITLE_KEY);
+}
+
+async function collectPassedLocalGradeTitleKeys(songDbPath, scoreRows, targetTitleKeys) {
   const resolvedPath = normalizeLocalPath(songDbPath);
   if (!resolvedPath) {
-    return false;
+    return new Set();
   }
 
   const stat = await fsp.stat(resolvedPath).catch(() => null);
   if (!stat?.isFile()) {
-    return false;
+    return new Set();
   }
 
   const scoreByHash = new Map();
@@ -1832,27 +1849,26 @@ async function hasLocalOverjoyTripleCrown(songDbPath, scoreRows) {
   let songDatabase;
   try {
     songDatabase = new DatabaseSync(resolvedPath, { readonly: true });
-    const placeholders = [...OVERJOY_TRIPLE_CROWN_TITLES].map(() => "?").join(",");
-    const rows = songDatabase
-      .prepare(
-        `SELECT title, hash FROM grade WHERE lower(replace(title, ' ', '')) IN (${placeholders})`,
-      )
-      .all(...OVERJOY_TRIPLE_CROWN_TITLES);
+    const rows = songDatabase.prepare("SELECT title, hash FROM grade").all();
 
     for (const row of rows) {
       const titleKey = normalizeGradeTitleKey(row?.title);
+      if (!targetTitleKeys.has(titleKey)) {
+        continue;
+      }
+
       const courseHash = normalizeText(row?.hash).toLowerCase();
-      if (OVERJOY_TRIPLE_CROWN_TITLES.has(titleKey) && isPassedLocalGradeCourse(scoreByHash.get(courseHash))) {
+      if (isPassedLocalGradeCourse(scoreByHash.get(courseHash))) {
         passedTitles.add(titleKey);
       }
     }
   } catch {
-    return false;
+    return new Set();
   } finally {
     songDatabase?.close();
   }
 
-  return passedTitles.size === OVERJOY_TRIPLE_CROWN_TITLES.size;
+  return passedTitles;
 }
 
 function parseLocalDanGradeTitle(title) {
@@ -1867,8 +1883,11 @@ function parseLocalDanGradeTitle(title) {
     return null;
   }
 
-  if (lower.includes("overjoy") || compact.includes("オーバージョイ")) {
+  if (isGenoside2018OverjoyGradeTitle(text)) {
     return { rank: 22, grade: "(^^)" };
+  }
+  if (lower.includes("overjoy") || compact.includes("オーバージョイ")) {
+    return null;
   }
 
   const isInsaneDan = compact.includes("発狂") || lower.includes("genoside");
@@ -1893,6 +1912,10 @@ function normalizeGradeTitleKey(title) {
     .replace(/　/g, " ")
     .replace(/\s+/g, "")
     .toLowerCase();
+}
+
+function isGenoside2018OverjoyGradeTitle(title) {
+  return normalizeGradeTitleKey(title) === GENOSIDE2018_OVERJOY_TITLE_KEY;
 }
 
 function parseLocalDanTitleLevel(text) {
@@ -2117,6 +2140,19 @@ function formatLocalGrade(value) {
   }
 
   return "";
+}
+
+function resolveLocalSpGrade(rawGradeSp, inferredGradeSp, passedGenoside2018Overjoy) {
+  const formatted = normalizeText(rawGradeSp);
+  const inferred = normalizeText(inferredGradeSp);
+  if (isLocalOverjoyGradeText(formatted) && !passedGenoside2018Overjoy) {
+    return isLocalOverjoyGradeText(inferred) ? "" : inferred;
+  }
+  return formatted || inferred;
+}
+
+function isLocalOverjoyGradeText(gradeText) {
+  return normalizeText(gradeText) === "(^^)";
 }
 
 function combineLocalGrades(gradeSp, gradeDp) {
