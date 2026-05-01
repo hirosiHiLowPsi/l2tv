@@ -11,7 +11,6 @@ const tableUrlsInput = document.getElementById("table-urls");
 const manualTableUrlTogglesContainer = document.getElementById("manual-table-url-toggles");
 const languageSelect = document.getElementById("language-select");
 const themeSelect = document.getElementById("theme-select");
-const irRankDisplaySelect = document.getElementById("ir-rank-display-select");
 const includeBpUpdatesInput = document.getElementById("include-bp-updates");
 const tablePresetsContainer = document.getElementById("table-presets");
 const analyzeButton = document.getElementById("analyze-button");
@@ -106,7 +105,6 @@ const chartSortColumns = [
   { key: "scoreTier", label: "Rank" },
   { key: "scoreRate", label: "EX/Rate" },
   { key: "missCount", label: "BP" },
-  { key: "irRank", label: "IR順位" },
   { key: "playCount", label: "Play Count" },
   { key: "rival", label: "Rival" },
 ];
@@ -143,8 +141,6 @@ const THEME_MODES = ["l2tv-pop", "lr2ir-dark"];
 const DEFAULT_THEME_MODE = "l2tv-pop";
 const LANGUAGE_OPTIONS = ["ja", "en"];
 const DEFAULT_LANGUAGE = "ja";
-const IR_RANK_DISPLAY_MODES = ["count", "percent"];
-const DEFAULT_IR_RANK_DISPLAY_MODE = "count";
 
 const PERSISTENCE_DB_NAME = "lr2ir-table-lamp-viewer";
 const PERSISTENCE_STORE_NAME = "app-state";
@@ -152,7 +148,6 @@ const PERSISTENCE_SCHEMA_VERSION = 1;
 const FORM_STATE_KEY = "form-state";
 const LAST_ANALYSIS_KEY = "last-analysis";
 const TABLE_PRESET_SELECTION_KEY = "table-preset-selection";
-const MAZAIOU_PREVIEW_QUERY_KEY = "preview80737";
 
 let latestAnalysis = null;
 let persistenceDbPromise = null;
@@ -160,7 +155,6 @@ let levelChartMode = "lamp";
 let selectedThemeMode = DEFAULT_THEME_MODE;
 let selectedLanguage = DEFAULT_LANGUAGE;
 let hasStoredLanguagePreference = false;
-let irRankDisplayMode = DEFAULT_IR_RANK_DISPLAY_MODE;
 let includeBpUpdatesInLampUpdates = false;
 let disabledManualTableUrls = new Set();
 let autoDbProfileFetchToken = 0;
@@ -206,11 +200,7 @@ const I18N_TEXT = {
   "表示言語": "Language",
   "日本語": "Japanese",
   "テーマ": "Theme",
-  "IR順位表示": "IR Rank Display",
-  "IR順位": "IR Rank",
   "プレイ回数": "Play Count",
-  "人数表示": "Count",
-  "割合表示": "Percent",
   "本日更新にBPが減った譜面も表示する": "Include charts with lower BP in Lamp Updates",
   "難易度表プリセット": "Table Presets",
   "チェックしたプリセットはURL未入力でも読み込み対象になります。": "Checked presets are loaded even without manual URLs.",
@@ -257,18 +247,13 @@ const I18N_TEXT = {
   "総譜面数": "Total Charts",
   "クリア率": "Clear Rate",
   "プレイ率": "Played Rate",
-  "IR1位保持数": "IR Rank 1",
-  "IR2位保持数": "IR Rank 2",
-  "IR3位保持数": "IR Rank 3",
-  "IRTOP10保持数": "IR Top 10",
   "この画面を画像出力": "Export This View",
   "条件に一致する譜面はありません。": "No charts match the current filters.",
-  "曲名 / アーティスト / EX / Rate / IR順位 / プレイ回数": "Title / Artist / EX / Rate / IR Rank / Play Count",
+  "曲名 / アーティスト / EX / Rate / プレイ回数": "Title / Artist / EX / Rate / Play Count",
   "タイトル不明": "Unknown Title",
   "見つかりません": "Not Found",
   "未設定": "Not Set",
   "段位未取得": "No Grade",
-  "魔剤王": "Mazaiou",
   "発狂皆伝": "Insane Kaiden",
   "発狂段位": "Insane Grade",
   "初段": "1st Dan",
@@ -304,7 +289,6 @@ const I18N_TEXT = {
   "score.db からプロフィールを取得しました。": "Loaded the profile from score.db.",
   "score.db からプレイヤー名と段位を取得しています。": "Loading the player name and grade from score.db.",
   "score.db からプロフィールを取得できませんでした。": "Could not load the profile from score.db.",
-  "80737 条件プレビュー表示中です（実データ取得ではありません）。": "Showing the 80737 condition preview. This is not real fetched data.",
   "Canvas初期化に失敗しました。": "Failed to initialize the canvas.",
   "更新データはありません。": "No update data.",
   "URLが空です。": "The URL is empty.",
@@ -542,18 +526,6 @@ function initializeThemeSelector() {
     applyTheme(themeSelect.value);
   });
 
-  if (irRankDisplaySelect) {
-    irRankDisplaySelect.value = irRankDisplayMode;
-    irRankDisplaySelect.addEventListener("change", () => {
-      irRankDisplayMode = normalizeIrRankDisplayMode(irRankDisplaySelect.value);
-      irRankDisplaySelect.value = irRankDisplayMode;
-      persistFormStateDebounced();
-      if (latestAnalysis) {
-        renderAnalysis();
-      }
-    });
-  }
-
   if (includeBpUpdatesInput) {
     includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
     includeBpUpdatesInput.addEventListener("change", () => {
@@ -755,8 +727,6 @@ function localizeString(value) {
   return text
     .replace(/前回読み込みからランプ、BP、スコアが更新された譜面: ([0-9,]+)件/g, "Updated charts with lamp, BP, or score changes since the previous load: $1")
     .replace(/前回読み込みからランプまたはスコアが更新された譜面: ([0-9,]+)件/g, "Updated charts with lamp or score changes since the previous load: $1")
-    .replace(/LR2 score\.db: ([0-9,]+)譜面/g, "LR2 score.db: $1 charts")
-    .replace(/song\.db \(IRキャッシュ\)/g, "song.db (IR Cache)")
     .replace(/([0-9,]+)件の難易度表を読み込みました。/g, "Loaded $1 tables.")
     .replace(/難易度表URL未入力のため、プレイヤーデータのみ読み込みました。/g, "No table URL was entered, so only player data was loaded.")
     .replace(/score\.db からプロフィールを取得しました。/g, "Loaded the profile from score.db.")
@@ -771,13 +741,9 @@ function localizeString(value) {
     .replace(/DP段位:\s*/g, "DP Grade: ")
     .replace(/SP段位\s*/g, "SP Grade ")
     .replace(/取得時刻:\s*/g, "Fetched At: ")
-    .replace(/IRキャッシュ/g, "IR Cache")
     .replace(/ヘッダーJSON/g, "Header JSON")
     .replace(/見つかりません/g, "Not Found")
     .replace(/勝敗表示:\s*/g, "Win/Loss Scope: ")
-    .replace(/上位([0-9.]+)%/g, "Top $1%")
-    .replace(/(\d[\d,]*)人中/g, "of $1")
-    .replace(/(\d[\d,]*)位/g, "Rank $1")
     .replace(/(\d[\d,]*)件/g, "$1 items")
     .replace(/(\d[\d,]*)譜面/g, "$1 charts")
     .replace(/(\d[\d,]*)スコア/g, "$1 scores")
@@ -811,13 +777,6 @@ function normalizeThemeMode(value) {
     .trim()
     .toLowerCase();
   return THEME_MODES.includes(normalized) ? normalized : DEFAULT_THEME_MODE;
-}
-
-function normalizeIrRankDisplayMode(value) {
-  const normalized = String(value ?? "")
-    .trim()
-    .toLowerCase();
-  return IR_RANK_DISPLAY_MODES.includes(normalized) ? normalized : DEFAULT_IR_RANK_DISPLAY_MODE;
 }
 
 function applyTheme(themeMode, options = {}) {
@@ -1262,10 +1221,6 @@ clearSavedButton.addEventListener("click", async () => {
   updateLevelModeToggleButton();
   hasStoredLanguagePreference = false;
   applyLanguage(DEFAULT_LANGUAGE, { persist: false });
-  irRankDisplayMode = DEFAULT_IR_RANK_DISPLAY_MODE;
-  if (irRankDisplaySelect) {
-    irRankDisplaySelect.value = irRankDisplayMode;
-  }
   applyTheme(DEFAULT_THEME_MODE, { persist: false });
   includeBpUpdatesInLampUpdates = false;
   if (includeBpUpdatesInput) {
@@ -1696,7 +1651,7 @@ function renderOverviewPanel(analysis) {
   metricGrid.className = "metric-grid";
   const danValue = formatPlayerGrade(analysis.player);
   const danFormalName = getPlayerGradeFormalName(analysis.player);
-  metricGrid.append(createMetricCard("プレイヤー名", analysis.player.name || "-", `LR2ID ${analysis.player.id}`));
+  metricGrid.append(createMetricCard("プレイヤー名", analysis.player.name || "-", ""));
   metricGrid.append(createMetricCard("SP段位", danValue, danFormalName, getDanToneClass(danValue, analysis.player)));
   for (const card of createSkillAnalyzerMetricCards(analysis.player)) {
     metricGrid.append(card);
@@ -1855,7 +1810,6 @@ function renderLampImprovementsPanel(improvements, compared) {
         createLampImprovementMetricSlot(detailParts.get("tier"), "tier"),
         createLampImprovementMetricSlot(detailParts.get("ex"), "ex"),
         createLampImprovementMetricSlot(detailParts.get("rate"), "rate"),
-        createLampImprovementMetricSlot(detailParts.get("ir-rank"), "ir-rank"),
       );
 
       const dateLine = document.createElement("span");
@@ -1886,10 +1840,6 @@ function createLampImprovementMetricElement(text, kind, options = {}) {
   const { dimmed = false } = options;
   const metric = document.createElement("span");
   metric.className = `lamp-improvement-metric lamp-improvement-metric-${kind}`;
-  if (kind === "ir-rank" && options.rank != null) {
-    metric.classList.add(getIrRankTone(options.rank));
-    metric.title = formatLampImprovementRankText(options.rank, options.total);
-  }
   if (dimmed) {
     metric.classList.add("dimmed");
   }
@@ -1909,8 +1859,6 @@ function createLampImprovementMetricSlot(part, defaultKind) {
   slot.append(
     createLampImprovementMetricElement(part.text, part.kind || defaultKind, {
       dimmed: Boolean(part.dimmed),
-      rank: part.rank ?? null,
-      total: part.total ?? null,
     }),
   );
   return slot;
@@ -1960,61 +1908,7 @@ function getLampImprovementDetailParts(item) {
       parts.push({ text: `${item.scoreRate.toFixed(2)}%`, kind: "rate" });
     }
   }
-  const rank = Number.parseInt(item.irRank, 10);
-  if (Number.isFinite(rank) && rank > 0 && rank <= 10) {
-    parts.push({
-      text: formatLampImprovementRankBadgeText(rank),
-      kind: "ir-rank",
-      rank,
-      total: item.irTotal ?? null,
-    });
-  }
   return parts;
-}
-
-function formatLampImprovementRankBadgeText(rank) {
-  if (rank === 1) {
-    return "🥇";
-  }
-  if (rank === 2) {
-    return "🥈";
-  }
-  if (rank === 3) {
-    return "🥉";
-  }
-  if (rank >= 4 && rank <= 10) {
-    return "TOP10";
-  }
-  return "";
-}
-
-function formatLampImprovementRankText(rank, total) {
-  const formatted = formatIrRankText(rank, total);
-  return formatted ? `IR ${formatted}` : "";
-}
-
-function formatIrRankText(rank, total, mode = irRankDisplayMode) {
-  const parts = formatIrRankParts(rank, total, mode);
-  return parts.sub ? `${parts.main}(${parts.sub})` : parts.main;
-}
-
-function formatIrRankParts(rank, total, mode = irRankDisplayMode) {
-  const numericRank = Number.parseInt(rank, 10);
-  if (!Number.isFinite(numericRank) || numericRank <= 0) {
-    return { main: "", sub: "" };
-  }
-
-  const numericTotal = Number.parseInt(total, 10);
-  if (!Number.isFinite(numericTotal) || numericTotal <= 0) {
-    return { main: `${numericRank}位`, sub: "" };
-  }
-
-  if (normalizeIrRankDisplayMode(mode) === "percent") {
-    const topPercent = (numericRank / numericTotal) * 100;
-    return { main: `${numericRank}位`, sub: `上位${topPercent.toFixed(2)}%` };
-  }
-
-  return { main: `${numericRank}位`, sub: `${formatInteger(numericTotal)}人中` };
 }
 
 function getLampImprovementGroupKey(item) {
@@ -2638,14 +2532,12 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
       const tierWidth = 76;
       const exWidth = 112;
       const rateWidth = 108;
-      const medalWidth = 92;
       const transitionX = detailX;
       const transitionWidth = 150;
       const bpX = transitionX + transitionWidth + detailGap;
       const tierX = bpX + bpWidth + detailGap;
       const exX = tierX + tierWidth + detailGap;
       const rateX = exX + exWidth + detailGap;
-      const medalX = rateX + rateWidth + detailGap;
 
       drawSnapshotLampTransition(
         ctx,
@@ -2714,7 +2606,6 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
         "600 16px 'Segoe UI', 'Meiryo', sans-serif",
         palette.detailText,
       );
-      drawSnapshotIrRankMedal(ctx, medalX, rowCenterY, medalWidth, item.irRank, item.irTotal, palette);
 
       drawSnapshotColumnText(
         ctx,
@@ -2939,48 +2830,6 @@ function drawSnapshotCenterText(ctx, text, x, width, centerY, font, color) {
   ctx.textBaseline = previousBaseline;
 }
 
-function drawSnapshotIrRankMedal(ctx, x, centerY, width, rank, total, palette) {
-  const normalizedRank = toPositiveRankInteger(rank);
-  if (normalizedRank == null || normalizedRank > 10 || width <= 0) {
-    return;
-  }
-
-  const medal = getSnapshotIrRankMedalStyle(normalizedRank);
-  const badgeWidth = normalizedRank <= 3 ? 34 : 58;
-  const badgeHeight = 22;
-  const badgeX = x + Math.max(0, width - badgeWidth) / 2;
-  const badgeY = centerY - badgeHeight / 2;
-  drawRoundedRect(ctx, badgeX, badgeY, badgeWidth, badgeHeight, 11, medal.bg);
-  ctx.strokeStyle = medal.stroke;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  const previousBaseline = ctx.textBaseline;
-  const label = normalizedRank <= 3 ? `${normalizedRank}` : "TOP10";
-  ctx.font =
-    normalizedRank <= 3
-      ? "900 14px 'Segoe UI', 'Meiryo', sans-serif"
-      : "900 11px 'Segoe UI', 'Meiryo', sans-serif";
-  ctx.fillStyle = medal.text;
-  ctx.textBaseline = "middle";
-  const labelWidth = ctx.measureText(label).width;
-  ctx.fillText(label, badgeX + badgeWidth / 2 - labelWidth / 2, centerY + 0.5);
-  ctx.textBaseline = previousBaseline;
-}
-
-function getSnapshotIrRankMedalStyle(rank) {
-  if (rank === 1) {
-    return { bg: "#f4c542", stroke: "#fff0a3", text: "#392200" };
-  }
-  if (rank === 2) {
-    return { bg: "#c9d2df", stroke: "#f8fbff", text: "#1b2633" };
-  }
-  if (rank === 3) {
-    return { bg: "#cf8d52", stroke: "#ffd8ac", text: "#331805" };
-  }
-  return { bg: "#7dbfff", stroke: "#c9f2ff", text: "#0d263f" };
-}
-
 function drawSnapshotLeftText(ctx, text, x, width, centerY, font, color) {
   const value = String(text ?? "").trim();
   if (!value || width <= 0) {
@@ -3075,18 +2924,10 @@ function renderTableSection(table, filteredCharts) {
   tableLink.href = table.sourceUrl;
 
   const metricStrip = root.querySelector(".metric-strip");
-  const top1Count = countRankOwnership(table.charts, 1);
-  const top2Count = countRankOwnership(table.charts, 2);
-  const top3Count = countRankOwnership(table.charts, 3);
-  const top10Count = countRankOwnershipWithin(table.charts, 10);
   metricStrip.append(
     createMetricCard("総譜面数", String(table.stats.totalCharts), ""),
     createMetricCard("クリア率", formatPercent(table.stats.clearRate), ""),
     createMetricCard("プレイ率", formatPercent(table.stats.playedRate), ""),
-    createMetricCard("IR1位保持数", `${formatInteger(top1Count)}譜面`, ""),
-    createMetricCard("IR2位保持数", `${formatInteger(top2Count)}譜面`, ""),
-    createMetricCard("IR3位保持数", `${formatInteger(top3Count)}譜面`, ""),
-    createMetricCard("IRTOP10保持数", `${formatInteger(top10Count)}譜面`, ""),
   );
 
   const lampSummary = root.querySelector(".lamp-summary");
@@ -3314,7 +3155,7 @@ function createChartListPanel(table, charts, summaryElement) {
 
   const searchInput = document.createElement("input");
   searchInput.type = "search";
-  searchInput.placeholder = "曲名 / アーティスト / EX / Rate / IR順位 / プレイ回数";
+  searchInput.placeholder = "曲名 / アーティスト / EX / Rate / プレイ回数";
   searchInput.value = savedListState.query ?? "";
 
   const lampSelect = document.createElement("select");
@@ -3354,7 +3195,7 @@ function createChartListPanel(table, charts, summaryElement) {
     query: searchInput.value.trim().toLowerCase(),
     lamp: lampSelect.value,
     level: levelSelect.value,
-    sortKey: savedListState.sortKey ?? "level",
+    sortKey: normalizeChartSortKey(savedListState.sortKey),
     sortDirection: savedListState.sortDirection ?? "asc",
     openLevels: savedOpenLevels instanceof Set ? new Set(savedOpenLevels) : new Set(),
   };
@@ -3795,7 +3636,6 @@ function renderChartTable(charts, tableInfo, state, rerender) {
       createScoreTierCell(chart),
       createScoreCell(chart),
       createMissCountCell(chart),
-      createIrRankCell(chart),
       createPlayCountCell(chart),
       createRivalCell(chart),
     );
@@ -3888,6 +3728,11 @@ function sortChartsForList(charts, table, state) {
   });
 }
 
+function normalizeChartSortKey(value) {
+  const key = String(value ?? "").trim();
+  return chartSortColumns.some((column) => column.key === key) ? key : "level";
+}
+
 function compareChartsForSort(left, right, table, sortKey, sortDirection) {
   switch (sortKey) {
     case "level":
@@ -3898,8 +3743,6 @@ function compareChartsForSort(left, right, table, sortKey, sortDirection) {
       return applySortDirection(compareText(left.artist, right.artist), sortDirection);
     case "lampStatus":
       return applySortDirection(compareLampStatus(left.lampStatus, right.lampStatus), sortDirection);
-    case "irRank":
-      return compareIrRankValues(extractIrRankingInfo(left)?.rank ?? null, extractIrRankingInfo(right)?.rank ?? null, sortDirection);
     case "playCount":
       return compareNumericNullable(left.playCount, right.playCount, sortDirection);
     case "missCount":
@@ -3929,19 +3772,6 @@ function compareLampStatus(left, right) {
   return (leftIndex === -1 ? lampOptions.length : leftIndex) - (rightIndex === -1 ? lampOptions.length : rightIndex);
 }
 
-function compareIrRankValues(left, right, sortDirection) {
-  if (left == null && right == null) {
-    return 0;
-  }
-  if (left == null) {
-    return 1;
-  }
-  if (right == null) {
-    return -1;
-  }
-  return sortDirection === "desc" ? right - left : left - right;
-}
-
 function compareNumericNullable(left, right, sortDirection) {
   if (left == null && right == null) {
     return 0;
@@ -3960,27 +3790,6 @@ function getSortIndicator(columnKey, state) {
     return "↕";
   }
   return state.sortDirection === "asc" ? "↑" : "↓";
-}
-
-function createIrRankCell(chart) {
-  const cell = document.createElement("td");
-  cell.className = "ir-cell";
-
-  const rankingInfo = extractIrRankingInfo(chart);
-  if (rankingInfo?.rank != null) {
-    const badge = document.createElement("span");
-    badge.className = `ir-rank-badge ${getIrRankTone(rankingInfo.rank)}`;
-    const rankParts = formatIrRankParts(rankingInfo.rank, rankingInfo.total);
-    badge.innerHTML = rankParts.sub
-      ? `<span class="ir-rank-main">${escapeHtml(rankParts.main)}</span><span class="ir-rank-sub">${escapeHtml(rankParts.sub)}</span>`
-      : `<span class="ir-rank-main">${escapeHtml(rankParts.main)}</span>`;
-    badge.title = rankingInfo.rawText || badge.textContent;
-    cell.append(badge);
-    return cell;
-  }
-
-  cell.innerHTML = '<span class="dimmed">NO Data</span>';
-  return cell;
 }
 
 function createPlayCountCell(chart) {
@@ -4222,20 +4031,6 @@ function compareRivalScoresForUi(left, right) {
   return compareLampStatus(left?.lampStatus, right?.lampStatus);
 }
 
-function countRankOwnership(charts, targetRank) {
-  return charts.reduce((sum, chart) => {
-    const rank = extractIrRankingInfo(chart)?.rank ?? null;
-    return sum + (rank === targetRank ? 1 : 0);
-  }, 0);
-}
-
-function countRankOwnershipWithin(charts, maxRank) {
-  return charts.reduce((sum, chart) => {
-    const rank = extractIrRankingInfo(chart)?.rank ?? null;
-    return sum + (rank != null && rank <= maxRank ? 1 : 0);
-  }, 0);
-}
-
 function createMetricCard(label, value, subvalue, cardClass = "") {
   const card = document.createElement("div");
   card.className = "metric";
@@ -4318,8 +4113,8 @@ function getChartSearchText(chart) {
 }
 
 function buildStatusMessage(analysis) {
-  const sourceLine = `LR2 score.db: ${analysis.player.registeredChartCount}譜面 / ${analysis.player.localDbPath || "-"}`;
-  const localSongDbLine = `song.db (IRキャッシュ): ${analysis.player.localSongDbPath || "見つかりません"}`;
+  const sourceLine = `LR2 score.db: ${analysis.player.localDbPath || "-"}`;
+  const localSongDbLine = `song.db: ${analysis.player.localSongDbPath || "見つかりません"}`;
 
   const lines = [
     analysis.tables.length
@@ -4392,8 +4187,6 @@ async function autoFetchProfileFromScoreDb() {
       skillAnalyzer: payload?.player?.skillAnalyzer ?? null,
       stellaSkill4th: payload?.player?.stellaSkill4th ?? null,
       overjoyTripleCrown: Boolean(payload?.player?.overjoyTripleCrown),
-      irVerifiedId: String(payload?.player?.irVerifiedId ?? "").trim(),
-      irProfileFetched: Boolean(payload?.player?.irProfileFetched),
     };
 
     const currentAnalysisId = latestAnalysis?.player ? normalizePlayerCacheId(latestAnalysis.player.id) : "";
@@ -4562,10 +4355,6 @@ function escapeAttribute(value) {
 }
 
 function formatPlayerGrade(player) {
-  if (isMazaiouGradeOverride(player)) {
-    return "魔剤王";
-  }
-
   const sp = player.gradeSp?.trim();
   if (sp) {
     return sp;
@@ -4746,10 +4535,6 @@ function getSkillAnalyzerToneClass(gradeText) {
 }
 
 function getPlayerGradeFormalName(player) {
-  if (isMazaiouGradeOverride(player)) {
-    return "魔剤王";
-  }
-
   const gradeText = formatPlayerGrade(player);
   if (!gradeText || gradeText === "-") {
     return "段位未取得";
@@ -4812,10 +4597,6 @@ function formatDanStep(level) {
 }
 
 function getDanToneClass(gradeText, player = null) {
-  if (isMazaiouGradeOverride(player)) {
-    return "dan-mazaiou";
-  }
-
   const normalized = String(gradeText ?? "").trim();
   if (!normalized || normalized === "-") {
     return "";
@@ -4859,20 +4640,6 @@ function getDanToneClass(gradeText, player = null) {
   return "dan-normal";
 }
 
-function isMazaiouGradeOverride(player) {
-  if (!player || typeof player !== "object") {
-    return false;
-  }
-
-  if (player.sourceType !== "local-score-db") {
-    return false;
-  }
-
-  const irVerifiedId = normalizePlayerCacheId(player.irVerifiedId);
-  const localPlayerId = normalizePlayerCacheId(player.id);
-  return irVerifiedId === "80737" || localPlayerId === "80737";
-}
-
 function isOverjoyGrade(gradeText) {
   const normalized = String(gradeText ?? "").trim();
   if (!normalized) {
@@ -4895,82 +4662,6 @@ function normalizeDanToneText(text) {
     .replace(/[！-～]/g, (character) => String.fromCharCode(character.charCodeAt(0) - 0xfee0))
     .replace(/　/g, " ")
     .replace(/\s+/g, "");
-}
-
-function extractIrRankingInfo(chart) {
-  if (chart?.rankingRank != null) {
-    return {
-      rank: chart.rankingRank,
-      total: chart.rankingTotal ?? null,
-      rawText:
-        chart.rankingTotal != null ? `${chart.rankingRank}/${chart.rankingTotal}` : `${chart.rankingRank}`,
-    };
-  }
-
-  if (!chart?.rankingUrl || !chart?.statusDetail) {
-    return null;
-  }
-
-  if (isNoPlayableDataLamp(chart.lampStatus)) {
-    return null;
-  }
-
-  const normalized = normalizeRankingText(chart.statusDetail);
-  const withTotal =
-    normalized.match(/^順位[:：]?\s*#?(\d+)\s*位?\s*[\//]\s*(\d+)/i) ??
-    normalized.match(/^#?(\d+)\s*位?\s*[\//]\s*(\d+)/i) ??
-    normalized.match(/^#?(\d+)\s*位?\s*\(\s*(\d+)\s*人中\s*\)/i) ??
-    normalized.match(/^#?(\d+)\s*位?\s*of\s*(\d+)/i);
-
-  if (withTotal) {
-    return {
-      rank: Number.parseInt(withTotal[1], 10),
-      total: Number.parseInt(withTotal[2], 10),
-      rawText: chart.statusDetail,
-    };
-  }
-
-  const standalone =
-    normalized.match(/^順位[:：]?\s*#?(\d+)\s*位?$/i) ??
-    normalized.match(/^#?(\d+)\s*位?$/i);
-
-  if (standalone) {
-    return {
-      rank: Number.parseInt(standalone[1], 10),
-      total: null,
-      rawText: chart.statusDetail,
-    };
-  }
-
-  return null;
-}
-
-function normalizeRankingText(value) {
-  return String(value ?? "")
-    .trim()
-    .replace(/[０-９]/g, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xfee0))
-    .replaceAll("／", "/")
-    .replaceAll("　", " ")
-    .replaceAll("＃", "#")
-    .replaceAll("，", ",")
-    .replace(/,/g, "")
-    .replace(/\s+/g, " ");
-}
-
-function getIrRankTone(rank) {
-  if (rank === 1) {
-    return "rank-gold";
-  }
-  if (rank === 2) {
-    return "rank-silver";
-  }
-  if (rank === 3) {
-    return "rank-bronze";
-  }
-  if (rank <= 10) {
-    return "rank-top";
-  }
-  return "rank-standard";
 }
 
 function toLampSlug(lamp) {
@@ -5213,26 +4904,6 @@ function mergeLampImprovementScoreRate(currentScoreRate, nextScoreRate) {
   return Math.max(currentScoreRate, nextScoreRate);
 }
 
-function mergeLampImprovementIrRank(currentRank, currentTotal, nextRank, nextTotal) {
-  const normalizedCurrentRank = toPositiveRankInteger(currentRank);
-  const normalizedNextRank = toPositiveRankInteger(nextRank);
-  if (normalizedCurrentRank == null) {
-    return { rank: normalizedNextRank, total: nextTotal ?? null };
-  }
-  if (normalizedNextRank == null) {
-    return { rank: normalizedCurrentRank, total: currentTotal ?? null };
-  }
-  if (normalizedNextRank < normalizedCurrentRank) {
-    return { rank: normalizedNextRank, total: nextTotal ?? null };
-  }
-  return { rank: normalizedCurrentRank, total: currentTotal ?? null };
-}
-
-function toPositiveRankInteger(value) {
-  const numeric = Number.parseInt(value, 10);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
-}
-
 function toFiniteChartNumber(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
@@ -5304,7 +4975,6 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
       const currentLamp = normalizeLampStatusForUi(chart?.lampStatus);
       const badCount = Number.isFinite(Number(chart?.badCount)) ? Number(chart.badCount) : null;
       const poorCount = Number.isFinite(Number(chart?.poorCount)) ? Number(chart.poorCount) : null;
-      const rankingInfo = extractIrRankingInfo(chart);
       const missCount = getChartMissCountValue(chart);
       const previousMissCount = previousState.missCount;
       const exScore = toFiniteChartNumber(chart?.exScore);
@@ -5358,8 +5028,6 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
             exScore,
             scoreRate,
             scoreUpdated,
-            irRank: rankingInfo?.rank ?? null,
-            irTotal: rankingInfo?.total ?? null,
             levelEntries: [],
             levelEntrySet: new Set(),
           };
@@ -5370,9 +5038,6 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
           entry.previousExScore = mergeLampImprovementPreviousExScore(entry.previousExScore, previousState.exScore);
           entry.exScore = mergeLampImprovementExScore(entry.exScore, exScore);
           entry.scoreRate = mergeLampImprovementScoreRate(entry.scoreRate, scoreRate);
-          const mergedRank = mergeLampImprovementIrRank(entry.irRank, entry.irTotal, rankingInfo?.rank ?? null, rankingInfo?.total ?? null);
-          entry.irRank = mergedRank.rank;
-          entry.irTotal = mergedRank.total;
           entry.scoreUpdated = entry.scoreUpdated || scoreUpdated;
           if (entry.badCount == null && badCount != null) {
             entry.badCount = badCount;
@@ -5407,8 +5072,6 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
       exScore: entry.exScore,
       scoreRate: entry.scoreRate,
       scoreUpdated: Boolean(entry.scoreUpdated),
-      irRank: entry.irRank,
-      irTotal: entry.irTotal,
       levelText,
       sortSymbol: primaryLevel?.symbol ?? "",
       sortLevelRaw: primaryLevel?.levelRaw ?? "",
@@ -5619,8 +5282,6 @@ function mergePlayerProfileFields(primary, fallback) {
     skillAnalyzer: mergedSkillAnalyzer,
     stellaSkill4th: leftStella || rightStella || mergedSkillAnalyzer?.st || null,
     overjoyTripleCrown: Boolean(left.overjoyTripleCrown) || Boolean(right.overjoyTripleCrown),
-    irVerifiedId: String(left.irVerifiedId ?? "").trim() || String(right.irVerifiedId ?? "").trim(),
-    irProfileFetched: Boolean(left.irProfileFetched) || Boolean(right.irProfileFetched),
   };
 }
 
@@ -5632,58 +5293,8 @@ function normalizePlayerCacheId(value) {
   return text;
 }
 
-function isMazaiouPreviewRequested() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    const flag = String(params.get(MAZAIOU_PREVIEW_QUERY_KEY) ?? "").trim().toLowerCase();
-    return flag === "1" || flag === "true" || flag === "yes";
-  } catch {
-    return false;
-  }
-}
-
 function createEmptyLampSummary() {
   return Object.fromEntries(lampOptions.map((lamp) => [lamp, 0]));
-}
-
-function applyMazaiouPreview() {
-  scoreDbPathInput.value = scoreDbPathInput.value.trim() || "C:\\LR2\\LR2files\\Database\\Score\\preview.db";
-  songDbPathInput.value = songDbPathInput.value.trim() || "C:\\LR2\\LR2files\\Database\\song.db";
-
-  latestAnalysis = {
-    analyzedAt: new Date().toISOString(),
-    overall: {
-      tableCount: 0,
-      tableEntryCount: 0,
-      uniqueChartCount: 0,
-      summary: createEmptyLampSummary(),
-      clearRate: null,
-      playedRate: null,
-      clearCount: 0,
-      playedCount: 0,
-      matchableCount: 0,
-    },
-    player: {
-      id: "80737",
-      sourceType: "local-score-db",
-      name: "魔剤王プレビュー",
-      grade: "☆10/☆10",
-      gradeSp: "☆10",
-      gradeDp: "☆10",
-      irVerifiedId: "80737",
-      irProfileFetched: true,
-      registeredChartCount: 0,
-      fetchedPages: null,
-      localDbPath: scoreDbPathInput.value,
-      localSongDbPath: songDbPathInput.value,
-    },
-    tableErrors: [],
-    tables: [],
-  };
-
-  renderAnalysis();
-  resultsRoot.classList.remove("hidden");
-  setStatus("80737 条件プレビュー表示中です（実データ取得ではありません）。");
 }
 
 initializePersistence().catch((error) => {
@@ -5691,11 +5302,6 @@ initializePersistence().catch((error) => {
 });
 
 async function initializePersistence() {
-  if (isMazaiouPreviewRequested()) {
-    applyMazaiouPreview();
-    return;
-  }
-
   await restoreTablePresetSelection();
   syncPresetCheckboxesFromState();
   const restoredFormState = await restoreFormState();
@@ -5864,10 +5470,6 @@ async function restoreFormState() {
   hasStoredLanguagePreference =
     Boolean(persisted.languagePromptSeen) || Object.prototype.hasOwnProperty.call(persisted, "language");
   applyLanguage(persisted.language, { persist: false });
-  irRankDisplayMode = normalizeIrRankDisplayMode(persisted.irRankDisplayMode);
-  if (irRankDisplaySelect) {
-    irRankDisplaySelect.value = irRankDisplayMode;
-  }
   includeBpUpdatesInLampUpdates = Boolean(persisted.includeBpUpdatesInLampUpdates);
   if (includeBpUpdatesInput) {
     includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
@@ -5900,7 +5502,6 @@ async function persistFormState() {
     language: selectedLanguage,
     languagePromptSeen: hasStoredLanguagePreference,
     themeMode: selectedThemeMode,
-    irRankDisplayMode,
     includeBpUpdatesInLampUpdates,
   });
 }

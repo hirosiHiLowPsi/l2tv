@@ -64,7 +64,7 @@ const SECURITY_HEADERS = {
 const responseCache = new Map();
 const tableCache = new Map();
 const playerMyListCache = new Map();
-const songDbIrCache = new Map();
+const songDbCatalogCache = new Map();
 const LOCAL_DAN_STAR_MAP = new Map(
   Array.from({ length: 10 }, (_, index) => [index + 1, `☆${index + 1}`]),
 );
@@ -221,8 +221,6 @@ async function analyzeRequest(body) {
     skillAnalyzer: null,
     stellaSkill4th: null,
     overjoyTripleCrown: false,
-    irVerifiedId: "",
-    irProfileFetched: false,
     hitTotals: null,
   };
 
@@ -250,10 +248,6 @@ async function analyzeRequest(body) {
         playerMyList.localProfile?.skillAnalyzer?.st ||
         null,
       overjoyTripleCrown: Boolean(playerProfile.overjoyTripleCrown || playerMyList.localProfile?.overjoyTripleCrown),
-      irVerifiedId: playerProfile.irVerifiedId || "",
-      irProfileFetched: Boolean(playerProfile.irProfileFetched),
-      registeredChartCount: playerMyList.entries.length,
-      fetchedPages: playerMyList.fetchedPages,
       localDbPath: playerMyList.localDbPath || "",
       localSongDbPath: playerMyList.localSongDbPath || "",
       hitTotals: playerMyList.localProfile?.hitTotals ?? null,
@@ -340,14 +334,14 @@ async function loadProfileFromScoreDbRequest(body) {
   try {
     database = new DatabaseSync(resolvedPath, { readonly: true });
     const playerRow = database
-      .prepare("SELECT id, name, irid, irname, grade_7, grade_14 FROM player LIMIT 1")
+      .prepare("SELECT id, name, grade_7, grade_14 FROM player LIMIT 1")
       .get();
 
     if (!playerRow) {
       throw new Error("score.db の player テーブルを読み取れませんでした。");
     }
 
-    const localPlayerId = normalizeNumericId(playerRow.irid) || "";
+    const localPlayerId = normalizeText(playerRow.id) || "local";
     const scoreRows = database
       .prepare("SELECT hash, clear, playcount FROM score")
       .all();
@@ -357,12 +351,10 @@ async function loadProfileFromScoreDbRequest(body) {
 
     const localProfile = {
       playerId: localPlayerId,
-      name: sanitizeLocalPlayerName(playerRow.irname) || sanitizeLocalPlayerName(playerRow.name) || "",
+      name: sanitizeLocalPlayerName(playerRow.name) || "",
       grade: "",
       gradeSp: inferredGradeSp,
       gradeDp: formatLocalGrade(playerRow.grade_14),
-      irVerifiedId: "",
-      irProfileFetched: false,
       skillAnalyzer: localSkillAnalyzer,
       stellaSkill4th: localSkillAnalyzer?.st ?? null,
       overjoyTripleCrown,
@@ -381,8 +373,6 @@ async function loadProfileFromScoreDbRequest(body) {
         skillAnalyzer: localProfile.skillAnalyzer || null,
         stellaSkill4th: localProfile.stellaSkill4th || localProfile.skillAnalyzer?.st || null,
         overjoyTripleCrown: Boolean(localProfile.overjoyTripleCrown),
-        irVerifiedId: "",
-        irProfileFetched: false,
         localDbPath: resolvedPath,
       },
     };
@@ -705,13 +695,11 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
       throw new Error("score.db の player テーブルを読み取れませんでした。");
     }
 
-    const localPlayerId = normalizeNumericId(playerRow.irid) || normalizeText(playerRow.id) || "";
+    const localPlayerId = normalizeText(playerRow.id) || "local";
     const localPlayerName =
-      sanitizeLocalPlayerName(playerRow.irname) ||
-      sanitizeLocalPlayerName(playerRow.name) ||
-      "";
+      sanitizeLocalPlayerName(playerRow.name) || "";
     const localGradeDp = formatLocalGrade(playerRow.grade_14);
-    const irData = await loadSongDbIrData(resolvedSongDbPath);
+    const songCatalog = await loadSongDbCatalogData(resolvedSongDbPath);
     let scoreRows = [];
     try {
       scoreRows = database
@@ -734,7 +722,6 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
       if (!md5 || byHash.has(md5)) {
         continue;
       }
-      const irEntry = irData.byHash.get(md5);
       const scoreInfo = buildLocalScoreInfo(row);
 
       const entry = {
@@ -748,9 +735,6 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
         badCount: scoreInfo.badCount,
         poorCount: scoreInfo.poorCount,
         missCount: scoreInfo.missCount,
-        rankingText: irEntry?.rankingText || "",
-        rankingRank: irEntry?.rankingRank ?? null,
-        rankingTotal: irEntry?.rankingTotal ?? null,
       };
       byHash.set(md5, entry);
     }
@@ -761,15 +745,14 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
 
     const result = {
       playerId: localPlayerId,
-      fetchedPages: null,
       entries: [...byHash.values()],
       byBmsId: new Map(),
       byHash,
-      localSongHashes: irData.localSongHashes,
-      hasLocalSongCatalog: irData.hasSongCatalog,
+      localSongHashes: songCatalog.localSongHashes,
+      hasLocalSongCatalog: songCatalog.hasSongCatalog,
       sourceType: "local-score-db",
       localDbPath: resolvedPath,
-      localSongDbPath: irData.path,
+      localSongDbPath: songCatalog.path,
       localProfile: {
         playerId: localPlayerId,
         name: localPlayerName,
@@ -779,8 +762,6 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
         skillAnalyzer: localSkillAnalyzer,
         stellaSkill4th: localSkillAnalyzer?.st ?? null,
         overjoyTripleCrown,
-        irVerifiedId: "",
-        irProfileFetched: false,
         hitTotals: buildLocalHitTotalsFromPlayerRow(playerRow),
       },
     };
@@ -802,9 +783,6 @@ function enrichTable(table, _lookupMap, playerMyList, rivalData = null) {
     const base = {
       ...chart,
       bmsId: null,
-      rankingUrl: "",
-      rankingRank: null,
-      rankingTotal: null,
       playCount: null,
       exScore: null,
       maxExScore: null,
@@ -839,9 +817,7 @@ function enrichTable(table, _lookupMap, playerMyList, rivalData = null) {
         badCount: playerEntry.badCount ?? null,
         poorCount: playerEntry.poorCount ?? null,
         missCount: playerEntry.missCount ?? null,
-        rankingRank: playerEntry.rankingRank ?? null,
-        rankingTotal: playerEntry.rankingTotal ?? null,
-        statusDetail: playerEntry.rankingText || "",
+        statusDetail: "",
       };
       return {
         ...enriched,
@@ -1465,47 +1441,25 @@ function resolveSongDbPathFromScoreDb(scoreDbPath, songDbPath) {
   return path.join(databaseDir, "song.db");
 }
 
-async function loadSongDbIrData(songDbPath) {
+async function loadSongDbCatalogData(songDbPath) {
   const resolvedPath = normalizeLocalPath(songDbPath);
   if (!resolvedPath) {
-    return { path: "", byHash: new Map(), localSongHashes: new Set(), hasSongCatalog: false };
+    return { path: "", localSongHashes: new Set(), hasSongCatalog: false };
   }
 
-  if (songDbIrCache.has(resolvedPath)) {
-    return songDbIrCache.get(resolvedPath);
+  if (songDbCatalogCache.has(resolvedPath)) {
+    return songDbCatalogCache.get(resolvedPath);
   }
 
   const stat = await fsp.stat(resolvedPath).catch(() => null);
   if (!stat?.isFile()) {
-    return { path: "", byHash: new Map(), localSongHashes: new Set(), hasSongCatalog: false };
+    return { path: "", localSongHashes: new Set(), hasSongCatalog: false };
   }
 
   let songDatabase;
   try {
     songDatabase = new DatabaseSync(resolvedPath, { readonly: true });
-    const byHash = new Map();
     const localSongHashes = new Set();
-
-    try {
-      const rows = songDatabase.prepare("SELECT hash, rank, players_num FROM ir_data").all();
-
-      for (const row of rows) {
-        const md5 = normalizeHex(row.hash, 32);
-        if (!md5 || byHash.has(md5)) {
-          continue;
-        }
-
-        const rank = toPositiveInteger(row.rank);
-        const total = toPositiveInteger(row.players_num);
-        byHash.set(md5, {
-          rankingRank: rank,
-          rankingTotal: total,
-          rankingText: rank && total ? `${rank}/${total}` : "",
-        });
-      }
-    } catch {
-      // Older or trimmed song.db files may not have cached IR data.
-    }
 
     let hasSongCatalog = false;
     try {
@@ -1524,15 +1478,14 @@ async function loadSongDbIrData(songDbPath) {
 
     const result = {
       path: resolvedPath,
-      byHash,
       localSongHashes,
       hasSongCatalog,
     };
 
-    setLimitedCache(songDbIrCache, resolvedPath, result);
+    setLimitedCache(songDbCatalogCache, resolvedPath, result);
     return result;
   } catch {
-    return { path: "", byHash: new Map(), localSongHashes: new Set(), hasSongCatalog: false };
+    return { path: "", localSongHashes: new Set(), hasSongCatalog: false };
   } finally {
     songDatabase?.close();
   }
@@ -2033,25 +1986,12 @@ function buildLocalHitTotalsFromPlayerRow(playerRow) {
   };
 }
 
-function toPositiveInteger(value) {
-  const numeric = Number.parseInt(value, 10);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return null;
-  }
-  return numeric;
-}
-
 function toNonNegativeInteger(value) {
   const numeric = Number.parseInt(value, 10);
   if (!Number.isFinite(numeric) || numeric < 0) {
     return null;
   }
   return numeric;
-}
-
-function normalizeNumericId(value) {
-  const text = String(value ?? "").trim();
-  return /^\d+$/.test(text) ? text : "";
 }
 
 function normalizeHex(value, length) {

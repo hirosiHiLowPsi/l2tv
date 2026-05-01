@@ -346,18 +346,6 @@ body[data-theme="lr2ir-dark"] .sort-button {
   background: rgba(16, 23, 34, 0.92);
 }
 
-body[data-theme="lr2ir-dark"] .ir-rank-badge.rank-standard {
-  background: rgba(19, 28, 41, 0.96);
-  border-color: #5f6d88;
-  color: #e4ebff;
-}
-
-body[data-theme="lr2ir-dark"] .ir-rank-badge.rank-top {
-  background: linear-gradient(135deg, rgba(70, 97, 147, 0.52), rgba(96, 126, 179, 0.46));
-  border-color: rgba(117, 144, 191, 0.62);
-  color: #111c2e;
-}
-
 body[data-theme="lr2ir-dark"] .chart-table tbody tr > td {
   color: #141b28;
 }
@@ -2511,141 +2499,6 @@ body[data-theme="lr2ir-dark"] .floating-chart-header-columns {
   text-decoration: underline;
 }
 
-.ir-cell {
-  min-width: 124px;
-}
-
-.ir-rank-card {
-  display: grid;
-  gap: 6px;
-  justify-items: start;
-}
-
-.ir-rank-badge,
-.ir-link {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 82px;
-  padding: 7px 12px 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  font-weight: 800;
-  line-height: 1.08;
-  text-align: center;
-  text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.ir-rank-main,
-.ir-rank-sub {
-  display: block;
-  width: 100%;
-  text-align: center;
-}
-
-.ir-rank-sub {
-  margin-top: 2px;
-  font-size: 0.86em;
-}
-
-.ir-rank-badge:hover,
-.ir-link:hover {
-  transform: translateY(-1px);
-  text-decoration: none;
-}
-
-.ir-rank-badge.rank-gold {
-  background: linear-gradient(135deg, #fff6c5 0%, #ffd66e 32%, #c79225 64%, #fff0b8 100%);
-  background-size: 220% 220%;
-  border-color: rgba(255, 230, 153, 0.62);
-  box-shadow: 0 10px 24px rgba(230, 185, 61, 0.18);
-  color: #3f2d00;
-  will-change: background-position, box-shadow;
-  animation: l2tv-ir-rank-shimmer 2.6s linear infinite, l2tv-ir-rank-gold-glow 1.8s ease-in-out infinite;
-}
-
-.ir-rank-badge.rank-silver {
-  background: linear-gradient(135deg, #f8fbff 0%, #d5deea 32%, #95a6bd 64%, #eef3fa 100%);
-  background-size: 220% 220%;
-  border-color: rgba(230, 240, 255, 0.42);
-  box-shadow: 0 10px 24px rgba(170, 183, 199, 0.16);
-  color: #233142;
-  will-change: background-position, box-shadow;
-  animation: l2tv-ir-rank-shimmer 2.8s linear infinite, l2tv-ir-rank-silver-glow 2s ease-in-out infinite;
-}
-
-.ir-rank-badge.rank-bronze {
-  background: linear-gradient(135deg, #ffe0c8 0%, #e3a46e 30%, #9f5a2f 62%, #ffd3b2 100%);
-  background-size: 220% 220%;
-  border-color: rgba(255, 193, 146, 0.42);
-  box-shadow: 0 10px 24px rgba(186, 111, 61, 0.18);
-  color: #351500;
-  will-change: background-position, box-shadow;
-  animation: l2tv-ir-rank-shimmer 3s linear infinite, l2tv-ir-rank-bronze-glow 2.1s ease-in-out infinite;
-}
-
-@keyframes l2tv-ir-rank-shimmer {
-  100% {
-    background-position: 220% 50%;
-  }
-}
-
-@keyframes l2tv-ir-rank-gold-glow {
-  0%,
-  100% {
-    box-shadow: 0 9px 20px rgba(230, 185, 61, 0.2), 0 0 10px rgba(255, 219, 121, 0.35);
-  }
-  50% {
-    box-shadow: 0 12px 28px rgba(230, 185, 61, 0.28), 0 0 16px rgba(255, 228, 148, 0.52);
-  }
-}
-
-@keyframes l2tv-ir-rank-silver-glow {
-  0%,
-  100% {
-    box-shadow: 0 9px 20px rgba(167, 180, 198, 0.2), 0 0 10px rgba(225, 236, 251, 0.28);
-  }
-  50% {
-    box-shadow: 0 12px 28px rgba(167, 180, 198, 0.28), 0 0 16px rgba(233, 242, 255, 0.44);
-  }
-}
-
-@keyframes l2tv-ir-rank-bronze-glow {
-  0%,
-  100% {
-    box-shadow: 0 9px 20px rgba(186, 111, 61, 0.2), 0 0 10px rgba(255, 194, 150, 0.28);
-  }
-  50% {
-    box-shadow: 0 12px 28px rgba(186, 111, 61, 0.3), 0 0 16px rgba(255, 211, 178, 0.44);
-  }
-}
-
-.ir-rank-badge.rank-top {
-  background: linear-gradient(135deg, rgba(132, 230, 255, 0.45), rgba(115, 173, 255, 0.5));
-  border-color: rgba(96, 184, 235, 0.5);
-  color: #084a73;
-}
-
-.ir-rank-badge.rank-standard {
-  background: rgba(234, 248, 255, 0.94);
-  border-color: rgba(77, 173, 229, 0.24);
-  color: var(--text);
-}
-
-.ir-link {
-  min-width: 92px;
-  background: rgba(236, 249, 255, 0.92);
-  color: var(--accent);
-}
-
-.ir-rank-meta {
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
 .lamp-badge {
   display: inline-flex;
   padding: 6px 10px;
@@ -2721,11 +2574,6 @@ body[data-theme="lr2ir-dark"] .floating-chart-header-columns {
 .chart-detail {
   color: var(--text);
   line-height: 1.45;
-}
-
-.chart-detail.detail-ranking {
-  color: var(--muted);
-  font-size: 0.88rem;
 }
 
 .rival-cell {
@@ -3186,38 +3034,6 @@ body[data-theme="lr2ir-dark"] .chart-table tbody tr.lamp-no-song .score-cell .de
 .lamp-improvement-metric-ex,
 .lamp-improvement-metric-rate {
   color: var(--muted);
-}
-
-.lamp-improvement-metric-ir-rank {
-  justify-content: center;
-  min-width: 48px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-weight: 900;
-}
-
-.lamp-improvement-metric-ir-rank.rank-gold {
-  color: #3f2600;
-  background: linear-gradient(135deg, #fff4a8, #f4c542 48%, #b87700);
-  box-shadow: 0 0 12px rgba(244, 197, 66, 0.35);
-}
-
-.lamp-improvement-metric-ir-rank.rank-silver {
-  color: #1b2633;
-  background: linear-gradient(135deg, #ffffff, #c9d2df 52%, #7e8b9b);
-  box-shadow: 0 0 10px rgba(201, 210, 223, 0.3);
-}
-
-.lamp-improvement-metric-ir-rank.rank-bronze {
-  color: #331805;
-  background: linear-gradient(135deg, #ffd8ac, #cf8d52 52%, #7a431c);
-  box-shadow: 0 0 10px rgba(207, 141, 82, 0.3);
-}
-
-.lamp-improvement-metric-ir-rank.rank-top {
-  color: #0d263f;
-  background: linear-gradient(135deg, #c9f2ff, #7dbfff);
-  box-shadow: 0 0 10px rgba(90, 161, 255, 0.22);
 }
 
 .lamp-improvement-date {

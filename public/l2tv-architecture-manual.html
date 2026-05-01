@@ -96,7 +96,7 @@
     <main>
       <h1>L2TV 構造説明書</h1>
       <p class="muted small">
-        対象バージョン: <code>1.0.2</code> / 生成日: 2026-04-26<br />
+        対象バージョン: <code>1.0.3</code> / 生成日: 2026-04-26<br />
         この文書は現在の実装（<code>server.js</code> / <code>electron-main.js</code> / <code>public/app.js</code>）をもとに、機能とコード構造を把握しやすくまとめたものです。
       </p>
 
@@ -187,7 +187,7 @@ Node HTTP Server (server.js)
         <h3>4.2 解析の分岐</h3>
         <ul>
           <li><code>score.db</code> は必須。ローカルDB中心でランプ/スコア/BP/プレイ回数を取得</li>
-          <li><code>song.db</code> がある場合は、保存済みのIRキャッシュとst/sl段位情報も取得</li>
+          <li><code>song.db</code> がある場合は、曲カタログ、NO SONG 判定、st/sl段位情報を取得</li>
           <li>難易度表未入力: プレイヤーデータのみ表示</li>
         </ul>
 
@@ -196,7 +196,7 @@ Node HTTP Server (server.js)
           <li><code>responseCache</code>: URL取得結果</li>
           <li><code>tableCache</code>: 読み込んだ難易度表</li>
           <li><code>playerMyListCache</code>: score.db 読み込み結果</li>
-          <li><code>songDbIrCache</code>: song.db の <code>ir_data</code> 参照結果</li>
+          <li><code>songDbCatalogCache</code>: song.db の曲カタログ参照結果</li>
         </ul>
       </section>
 
@@ -213,7 +213,7 @@ Node HTTP Server (server.js)
         <ul>
           <li><code>score.db player</code>: 名前、<code>grade_7</code>/<code>grade_14</code>、通算打鍵情報</li>
           <li><code>score.db score</code>: clear/playcount/perfect/great/bad/poor/minbp など</li>
-          <li><code>song.db ir_data</code>: hash別 IR順位情報</li>
+          <li><code>song.db song</code>: hash別の曲存在判定</li>
           <li><code>song.db grade</code>: st/sl スキルアナライザー段位解析</li>
         </ul>
       </section>
@@ -257,7 +257,7 @@ Node HTTP Server (server.js)
           <li>UI追加: <code>public/index.html</code> + <code>public/app.js</code></li>
           <li>表示ルール/テーマ調整: <code>public/styles.css</code></li>
           <li>解析仕様変更: <code>server.js</code>（<code>analyzeRequest</code>, <code>enrichTable</code> 付近）</li>
-          <li>DB参照拡張: <code>loadPlayerMyListFromScoreDb</code>, <code>loadSongDbIrData</code>, <code>loadLocalSkillAnalyzerProgress</code></li>
+          <li>DB参照拡張: <code>loadPlayerMyListFromScoreDb</code>, <code>loadSongDbCatalogData</code>, <code>loadLocalSkillAnalyzerProgress</code></li>
           <li>デスクトップ機能追加: <code>electron-main.js</code> + <code>electron-preload.js</code></li>
         </ul>
       </section>
