@@ -154,9 +154,8 @@ If you are unsure, look for LR2files inside your LR2 folder.
 
 Installer version:
 
-1. Run L2TV-Setup-1.0.1.exe.
-2. Choose the install location.
-3. Install the app.
+1. Run L2TV-Setup-1.0.2.exe.
+2. Install the app.
 4. Start L2TV.
 
 zip / win-unpacked version:
@@ -499,9 +498,8 @@ If you are unsure, confirm the distribution source before running it.
 
 Installer version:
 
-1. Run the new L2TV-Setup-1.0.1.exe.
-2. Choose the same install location.
-3. Install over the previous version.
+1. Run the new L2TV-Setup-1.0.2.exe.
+2. Install over the previous version.
 
 zip / win-unpacked version:
 
@@ -522,6 +520,11 @@ Installer version:
 1. Open Windows Settings.
 2. Find L2TV under Apps.
 3. Uninstall it.
+
+Important:
+
+- If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
+- Version 1.0.2 and later include a safety check that prevents deleting anything other than a dedicated L2TV folder.
 
 zip / win-unpacked version:
 
@@ -585,4 +588,4 @@ A. A compact option display for the open level folder. It can show the sort head
 21. Version
 -----------
 
-L2TV 1.0.1
+L2TV 1.0.2

@@ -1,6 +1,6 @@
 {
   "name": "lr2ir-table-lamp-viewer",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "main": "electron-main.js",
   "description": "L2TV (LR2 Table Viewer)",
@@ -16,7 +16,7 @@
     "electron-builder": "^26.8.0"
   },
   "build": {
-    "appId": "com.lr2ir.tablelampviewer",
+    "appId": "com.hilowpsi.l2tv",
     "productName": "L2TV",
     "copyright": "Copyright 2026 HiLowPsi",
     "files": [
@@ -48,7 +48,7 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowToChangeInstallationDirectory": false,
       "perMachine": true,
       "allowElevation": true,
       "include": "build/installer.nsh",
