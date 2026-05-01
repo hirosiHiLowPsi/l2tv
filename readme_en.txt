@@ -1,6 +1,14 @@
 L2TV User Guide / Safety Notes
 ==============================
 
+Important Notice: Uninstalling and Using the zip Version
+-------------------------------------------------------
+
+- If you use the zip version, extract L2TV-1.0.4-win-x64.zip into an empty folder before running L2TV.exe.
+- The zip version does not need installation. To remove it, do not use the Windows uninstaller. Move the extracted dedicated L2TV folder to the Recycle Bin instead.
+- Only delete the dedicated L2TV folder you extracted. Do not delete parent folders such as Desktop or Downloads.
+- If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
+
 L2TV stands for "LR2 Table Viewer".
 It reads local Lunatic Rave 2 databases and BMS difficulty tables so you can
 check clear lamps, scores, BP, rival comparisons, and update history.
