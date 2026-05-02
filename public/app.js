@@ -233,7 +233,7 @@ const I18N_TEXT = {
   "st段位": "st Grade",
   "sl段位": "sl Grade",
   "今回の打鍵回数": "Key Hits This Run",
-  "今日のプレイ時間": "Play Time Today",
+  "プレイ時間": "Play Time",
   "今日の更新を画像出力": "Export Today's Updates",
   "出力中…": "Exporting...",
   "スクショ保存完了！": "Screenshot saved!",
@@ -752,7 +752,7 @@ function localizeString(value) {
     .replace(/(\d[\d,]*)人/g, "$1 players")
     .replace(/(\d[\d,]*)回/g, "$1 plays")
     .replace(/今回の打鍵数/g, "Key Hits This Run")
-    .replace(/今日のプレイ時間/g, "Play Time Today")
+    .replace(/プレイ時間/g, "Play Time")
     .replace(/更新譜面数/g, "Updated Charts")
     .replace(/読み込み失敗の難易度表/g, "Failed Tables")
     .replace(/重複除外後の譜面数/g, "Unique Charts")
@@ -1657,8 +1657,8 @@ function renderOverviewPanel(analysis) {
   metricGrid.className = "metric-grid";
   const danValue = formatPlayerGrade(analysis.player);
   const danFormalName = getPlayerGradeFormalName(analysis.player);
-  metricGrid.append(createMetricCard("プレイヤー名", analysis.player.name || "-", ""));
-  metricGrid.append(createMetricCard("ID", getPlayerDisplayId(analysis.player), ""));
+  const playerId = getPlayerDisplayId(analysis.player);
+  metricGrid.append(createMetricCard("プレイヤー名", analysis.player.name || "-", playerId === "-" ? "" : `ID ${playerId}`));
   metricGrid.append(createMetricCard("SP段位", danValue, danFormalName, getDanToneClass(danValue, analysis.player)));
   for (const card of createSkillAnalyzerMetricCards(analysis.player)) {
     metricGrid.append(card);
@@ -1875,7 +1875,7 @@ function createLampUpdatesSessionMeta() {
   if (latestPlayTimeDeltaSeconds != null && latestPlayTimeDeltaSeconds > 0) {
     const playTime = document.createElement("div");
     playTime.className = "lamp-updates-session-line";
-    playTime.textContent = `${localizeString("今日のプレイ時間")}: ${formatDuration(latestPlayTimeDeltaSeconds)}`;
+    playTime.textContent = `${localizeString("プレイ時間")}: ${formatDuration(latestPlayTimeDeltaSeconds)}`;
     wrapper.append(playTime);
   }
 
@@ -2490,7 +2490,7 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, play
   ctx.font = "700 20px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
   ctx.fillText(`${localizeString("今回の打鍵数")}: ${keyHitText}`, metrics.paddingX, y);
-  ctx.fillText(`${localizeString("今日のプレイ時間")}: ${playTimeText}`, metrics.paddingX + 350, y);
+  ctx.fillText(`${localizeString("プレイ時間")}: ${playTimeText}`, metrics.paddingX + 350, y);
   ctx.fillText(`${localizeString("更新譜面数")}: ${formatInteger(sortedImprovements.length)}`, metrics.paddingX + 720, y);
 
   y += metrics.metaHeight;
