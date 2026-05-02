@@ -230,6 +230,7 @@ After loading, tables are displayed by table title instead of URL.
 
 Player Data:
   Shows player name, ID, SP grade, st/sl grades, and related data.
+  GENOSIDE2018 grade course passes require NORMAL CLEAR or better; EASY CLEAR is not counted as a pass.
 
 Lamp Breakdown:
   Shows clear lamp counts for the whole difficulty table.

@@ -74,6 +74,8 @@ for (let index = 1; index <= 10; index += 1) {
 LOCAL_DAN_STAR_MAP.set(21, "★★");
 LOCAL_DAN_STAR_MAP.set(22, "(^^)");
 
+const LOCAL_GRADE_PASS_CLEAR_MIN = 3;
+
 const LOCAL_DAN_TEXT_LEVELS = new Map([
   ["初", 1],
   ["一", 1],
@@ -1890,7 +1892,7 @@ function isPassedLocalGradeCourse(scoreRow) {
   }
 
   const clear = Number.parseInt(scoreRow.clear, 10);
-  return Number.isFinite(clear) && clear >= 2;
+  return Number.isFinite(clear) && clear >= LOCAL_GRADE_PASS_CLEAR_MIN;
 }
 
 function parseSkillAnalyzerLevel(title) {
