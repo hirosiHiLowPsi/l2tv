@@ -345,7 +345,8 @@ async function loadProfileFromScoreDbRequest(body) {
     const scoreRows = database
       .prepare("SELECT hash, clear, playcount FROM score")
       .all();
-    const inferredGradeSp = await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows);
+    const fallbackGradeSp = formatLocalGrade(playerRow.grade_7);
+    const inferredGradeSp = (await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows)) || fallbackGradeSp;
     const overjoyTripleCrown = await hasLocalOverjoyTripleCrown(resolvedSongDbPath, scoreRows);
     const localSkillAnalyzer = await loadLocalSkillAnalyzerProgress(resolvedSongDbPath, scoreRows);
 
@@ -741,7 +742,8 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
       byHash.set(md5, entry);
     }
 
-    const inferredGradeSp = await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows);
+    const fallbackGradeSp = formatLocalGrade(playerRow.grade_7);
+    const inferredGradeSp = (await inferLocalGradeFromSongDbGrades(resolvedSongDbPath, scoreRows)) || fallbackGradeSp;
     const overjoyTripleCrown = await hasLocalOverjoyTripleCrown(resolvedSongDbPath, scoreRows);
     const localSkillAnalyzer = await loadLocalSkillAnalyzerProgress(resolvedSongDbPath, scoreRows);
 
