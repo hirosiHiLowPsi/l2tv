@@ -2906,6 +2906,19 @@ body[data-theme="lr2ir-dark"] .chart-table tbody tr.lamp-no-song .score-cell .de
   font-weight: 700;
 }
 
+.lamp-updates-session-meta {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.lamp-updates-session-line {
+  line-height: 1.35;
+}
+
 .lamp-improvement-group {
   margin-top: 12px;
   padding: 10px;

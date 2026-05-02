@@ -223,6 +223,7 @@ async function analyzeRequest(body) {
     stellaSkill4th: null,
     overjoyTripleCrown: false,
     hitTotals: null,
+    playTimeTotal: null,
   };
 
   const lookupMap = new Map();
@@ -253,6 +254,7 @@ async function analyzeRequest(body) {
       localDbPath: playerMyList.localDbPath || "",
       localSongDbPath: playerMyList.localSongDbPath || "",
       hitTotals: playerMyList.localProfile?.hitTotals ?? null,
+      playTimeTotal: playerMyList.localProfile?.playTimeTotal ?? null,
     },
     rivals: {
       folderPath: rivalData.path,
@@ -359,8 +361,9 @@ async function loadProfileFromScoreDbRequest(body) {
       gradeDp: formatLocalGrade(playerRow.grade_14),
       skillAnalyzer: localSkillAnalyzer,
       stellaSkill4th: localSkillAnalyzer?.st ?? null,
-      overjoyTripleCrown,
-    };
+        overjoyTripleCrown,
+        playTimeTotal: buildLocalPlayTimeTotalFromPlayerRow(playerRow),
+      };
     localProfile.grade = combineLocalGrades(localProfile.gradeSp, localProfile.gradeDp);
 
     return {
@@ -768,6 +771,7 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "") {
         stellaSkill4th: localSkillAnalyzer?.st ?? null,
         overjoyTripleCrown,
         hitTotals: buildLocalHitTotalsFromPlayerRow(playerRow),
+        playTimeTotal: buildLocalPlayTimeTotalFromPlayerRow(playerRow),
       },
     };
 
@@ -1989,6 +1993,76 @@ function buildLocalHitTotalsFromPlayerRow(playerRow) {
     poorMode: "excluded",
     total: perfect + great + good + bad + poor,
   };
+}
+
+function buildLocalPlayTimeTotalFromPlayerRow(playerRow) {
+  if (!playerRow || typeof playerRow !== "object") {
+    return null;
+  }
+
+  const entries = Object.entries(playerRow);
+  const candidates = [
+    "playtime",
+    "play_time",
+    "play_time_sec",
+    "playtime_sec",
+    "playseconds",
+    "play_seconds",
+    "totalplaytime",
+    "total_play_time",
+    "total_play_seconds",
+  ];
+
+  for (const candidate of candidates) {
+    const found = entries.find(([key]) => key.toLowerCase() === candidate);
+    if (!found) {
+      continue;
+    }
+
+    const rawSeconds = normalizePlayTimeSeconds(found[1], found[0]);
+    if (rawSeconds != null) {
+      return {
+        totalSeconds: rawSeconds,
+        sourceColumn: found[0],
+      };
+    }
+  }
+
+  const loose = entries.find(([key]) => {
+    const normalized = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+    return normalized.includes("play") && normalized.includes("time");
+  });
+  if (!loose) {
+    return null;
+  }
+
+  const rawSeconds = normalizePlayTimeSeconds(loose[1], loose[0]);
+  return rawSeconds == null
+    ? null
+    : {
+        totalSeconds: rawSeconds,
+        sourceColumn: loose[0],
+      };
+}
+
+function normalizePlayTimeSeconds(value, columnName = "") {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return null;
+  }
+
+  const normalizedColumn = String(columnName).toLowerCase();
+  let seconds = numeric;
+  if (/(msec|millis|milliseconds|_ms$|ms$)/.test(normalizedColumn)) {
+    seconds = numeric / 1000;
+  } else if (/(minute|minutes|_min$|mins$)/.test(normalizedColumn)) {
+    seconds = numeric * 60;
+  } else if (/(hour|hours|_hr$|hrs$)/.test(normalizedColumn)) {
+    seconds = numeric * 3600;
+  }
+
+  const rounded = Math.trunc(seconds);
+  return Number.isFinite(rounded) && rounded >= 0 ? rounded : null;
 }
 
 function toNonNegativeInteger(value) {

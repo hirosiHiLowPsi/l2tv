@@ -54,6 +54,7 @@ Player Data:
 - Special grade display such as Overjoy
 - Rainbow animation for special grades such as st12 / Overjoy
 - Key hit count for the current load
+- Play time today if score.db has a play time field
 
 Lamp summary:
 
@@ -92,6 +93,7 @@ Lamp Updates:
 - Charts with lamp or BP updates are also shown in Score Update if their score improved.
 - Export today's updates as an image.
 - Show the key hit count for the current load.
+- Show play time today if score.db has a play time field.
 - Show the number of updated charts.
 
 RIVAL:

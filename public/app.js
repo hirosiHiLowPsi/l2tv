@@ -178,6 +178,7 @@ let latestLampImprovements = [];
 let latestComparisonBaseAnalysis = null;
 let hasComparedLampImprovements = false;
 let latestKeyHitCountDelta = null;
+let latestPlayTimeDeltaSeconds = null;
 let mainFeedbackTimeoutId = null;
 let apiTokenPromise = null;
 const persistFormStateDebounced = debounce(() => {
@@ -232,6 +233,7 @@ const I18N_TEXT = {
   "st段位": "st Grade",
   "sl段位": "sl Grade",
   "今回の打鍵回数": "Key Hits This Run",
+  "今日のプレイ時間": "Play Time Today",
   "今日の更新を画像出力": "Export Today's Updates",
   "出力中…": "Exporting...",
   "スクショ保存完了！": "Screenshot saved!",
@@ -750,6 +752,7 @@ function localizeString(value) {
     .replace(/(\d[\d,]*)人/g, "$1 players")
     .replace(/(\d[\d,]*)回/g, "$1 plays")
     .replace(/今回の打鍵数/g, "Key Hits This Run")
+    .replace(/今日のプレイ時間/g, "Play Time Today")
     .replace(/更新譜面数/g, "Updated Charts")
     .replace(/読み込み失敗の難易度表/g, "Failed Tables")
     .replace(/重複除外後の譜面数/g, "Unique Charts")
@@ -1066,6 +1069,7 @@ form.addEventListener("submit", async (event) => {
   latestComparisonBaseAnalysis = previousAnalysis ?? null;
   hasComparedLampImprovements = false;
   latestKeyHitCountDelta = null;
+  latestPlayTimeDeltaSeconds = null;
   resultsRoot.classList.add("hidden");
   analyzeButton.disabled = true;
 
@@ -1091,6 +1095,7 @@ form.addEventListener("submit", async (event) => {
     });
     hasComparedLampImprovements = Boolean(previousAnalysis && Array.isArray(previousAnalysis.tables));
     latestKeyHitCountDelta = collectKeyHitCountDelta(previousAnalysis, latestAnalysis);
+    latestPlayTimeDeltaSeconds = collectPlayTimeDeltaSeconds(previousAnalysis, latestAnalysis);
     setStatus(buildStatusMessage(latestAnalysis));
     renderAnalysis();
     resultsRoot.classList.remove("hidden");
@@ -1201,6 +1206,7 @@ clearSavedButton.addEventListener("click", async () => {
   renderRivalPanel();
   hasComparedLampImprovements = false;
   latestKeyHitCountDelta = null;
+  latestPlayTimeDeltaSeconds = null;
   tableInfoPanelOpenState.clear();
   chartDetailsOpenState.clear();
   chartListOpenLevelsState.clear();
@@ -1724,6 +1730,7 @@ function renderLampImprovementsPanel(improvements, compared) {
       await exportLampUpdatesSnapshot({
         improvements: Array.isArray(improvements) ? improvements : [],
         keyHitCountDelta: latestKeyHitCountDelta,
+        playTimeDeltaSeconds: latestPlayTimeDeltaSeconds,
         themeMode: selectedThemeMode,
       });
       setStatus("画像出力が完了しました。");
@@ -1739,6 +1746,11 @@ function renderLampImprovementsPanel(improvements, compared) {
   });
   heading.append(saveImageButton);
   section.append(heading);
+
+  const sessionMeta = createLampUpdatesSessionMeta();
+  if (sessionMeta) {
+    section.append(sessionMeta);
+  }
 
   if (!Array.isArray(improvements) || improvements.length === 0) {
     const empty = document.createElement("p");
@@ -1840,6 +1852,34 @@ function renderLampImprovementsPanel(improvements, compared) {
   }
 
   return section;
+}
+
+function createLampUpdatesSessionMeta() {
+  if (
+    (latestKeyHitCountDelta == null || latestKeyHitCountDelta <= 0) &&
+    (latestPlayTimeDeltaSeconds == null || latestPlayTimeDeltaSeconds <= 0)
+  ) {
+    return null;
+  }
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "lamp-updates-session-meta";
+
+  if (latestKeyHitCountDelta != null && latestKeyHitCountDelta > 0) {
+    const keyHits = document.createElement("div");
+    keyHits.className = "lamp-updates-session-line";
+    keyHits.textContent = `${localizeString("今回の打鍵回数")}: ${formatInteger(latestKeyHitCountDelta)}回`;
+    wrapper.append(keyHits);
+  }
+
+  if (latestPlayTimeDeltaSeconds != null && latestPlayTimeDeltaSeconds > 0) {
+    const playTime = document.createElement("div");
+    playTime.className = "lamp-updates-session-line";
+    playTime.textContent = `${localizeString("今日のプレイ時間")}: ${formatDuration(latestPlayTimeDeltaSeconds)}`;
+    wrapper.append(playTime);
+  }
+
+  return wrapper;
 }
 
 function appendLampImprovementMetric(container, text, kind, options = {}) {
@@ -1955,10 +1995,11 @@ function getLampImprovementGroupDefs() {
   ];
 }
 
-async function exportLampUpdatesSnapshot({ improvements, keyHitCountDelta, themeMode }) {
+async function exportLampUpdatesSnapshot({ improvements, keyHitCountDelta, playTimeDeltaSeconds, themeMode }) {
   const dataUrl = renderLampUpdatesSnapshotDataUrl({
     improvements: Array.isArray(improvements) ? improvements : [],
     keyHitCountDelta,
+    playTimeDeltaSeconds,
     themeMode,
   });
   const fileName = buildLampUpdatesSnapshotFileName();
@@ -2346,7 +2387,7 @@ function groupChartsForSnapshot(charts, levelOrder) {
     }));
 }
 
-function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, themeMode }) {
+function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, playTimeDeltaSeconds, themeMode }) {
   const normalizedTheme = normalizeThemeMode(themeMode);
   const updateDateText = formatDateYmd(new Date());
   const sortedImprovements = [...(Array.isArray(improvements) ? improvements : [])].sort(compareLampImprovements);
@@ -2444,10 +2485,13 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, them
         ? formatInteger(keyHitCountDelta)
         : `${formatInteger(keyHitCountDelta)}回`
       : "NO Data";
+  const playTimeText =
+    playTimeDeltaSeconds != null && playTimeDeltaSeconds > 0 ? formatDuration(playTimeDeltaSeconds) : "NO Data";
   ctx.font = "700 20px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
   ctx.fillText(`${localizeString("今回の打鍵数")}: ${keyHitText}`, metrics.paddingX, y);
-  ctx.fillText(`${localizeString("更新譜面数")}: ${formatInteger(sortedImprovements.length)}`, metrics.paddingX + 350, y);
+  ctx.fillText(`${localizeString("今日のプレイ時間")}: ${playTimeText}`, metrics.paddingX + 350, y);
+  ctx.fillText(`${localizeString("更新譜面数")}: ${formatInteger(sortedImprovements.length)}`, metrics.paddingX + 720, y);
 
   y += metrics.metaHeight;
 
@@ -4293,6 +4337,31 @@ function formatInteger(value) {
   return new Intl.NumberFormat(getCurrentLocale()).format(value);
 }
 
+function formatDuration(totalSeconds) {
+  const secondsValue = Math.max(0, Math.trunc(Number(totalSeconds) || 0));
+  const hours = Math.floor(secondsValue / 3600);
+  const minutes = Math.floor((secondsValue % 3600) / 60);
+  const seconds = secondsValue % 60;
+
+  if (selectedLanguage === "en") {
+    if (hours > 0) {
+      return `${formatInteger(hours)}h ${String(minutes).padStart(2, "0")}m`;
+    }
+    if (minutes > 0) {
+      return `${formatInteger(minutes)}m ${String(seconds).padStart(2, "0")}s`;
+    }
+    return `${formatInteger(seconds)}s`;
+  }
+
+  if (hours > 0) {
+    return `${formatInteger(hours)}時間${String(minutes).padStart(2, "0")}分`;
+  }
+  if (minutes > 0) {
+    return `${formatInteger(minutes)}分${String(seconds).padStart(2, "0")}秒`;
+  }
+  return `${formatInteger(seconds)}秒`;
+}
+
 function getCurrentLocale() {
   return selectedLanguage === "en" ? "en-US" : "ja-JP";
 }
@@ -5106,6 +5175,27 @@ function collectKeyHitCountDelta(previousAnalysis, currentAnalysis) {
     return null;
   }
   return delta;
+}
+
+function collectPlayTimeDeltaSeconds(previousAnalysis, currentAnalysis) {
+  const previousTotal = getAnalysisTotalPlayTimeSeconds(previousAnalysis);
+  const currentTotal = getAnalysisTotalPlayTimeSeconds(currentAnalysis);
+  if (previousTotal == null || currentTotal == null) {
+    return null;
+  }
+  const delta = currentTotal - previousTotal;
+  if (!Number.isFinite(delta) || delta <= 0) {
+    return null;
+  }
+  return delta;
+}
+
+function getAnalysisTotalPlayTimeSeconds(analysis) {
+  const total = Number(analysis?.player?.playTimeTotal?.totalSeconds);
+  if (!Number.isFinite(total) || total < 0) {
+    return null;
+  }
+  return Math.trunc(total);
 }
 
 function getAnalysisTotalHitCount(analysis) {
