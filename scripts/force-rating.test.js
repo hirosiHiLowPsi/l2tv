@@ -354,12 +354,12 @@ test("the highest passed dan candidate is added after the strongest 50 charts", 
     .slice(0, 60);
   const danCandidate = {
     candidateType: "dan",
-    force: 26.81 * 0.98,
+    force: 26.81,
     chartConstant: 26.81,
     title: "GENOSIDE2018 Overjoy",
     source: "dan",
     lampStatus: "CLEAR",
-    lampCoefficient: 0.98,
+    lampCoefficient: 1,
   };
   const result = buildForceRating({
     byHash: new Map(

@@ -44,8 +44,8 @@ const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["★FULLCOMBO", 1],
   ["HARD", 1],
   ["HARD CLEAR", 1],
-  ["CLEAR", 0.98],
-  ["NORMAL CLEAR", 0.98],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
 ]);
 const CLEAR_LAMPS = new Set([
   "EASY",

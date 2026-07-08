@@ -226,6 +226,13 @@ GENOSIDE2018 SP段位認定の最高合格段位を、単曲50譜面とは別に
 | HARD CLEAR | 1.00 |
 | NORMAL CLEAR | 0.98 |
 
+ただし、GENOSIDE2018 Overjoy は現実的にHARD CLEAR達成者が存在しないため、NORMAL CLEAR と HARD CLEAR を同等に扱います。
+
+| Overjoy段位ランプ | 係数 |
+|---|---:|
+| HARD CLEAR | 1.00 |
+| NORMAL CLEAR | 1.00 |
+
 段位にはスコア係数を使用しません。
 
 段位定数:

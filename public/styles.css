@@ -2544,6 +2544,18 @@ body[data-theme="lr2ir-dark"] .force-rating-help-close-button:hover {
   border-color: rgba(255, 156, 164, 0.72);
 }
 
+.level-group.level-group-clear {
+  border-color: rgba(90, 161, 255, 0.72);
+}
+
+.level-group.level-group-easy-clear {
+  border-color: rgba(126, 231, 161, 0.72);
+}
+
+.level-group.level-group-failed {
+  border-color: rgba(154, 164, 182, 0.78);
+}
+
 .level-group > .level-group-content {
   position: relative;
   z-index: 1;
@@ -2716,10 +2728,31 @@ body[data-theme="lr2ir-dark"] .floating-chart-header-columns {
   color: #101c2c;
 }
 
+.level-group.level-group-clear > .level-group-summary {
+  background: rgba(90, 161, 255, 0.68);
+  color: #101c2c;
+}
+
+.level-group.level-group-easy-clear > .level-group-summary {
+  background: rgba(126, 231, 161, 0.72);
+  color: #101c2c;
+}
+
+.level-group.level-group-failed > .level-group-summary {
+  background: rgba(154, 164, 182, 0.78);
+  color: #101c2c;
+}
+
 .level-group.level-group-full-combo > .level-group-summary .level-group-name,
 .level-group.level-group-full-combo > .level-group-summary .level-group-count,
 .level-group.level-group-hard-clear > .level-group-summary .level-group-name,
-.level-group.level-group-hard-clear > .level-group-summary .level-group-count {
+.level-group.level-group-hard-clear > .level-group-summary .level-group-count,
+.level-group.level-group-clear > .level-group-summary .level-group-name,
+.level-group.level-group-clear > .level-group-summary .level-group-count,
+.level-group.level-group-easy-clear > .level-group-summary .level-group-name,
+.level-group.level-group-easy-clear > .level-group-summary .level-group-count,
+.level-group.level-group-failed > .level-group-summary .level-group-name,
+.level-group.level-group-failed > .level-group-summary .level-group-count {
   color: #101c2c;
 }
 
@@ -2731,6 +2764,18 @@ body[data-theme="lr2ir-dark"] .level-group.level-group-hard-clear {
   border-color: rgba(255, 156, 164, 0.78);
 }
 
+body[data-theme="lr2ir-dark"] .level-group.level-group-clear {
+  border-color: rgba(90, 161, 255, 0.78);
+}
+
+body[data-theme="lr2ir-dark"] .level-group.level-group-easy-clear {
+  border-color: rgba(126, 231, 161, 0.78);
+}
+
+body[data-theme="lr2ir-dark"] .level-group.level-group-failed {
+  border-color: rgba(154, 164, 182, 0.82);
+}
+
 body[data-theme="lr2ir-dark"] .level-group.level-group-full-combo > .level-group-summary {
   background: linear-gradient(90deg, rgba(112, 237, 255, 0.62) 0%, rgba(255, 241, 163, 0.86) 52%, rgba(145, 244, 255, 0.62) 100%);
   color: #101c2c;
@@ -2738,6 +2783,21 @@ body[data-theme="lr2ir-dark"] .level-group.level-group-full-combo > .level-group
 
 body[data-theme="lr2ir-dark"] .level-group.level-group-hard-clear > .level-group-summary {
   background: rgba(255, 156, 164, 0.76);
+  color: #101c2c;
+}
+
+body[data-theme="lr2ir-dark"] .level-group.level-group-clear > .level-group-summary {
+  background: rgba(90, 161, 255, 0.72);
+  color: #101c2c;
+}
+
+body[data-theme="lr2ir-dark"] .level-group.level-group-easy-clear > .level-group-summary {
+  background: rgba(126, 231, 161, 0.76);
+  color: #101c2c;
+}
+
+body[data-theme="lr2ir-dark"] .level-group.level-group-failed > .level-group-summary {
+  background: rgba(154, 164, 182, 0.82);
   color: #101c2c;
 }
 

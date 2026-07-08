@@ -52,8 +52,8 @@ const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["★FULLCOMBO", 1],
   ["HARD", 1],
   ["HARD CLEAR", 1],
-  ["CLEAR", 0.98],
-  ["NORMAL CLEAR", 0.98],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
 ]);
 
 function normalizeText(value) {
@@ -238,7 +238,7 @@ function buildOverjoyRanking(database, charts) {
     }
 
     const courseLamp = normalizeLamp(player.course_lamp);
-    const danLampCoefficient = FORCE_DAN_LAMP_COEFFICIENTS.get(courseLamp) || 0.98;
+    const danLampCoefficient = FORCE_DAN_LAMP_COEFFICIENTS.get(courseLamp) || 1;
     const best50 = player.candidates.slice(0, 50);
     const targets = [
       ...best50,

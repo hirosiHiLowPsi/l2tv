@@ -106,7 +106,7 @@ Rival:    LR2files\Rival
 
 ## 導入手順
 
-1. Releasesから最新版の `L2TV-2.0.0-win-x64.7z` または `L2TV-2.0.0-win-x64.zip` をダウンロードします。
+1. Releasesから最新版の `L2TV-2.0.0-win-x64.7z` をダウンロードします。
 2. 任意の場所へ解凍します。
 3. 解凍して作成された `L2TV` フォルダを開きます。
 4. `L2TV.exe` を起動します。
@@ -159,7 +159,7 @@ npm start
 Windows向け配布アーカイブを作成する場合:
 
 ```powershell
-npm run dist:win:7z
+npm run dist:win
 ```
 
 zip形式で作成する場合:

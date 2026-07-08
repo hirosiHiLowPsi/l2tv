@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "desktop": "electron .",
-    "dist:win": "node scripts/build-win-zip.js",
+    "dist:win": "node scripts/build-win-zip.js --format=7z",
     "dist:win:zip": "node scripts/build-win-zip.js",
     "dist:win:7z": "node scripts/build-win-zip.js --format=7z",
     "dist:win:force-pretest": "node scripts/build-win-zip.js --suffix=force-rate-pretest",

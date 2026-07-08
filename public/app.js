@@ -4985,11 +4985,24 @@ function getLevelGroupLampTone(charts) {
   if (lamps.length === 0) {
     return "";
   }
+  const hardClearOrBetter = new Set(["FULL COMBO", "HARD CLEAR"]);
+  const clearOrBetter = new Set(["FULL COMBO", "HARD CLEAR", "CLEAR"]);
+  const easyClearOrBetter = new Set(["FULL COMBO", "HARD CLEAR", "CLEAR", "EASY CLEAR"]);
+  const playedLamps = new Set(["FULL COMBO", "HARD CLEAR", "CLEAR", "EASY CLEAR", "FAILED"]);
   if (lamps.every((lamp) => lamp === "FULL COMBO")) {
     return "full-combo";
   }
-  if (lamps.every((lamp) => lamp === "FULL COMBO" || lamp === "HARD CLEAR")) {
+  if (lamps.every((lamp) => hardClearOrBetter.has(lamp))) {
     return "hard-clear";
+  }
+  if (lamps.every((lamp) => clearOrBetter.has(lamp))) {
+    return "clear";
+  }
+  if (lamps.every((lamp) => easyClearOrBetter.has(lamp))) {
+    return "easy-clear";
+  }
+  if (lamps.every((lamp) => playedLamps.has(lamp)) && lamps.some((lamp) => lamp === "FAILED")) {
+    return "failed";
   }
   return "";
 }
@@ -5771,9 +5784,10 @@ function showForceRatingHelp(triggerButton) {
       ? [
         "Chart constants compare all eligible charts on one global scale using LR2IR Archive FC, HC, NC, EC and failed totals. Difficulty-table levels are not used in the comparison.",
         "The score coefficient is the EX score rate rounded to three decimal places: AAA = 0.889, 90% = 0.900, and 93.53% = 0.935.",
-        "Lamp coefficients: FC 1.00 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50. NP and NS are excluded.",
+        "Lamp coefficients: FC 1.02 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50. NP and NS are excluded.",
         "Chart FORCE = Chart Constant × Score Coefficient × Lamp Coefficient.",
         "The target set is up to 51 entries: the best 50 chart FORCE values plus the highest passed GENOSIDE2018 SP dan course. If no dan course is found, the target set remains 50 charts.",
+        "For the GENOSIDE2018 Overjoy dan course, NC and HC both use a dan coefficient of 1.00.",
         "FORCE RATE blends the broad target average with the stronger BEST20 average, so the top-end density matters while the 50-chart requirement still remains.",
         "The displayed maximum is 30.000. Title thresholds are unchanged.",
         "The FORCE RATE BEST50 folder lists the rated charts and each Chart FORCE value.",
@@ -5781,9 +5795,10 @@ function showForceRatingHelp(triggerButton) {
       : [
         "譜面定数は、LR2IR ArchiveのFC・HC・NC・EC・FAILED総数を使い、全対象譜面を共通尺度で比較します。難易度表のレベル内順位は使いません。",
         "スコア係数はEXスコア率を小数第3位へ四捨五入します。AAAは0.889、90%は0.900、93.53%は0.935です。",
-        "ランプ係数は FC 1.00 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50です。NPとNSは対象外です。",
+        "ランプ係数は FC 1.02 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50です。NPとNSは対象外です。",
         "単曲レート = 譜面定数 × スコア係数 × ランプ係数です。",
         "対象は最大51個です。単曲レート上位50譜面に、GENOSIDE2018 SP段位の最高合格段位を1個加えます。段位コースが見つからない場合は50譜面のままです。",
+        "GENOSIDE2018 Overjoy段位は、NCとHCの段位係数をどちらも1.00として扱います。",
         "FORCE RATEは、広さを見る全体平均と上位密度を見るBEST20平均を混ぜて計算します。50譜面を埋める意味は残しつつ、高い単曲レートの厚みも評価します。",
         "表示上限は30.000です。称号付与条件は変更していません。",
         "対象譜面と各単曲レートは、FORCE RATE BEST50フォルダで確認できます。",

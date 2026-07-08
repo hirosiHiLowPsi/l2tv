@@ -106,6 +106,17 @@ const FORCE_DAN_CONSTANTS = new Map([
   [21, { label: "発狂皆伝", grade: "★★", courseId: 11100, constant: 18.15 }],
   [22, { label: "Overjoy", grade: "(^^)", courseId: 11099, constant: 26.81 }],
 ]);
+
+function getForceDanLampCoefficient(lampStatus, danConstant) {
+  if (!danConstant) {
+    return null;
+  }
+  if (Number(danConstant.courseId) === 11099) {
+    return lampStatus === "HARD CLEAR" || lampStatus === "CLEAR" ? 1 : null;
+  }
+  return FORCE_DAN_LAMP_COEFFICIENTS.get(lampStatus) ?? null;
+}
+
 const LOCAL_DAN_STAR_MAP = new Map(
   Array.from({ length: 10 }, (_, index) => [index + 1, `☆${index + 1}`]),
 );
@@ -2740,7 +2751,7 @@ function buildForceDanCandidateFromGradeInfo(gradeInfo) {
   }
 
   const lampStatus = normalizeForceDanLampStatus(gradeInfo.lampStatus, gradeInfo.clear);
-  const lampCoefficient = FORCE_DAN_LAMP_COEFFICIENTS.get(lampStatus);
+  const lampCoefficient = getForceDanLampCoefficient(lampStatus, danConstant);
   if (!lampCoefficient) {
     return null;
   }

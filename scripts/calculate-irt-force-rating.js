@@ -52,6 +52,17 @@ const FORCE_DAN_CONSTANTS = new Map([
   [21, { label: "Hakkyou Kaiden", grade: "★★", courseId: 11100, constant: 18.15 }],
   [22, { label: "Overjoy", grade: "(^^)", courseId: 11099, constant: 26.81 }],
 ]);
+
+function getForceDanLampCoefficient(lampStatus, danConstant) {
+  if (!danConstant) {
+    return null;
+  }
+  if (Number(danConstant.courseId) === 11099) {
+    return lampStatus === "HARD CLEAR" || lampStatus === "CLEAR" ? 1 : null;
+  }
+  return FORCE_DAN_LAMP_COEFFICIENTS.get(lampStatus) ?? null;
+}
+
 const LOCAL_DAN_TEXT_LEVELS = new Map([
   ["初", 1],
   ["一", 1],
@@ -325,7 +336,7 @@ function buildDanCandidate(rankValue, lampStatus, md5 = "", title = "") {
     return null;
   }
   const normalizedLamp = normalizeArchiveLamp(lampStatus);
-  const lampCoefficient = FORCE_DAN_LAMP_COEFFICIENTS.get(normalizedLamp);
+  const lampCoefficient = getForceDanLampCoefficient(normalizedLamp, dan);
   if (!lampCoefficient) {
     return null;
   }

@@ -1,12 +1,12 @@
 L2TV User Guide / Safety Notes
 ==============================
 
-Important Notice: Uninstalling and Using the zip Version
+Important Notice: Uninstalling and Using the 7z Version
 -------------------------------------------------------
 
-- Extracting the zip automatically creates an "L2TV" folder containing all application files. You do not need to create an empty folder first.
+- Extracting the 7z archive automatically creates an "L2TV" folder containing all application files. You do not need to create an empty folder first.
 - Launch L2TV.exe inside the extracted "L2TV" folder.
-- The zip version does not need installation. To remove it, do not use the Windows uninstaller. Move the extracted dedicated L2TV folder to the Recycle Bin instead.
+- The 7z version does not need installation. To remove it, do not use the Windows uninstaller. Move the extracted dedicated L2TV folder to the Recycle Bin instead.
 - Only delete the dedicated L2TV folder you extracted. Do not delete parent folders such as Desktop or Downloads.
 - If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
 
@@ -161,9 +161,9 @@ If you are unsure, look for LR2files inside your LR2 folder.
 3. Starting the App
 -------------------
 
-zip version:
+7z version:
 
-1. Extract L2TV-1.0.6-win-x64.zip to any location.
+1. Extract L2TV-2.0.0-win-x64.7z to any location.
 2. Run L2TV.exe inside the automatically created "L2TV" folder.
 3. Installation is not required.
 
@@ -471,10 +471,10 @@ If you are unsure, confirm the distribution source before running it.
 17. Updating
 ------------
 
-zip version:
+7z version:
 
 1. Close L2TV.
-2. Extract the new L2TV-1.0.6-win-x64.zip.
+2. Extract the new L2TV-2.0.0-win-x64.7z.
 3. Replace the old L2TV folder with the new one.
 
 Notes:
@@ -490,10 +490,10 @@ Important note for legacy installer versions:
 
 - If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
 
-zip version:
+7z version:
 
 1. Delete the L2TV folder.
-   Do not use Windows uninstall for the zip version.
+   Do not use Windows uninstall for the 7z version.
 
 If you also want to delete saved app data:
 
