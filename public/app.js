@@ -4905,6 +4905,10 @@ function renderGroupedChartTables(table, charts, state, rerender) {
     const levelCharts = chartGroups.get(level);
     const group = document.createElement("details");
     group.className = "level-group";
+    const groupLampTone = getLevelGroupLampTone(levelCharts);
+    if (groupLampTone) {
+      group.classList.add(`level-group-${groupLampTone}`);
+    }
     group.open = state.level ? state.level === level : state.openLevels.has(level);
 
     const summary = document.createElement("summary");
@@ -4974,6 +4978,20 @@ function renderGroupedChartTables(table, charts, state, rerender) {
   }
 
   return wrapper;
+}
+
+function getLevelGroupLampTone(charts) {
+  const lamps = (Array.isArray(charts) ? charts : []).map((chart) => normalizeLampStatusForUi(chart?.lampStatus));
+  if (lamps.length === 0) {
+    return "";
+  }
+  if (lamps.every((lamp) => lamp === "FULL COMBO")) {
+    return "full-combo";
+  }
+  if (lamps.every((lamp) => lamp === "FULL COMBO" || lamp === "HARD CLEAR")) {
+    return "hard-clear";
+  }
+  return "";
 }
 
 function showLevelGroupFloatingCloseButton(group, level, table, state) {
