@@ -15,6 +15,7 @@ const APP_ORIGIN = new URL(APP_URL).origin;
 const PORTABLE_DATA_DIR_NAME = "lr2ir-table-lamp-viewer-data";
 const SCREENSHOT_DIR_NAME = "screenshot";
 const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
+const APP_ICON_PATH = path.join(__dirname, "build", "icon.ico");
 
 let mainWindow = null;
 let embeddedServer = null;
@@ -227,6 +228,7 @@ function createMainWindow() {
     height: 920,
     minWidth: 1100,
     minHeight: 700,
+    icon: APP_ICON_PATH,
     backgroundColor: "#dff4ff",
     show: false,
     autoHideMenuBar: true,

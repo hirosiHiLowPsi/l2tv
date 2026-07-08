@@ -10,9 +10,28 @@ const browseRivalFolderButton = document.getElementById("browse-rival-folder");
 const tableUrlsInput = document.getElementById("table-urls");
 const manualTableUrlTogglesContainer = document.getElementById("manual-table-url-toggles");
 const languageSelect = document.getElementById("language-select");
+const scoreDbModeSelect = document.getElementById("score-db-mode-select");
 const themeSelect = document.getElementById("theme-select");
 const includeBpUpdatesInput = document.getElementById("include-bp-updates");
+const includeUnlistedUpdatesInput = document.getElementById("include-unlisted-updates");
+const skillFetchStOnlyInput = document.getElementById("skill-fetch-st-only");
+const skillFetchSlOnlyInput = document.getElementById("skill-fetch-sl-only");
+const openTableListButton = document.getElementById("open-table-list-button");
+const tableListModal = document.getElementById("table-list-modal");
+const tableListCloseButton = document.getElementById("table-list-close-button");
 const tablePresetsContainer = document.getElementById("table-presets");
+const refreshTableListButton = document.getElementById("refresh-table-list-button");
+const addCustomTableUrlButton = document.getElementById("add-custom-table-url-button");
+const customTableUrlInput = document.getElementById("custom-table-url-input");
+const tableListSearchModeButton = document.getElementById("table-list-search-mode-button");
+const tableListUrlModeButton = document.getElementById("table-list-url-mode-button");
+const tableListFilterInput = document.getElementById("table-list-filter");
+const tableListStatus = document.getElementById("table-list-status");
+const tableListModalStatus = document.getElementById("table-list-modal-status");
+const tableListSelectionSummary = document.getElementById("table-list-selection-summary");
+const tableListTagFilters = document.getElementById("table-list-tag-filters");
+const tableListSelectedOnlyToggle = document.getElementById("table-list-selected-only-toggle");
+const tableListSelectedOnlyCount = document.getElementById("table-list-selected-only-count");
 const analyzeButton = document.getElementById("analyze-button");
 const clearSavedButton = document.getElementById("clear-saved-button");
 const statusBox = document.getElementById("status-box");
@@ -109,45 +128,80 @@ const chartSortColumns = [
   { key: "rival", label: "Rival" },
 ];
 
-const TABLE_PRESETS = [
+const DEFAULT_TABLE_LIST_ENTRIES = [
   {
     id: "stella",
     name: "Stella",
     url: "https://stellabms.xyz/st/table.html",
+    type: "SP",
+    tag1: "SP",
+    tag: "General",
+    tag2: "General",
   },
   {
     id: "satellite",
     name: "Satellite",
     url: "https://stellabms.xyz/sl/table.html",
+    type: "SP",
+    tag1: "SP",
+    tag: "General",
+    tag2: "General",
   },
   {
     id: "insane",
     name: "発狂BMS難易度表",
     url: "https://darksabun.club/table/archive/insane1/",
+    type: "SP",
+    tag1: "SP",
+    tag: "General",
+    tag2: "General",
   },
   {
     id: "overjoy",
     name: "Overjoy",
-    url: "https://rattoto10.jounin.jp/table_overjoy.html",
+    url: "https://lr2.sakura.ne.jp/overjoy.php",
+    type: "SP",
+    tag1: "SP",
+    tag: "General",
+    tag2: "General",
   },
   {
     id: "dystopia",
     name: "Dystopia",
     url: "https://monibms.github.io/Dystopia/dystopia.html",
+    type: "SP",
+    tag1: "SP",
+    tag: "General",
+    tag2: "General",
   },
 ];
 
+const LEGACY_TABLE_URL_REPLACEMENTS = new Map([
+  [
+    "https://rattoto10.jounin.jp/table_overjoy.html",
+    "https://lr2.sakura.ne.jp/overjoy.php",
+  ],
+]);
+
+const TABLE_LIST_TAG_FILTERS = new Set(["all", "general", "personal", "self-made-chart-only"]);
 const THEME_MODES = ["l2tv-pop", "lr2ir-dark"];
 const DEFAULT_THEME_MODE = "l2tv-pop";
 const LANGUAGE_OPTIONS = ["ja", "en"];
 const DEFAULT_LANGUAGE = "ja";
+const STARTUP_PARAMS = new URLSearchParams(window.location.search);
+const IS_PYWEBVIEW_DESKTOP = STARTUP_PARAMS.get("l2tvWebView") === "1";
+const PYWEBVIEW_STARTUP_LANGUAGE = STARTUP_PARAMS.get("l2tvLanguage");
 
 const PERSISTENCE_DB_NAME = "lr2ir-table-lamp-viewer";
 const PERSISTENCE_STORE_NAME = "app-state";
 const PERSISTENCE_SCHEMA_VERSION = 1;
+const PERSISTENCE_OPEN_TIMEOUT_MS = 2000;
+const PERSISTENCE_LOCAL_STORAGE_PREFIX = `${PERSISTENCE_DB_NAME}:`;
 const FORM_STATE_KEY = "form-state";
 const LAST_ANALYSIS_KEY = "last-analysis";
 const TABLE_PRESET_SELECTION_KEY = "table-preset-selection";
+const CUSTOM_TABLE_LIST_KEY = "custom-table-list-entries";
+const LAMP_UPDATES_SNAPSHOT_MAX_ITEMS_PER_IMAGE = 250;
 
 let latestAnalysis = null;
 let persistenceDbPromise = null;
@@ -156,9 +210,21 @@ let selectedThemeMode = DEFAULT_THEME_MODE;
 let selectedLanguage = DEFAULT_LANGUAGE;
 let hasStoredLanguagePreference = false;
 let includeBpUpdatesInLampUpdates = false;
+let includeUnlistedChartsInLampUpdates = false;
+let skillAnalyzerFetchMode = "both";
+let scoreDbMode = "auto";
 let disabledManualTableUrls = new Set();
 let autoDbProfileFetchToken = 0;
-let selectedTablePresetIds = new Set();
+let baseTableListEntries = DEFAULT_TABLE_LIST_ENTRIES.map((entry) => ({ ...entry }));
+let customTableListEntries = [];
+let availableTableListEntries = mergeTableListEntries(baseTableListEntries, customTableListEntries);
+let selectedTableUrls = new Set();
+let tableListFilterText = "";
+let tableListInputMode = "search";
+let selectedTableTagFilter = "all";
+let tableListSelectedOnly = false;
+let tableListLoadedFromRemote = false;
+let draggedTableListUrl = "";
 let selectedRivalIds = new Set();
 let knownRivalIds = new Set();
 let rivalSelectionInitialized = false;
@@ -168,6 +234,11 @@ const tableInfoPanelOpenState = new Map();
 const chartDetailsOpenState = new Map();
 const chartListOpenLevelsState = new Map();
 const chartListStateByTable = new Map();
+let forceBest50Open = false;
+const forceBest50SortState = {
+  sortKey: "rank",
+  sortDirection: "asc",
+};
 let activeLevelGroupCloseButton = null;
 let activeLevelGroupCloseTarget = null;
 let activeLevelGroupOptionButton = null;
@@ -191,20 +262,50 @@ const I18N_TEXT = {
   "メニュー": "Menu",
   "閉じる": "Close",
   "読み込み設定": "Load Settings",
-  "難易度表URLは任意です。1行に1件ずつ入力できます。": "Table URLs are optional. Enter one URL per line.",
+  "難易度表一覧から、読み込む表を選択できます。": "Choose tables to load from the table list.",
   "LR2 score.db パス": "LR2 score.db Path",
   "song.db パス": "song.db Path",
   "スクショ保存先": "Screenshot Folder",
   "ライバルフォルダ": "Rival Folder",
-  "難易度表URL": "Table URLs",
-  "URLを残したまま、チェックを外すとその表だけ読み込み対象から外せます。": "Uncheck a table to exclude it while keeping the URL.",
+  "難易度表一覧": "Table List",
+  "難易度表管理": "Table Management",
+  "一覧を開く": "Open List",
+  "一覧を更新": "Refresh List",
+  "検索": "Search",
+  "URL指定": "URL",
+  "追加": "Add",
+  "追加する難易度表URLを入力してください。": "Enter the difficulty table URL to add.",
+  "URL欄に難易度表URLを入力してください。": "Enter a difficulty table URL in the URL field.",
+  "URL指定で追加された表": "Table added by URL",
+  "URLを追加しました。": "Added the URL.",
+  "難易度表情報を取得しています。": "Loading table information.",
+  "難易度表情報を取得しました。": "Loaded table information.",
+  "難易度表情報の取得に失敗しました。URL名で追加します。": "Failed to load table information. Added it with a URL-based name.",
+  "このURLはすでに一覧にあります。": "This URL is already in the list.",
+  "難易度表一覧から選択します。": "Choose from the table list.",
+  "チェックした難易度表が読み込み対象になります。": "Checked tables will be loaded.",
+  "難易度表一覧を取得しています。": "Loading the table list.",
+  "難易度表一覧を取得しました。": "Loaded the table list.",
+  "難易度表一覧の取得に失敗しました。代表的な表だけ表示します。": "Failed to load the table list. Showing common tables only.",
+  "該当する難易度表がありません。": "No matching tables.",
+  "選択中": "Selected",
+  "追加済み": "Added",
+  "一覧に戻る": "Back to List",
+  "上へ": "Move Up",
+  "下へ": "Move Down",
+  "追加済みの難易度表だけ表示しています。": "Showing added tables only.",
   "表示言語": "Language",
   "日本語": "Japanese",
+  "score.db仕様": "score.db Mode",
+  "自動判別": "Auto Detect",
+  "従来LR2IR互換": "Legacy LR2IR Compatible",
+  "StellaverseIR": "StellaverseIR",
+  "BMS-IR": "BMS-IR",
   "テーマ": "Theme",
   "プレイ回数": "Play Count",
   "本日更新にBPが減った譜面も表示する": "Include charts with lower BP in Lamp Updates",
-  "難易度表プリセット": "Table Presets",
-  "チェックしたプリセットはURL未入力でも読み込み対象になります。": "Checked presets are loaded even without manual URLs.",
+  "表外譜面も更新楽曲として表示する": "Include updated charts outside loaded tables",
+  "表外": "Unlisted",
   "表とランプを読み込む": "Load Tables and Lamps",
   "保存データを消す": "Clear Saved Data",
   "進行状況": "Status",
@@ -271,7 +372,7 @@ const I18N_TEXT = {
   "あなたは歴代のOverjoyすべてに合格しました": "You have cleared every historical Overjoy course",
   "まずはメニューから読み込み設定を行ってください。": "Open Menu and configure loading settings first.",
   "表示対象の難易度表がありません。": "No tables are currently visible.",
-  "難易度表URL未入力のため、プレイヤーデータのみ表示しています。": "No table URL was entered, so only player data is shown.",
+  "難易度表が未選択のため、プレイヤーデータのみ表示しています。": "No table is selected, so only player data is shown.",
   "API設定の取得に失敗しました。": "Failed to load API settings.",
   "APIリクエストに失敗しました。": "API request failed.",
   "参照ボタンはデスクトップ版(.exe)で利用できます。ブラウザ版ではパスを直接入力してください。": "Browse is available in the desktop app (.exe). In the browser version, enter the path directly.",
@@ -283,9 +384,21 @@ const I18N_TEXT = {
   "song.db を選択": "Select song.db",
   "スクショ保存先を選択": "Select Screenshot Folder",
   "LR2 Rival フォルダを選択": "Select LR2 Rival Folder",
-  "保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表プリセットの選択状態は保持されます。": "Delete saved input and the previous load result?\nTable preset selections will be kept.",
-  "保存済みデータを削除しました。難易度表プリセットの選択状態は保持しています。": "Saved data was deleted. Table preset selections were kept.",
+  "保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表の選択状態は保持されます。": "Delete saved input and the previous load result?\nTable selections will be kept.",
+  "保存済みデータを削除しました。難易度表の選択状態は保持しています。": "Saved data was deleted. Table selections were kept.",
+  "プレイ更新を検知しました": "Play Updates Detected",
+  "プレイ更新がありました、反映しますか？": "Play updates were detected. Apply them now?",
+  "前回読み込み後に score.db / song.db が更新されています。": "score.db / song.db has changed since the previous load.",
+  "反映する": "Apply",
+  "あとで": "Later",
+  "プレイ更新を反映しています。": "Applying play updates.",
+  "プレイ更新を検知しました。反映する場合は読み込みボタンを押してください。": "Play updates were detected. Press the load button when you want to apply them.",
   "画像出力が完了しました。": "Image export finished.",
+  "画像を分割して保存しました。": "Saved split images.",
+  "画像を分割してダウンロードしました。": "Downloaded split images.",
+  "画像出力データの作成に失敗しました。": "Failed to create image export data.",
+  "表外譜面の表示設定は、次回の読み込みから反映されます。": "The unlisted chart setting will take effect on the next load.",
+  "st/sl段位の取得設定は、次回の読み込みから反映されます。": "The st/sl grade fetch setting will take effect on the next load.",
   "前回読み込みから更新されたクリアランプ、BP、スコアはありません。": "No clear lamp, BP, or score updates since the previous load.",
   "前回読み込みから更新されたクリアランプまたはスコアはありません。": "No clear lamp or score updates since the previous load.",
   "score.db からプロフィールを取得しました。": "Loaded the profile from score.db.",
@@ -337,6 +450,8 @@ const I18N_ATTRS = {
   "例: D:\\LR2\\LR2files\\Database\\song.db": "Example: D:\\LR2\\LR2files\\Database\\song.db",
   "空欄の場合は既定のscreenshotフォルダに保存": "Leave blank to use the default screenshot folder",
   "例: D:\\LR2\\LR2files\\Rival": "Example: D:\\LR2\\LR2files\\Rival",
+  "表名で検索": "Search by table name",
+  "https://...": "https://...",
   "参照ボタンはデスクトップ版(.exe)で利用できます。": "Browse is available in the desktop app (.exe).",
 };
 
@@ -403,12 +518,11 @@ function setControlMenuOpen(open, options = {}) {
   }
   document.body.classList.toggle("menu-open", shouldOpen);
   menuToggleButton.setAttribute("aria-expanded", shouldOpen ? "true" : "false");
-  menuToggleButton.textContent = shouldOpen ? "閉じる" : "メニュー";
+  setLocalizedText(menuToggleButton, shouldOpen ? "閉じる" : "メニュー");
   controlDrawer.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
   updateDrawerBackdrop();
 
   if (!restoreFocus) {
-    translateApp();
     return;
   }
 
@@ -417,7 +531,6 @@ function setControlMenuOpen(open, options = {}) {
   } else {
     menuToggleButton.focus();
   }
-  translateApp();
 }
 
 function initializeRivalPanel() {
@@ -519,6 +632,8 @@ function updateLevelModeToggleButton() {
 }
 
 function initializeThemeSelector() {
+  initializeScoreDbModeSelector();
+
   if (!themeSelect) {
     return;
   }
@@ -543,6 +658,92 @@ function initializeThemeSelector() {
       }
     });
   }
+
+  if (includeUnlistedUpdatesInput) {
+    includeUnlistedUpdatesInput.checked = includeUnlistedChartsInLampUpdates;
+    includeUnlistedUpdatesInput.addEventListener("change", () => {
+      includeUnlistedChartsInLampUpdates = includeUnlistedUpdatesInput.checked;
+      persistFormStateDebounced();
+      if (latestAnalysis) {
+        setStatus("表外譜面の表示設定は、次回の読み込みから反映されます。");
+      }
+    });
+  }
+
+  initializeSkillAnalyzerFetchModeControls();
+}
+
+function initializeScoreDbModeSelector() {
+  scoreDbMode = normalizeScoreDbMode(scoreDbMode);
+  if (!scoreDbModeSelect) {
+    return;
+  }
+
+  scoreDbModeSelect.value = scoreDbMode;
+  scoreDbModeSelect.addEventListener("change", () => {
+    scoreDbMode = normalizeScoreDbMode(scoreDbModeSelect.value);
+    scoreDbModeSelect.value = scoreDbMode;
+    syncSkillAnalyzerFetchModeControls();
+    persistFormStateDebounced();
+  });
+}
+
+function initializeSkillAnalyzerFetchModeControls() {
+  syncSkillAnalyzerFetchModeControls();
+
+  if (skillFetchStOnlyInput) {
+    skillFetchStOnlyInput.addEventListener("change", () => {
+      skillAnalyzerFetchMode = skillFetchStOnlyInput.checked ? "st" : "both";
+      syncSkillAnalyzerFetchModeControls();
+      persistFormStateDebounced();
+      if (latestAnalysis) {
+        setStatus("st/sl段位の取得設定は、次回の読み込みから反映されます。");
+      }
+    });
+  }
+
+  if (skillFetchSlOnlyInput) {
+    skillFetchSlOnlyInput.addEventListener("change", () => {
+      skillAnalyzerFetchMode = skillFetchSlOnlyInput.checked ? "sl" : "both";
+      syncSkillAnalyzerFetchModeControls();
+      persistFormStateDebounced();
+      if (latestAnalysis) {
+        setStatus("st/sl段位の取得設定は、次回の読み込みから反映されます。");
+      }
+    });
+  }
+}
+
+function syncSkillAnalyzerFetchModeControls() {
+  skillAnalyzerFetchMode = normalizeSkillAnalyzerFetchMode(skillAnalyzerFetchMode);
+  const isLegacyMode = normalizeScoreDbMode(scoreDbMode) === "legacy";
+  if (skillFetchStOnlyInput) {
+    skillFetchStOnlyInput.checked = skillAnalyzerFetchMode === "st";
+    skillFetchStOnlyInput.disabled = isLegacyMode;
+  }
+  if (skillFetchSlOnlyInput) {
+    skillFetchSlOnlyInput.checked = skillAnalyzerFetchMode === "sl";
+    skillFetchSlOnlyInput.disabled = isLegacyMode;
+  }
+}
+
+function normalizeScoreDbMode(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (["auto", "legacy", "bms-ir", "stellaverse"].includes(normalized)) {
+    return normalized;
+  }
+  if (normalized === "stellaverse-ir" || normalized === "stellaverse_ir" || normalized === "stellaverseir") {
+    return "stellaverse";
+  }
+  if (normalized === "bmsir" || normalized === "bms_ir") {
+    return "bms-ir";
+  }
+  return "auto";
+}
+
+function normalizeSkillAnalyzerFetchMode(value) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return ["both", "st", "sl"].includes(normalized) ? normalized : "both";
 }
 
 function initializeLanguageSelector() {
@@ -563,6 +764,14 @@ function normalizeLanguage(value) {
   return LANGUAGE_OPTIONS.includes(normalized) ? normalized : DEFAULT_LANGUAGE;
 }
 
+function shouldSkipInitialLanguagePrompt() {
+  return IS_PYWEBVIEW_DESKTOP;
+}
+
+function getStartupLanguagePreference() {
+  return normalizeLanguage(PYWEBVIEW_STARTUP_LANGUAGE || DEFAULT_LANGUAGE);
+}
+
 function applyLanguage(language, options = {}) {
   const { persist = true } = options;
   selectedLanguage = normalizeLanguage(language);
@@ -572,12 +781,19 @@ function applyLanguage(language, options = {}) {
     languageSelect.value = selectedLanguage;
   }
   translateApp();
+  updateTableListSelectionSummary(getFilteredTableListEntries().length);
   if (persist) {
     void persistFormState().catch((error) => console.error("Failed to persist form state", error));
   }
 }
 
 function showInitialLanguagePrompt() {
+  if (shouldSkipInitialLanguagePrompt()) {
+    hasStoredLanguagePreference = true;
+    applyLanguage(getStartupLanguagePreference(), { persist: false });
+    return;
+  }
+
   if (document.querySelector(".language-startup-modal")) {
     return;
   }
@@ -623,6 +839,137 @@ function showInitialLanguagePrompt() {
   overlay.append(card);
   document.body.append(overlay);
   japaneseButton.focus();
+}
+
+function showAppConfirm(message, options = {}) {
+  return showAppChoiceDialog({
+    message,
+    description: options.description ?? "",
+    confirmLabel: options.confirmLabel ?? "OK",
+    cancelLabel: options.cancelLabel ?? "キャンセル",
+    defaultValue: false,
+  });
+}
+
+function showAppChoiceDialog(options = {}) {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "language-startup-modal app-choice-modal";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.dataset.i18nSkip = "true";
+
+    const card = document.createElement("div");
+    card.className = "language-startup-card app-choice-card";
+
+    const message = document.createElement("p");
+    message.textContent = localizeString(options.message ?? "");
+
+    const descriptionText = String(options.description ?? "");
+    const description = document.createElement("p");
+    description.className = "play-update-description";
+    description.textContent = localizeString(descriptionText);
+    description.classList.toggle("hidden", !descriptionText);
+
+    const actions = document.createElement("div");
+    actions.className = "language-startup-actions app-choice-actions";
+
+    const confirmButton = document.createElement("button");
+    confirmButton.type = "button";
+    confirmButton.textContent = localizeString(options.confirmLabel ?? "OK");
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.className = "button-secondary";
+    cancelButton.textContent = localizeString(options.cancelLabel ?? "キャンセル");
+
+    const close = (value) => {
+      overlay.remove();
+      document.removeEventListener("keydown", handleKeyDown);
+      resolve(value);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        close(Boolean(options.defaultValue));
+      }
+    };
+
+    confirmButton.addEventListener("click", () => close(true));
+    cancelButton.addEventListener("click", () => close(false));
+    document.addEventListener("keydown", handleKeyDown);
+
+    actions.append(confirmButton, cancelButton);
+    card.append(message, description, actions);
+    overlay.append(card);
+    document.body.append(overlay);
+    confirmButton.focus();
+  });
+}
+
+function showPlayUpdatePrompt() {
+  if (document.querySelector(".play-update-modal")) {
+    return Promise.resolve(false);
+  }
+
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.className = "language-startup-modal play-update-modal";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "play-update-prompt-title");
+    overlay.setAttribute("aria-describedby", "play-update-prompt-description");
+    overlay.dataset.i18nSkip = "true";
+
+    const card = document.createElement("div");
+    card.className = "language-startup-card play-update-card";
+
+    const title = document.createElement("h2");
+    title.id = "play-update-prompt-title";
+    title.textContent = localizeString("プレイ更新を検知しました");
+
+    const message = document.createElement("p");
+    message.textContent = localizeString("プレイ更新がありました、反映しますか？");
+
+    const description = document.createElement("p");
+    description.id = "play-update-prompt-description";
+    description.className = "play-update-description";
+    description.textContent = localizeString("前回読み込み後に score.db / song.db が更新されています。");
+
+    const actions = document.createElement("div");
+    actions.className = "language-startup-actions play-update-actions";
+
+    const applyButton = document.createElement("button");
+    applyButton.type = "button";
+    applyButton.textContent = localizeString("反映する");
+
+    const laterButton = document.createElement("button");
+    laterButton.type = "button";
+    laterButton.className = "button-secondary";
+    laterButton.textContent = localizeString("あとで");
+
+    const close = (shouldApply) => {
+      overlay.remove();
+      document.removeEventListener("keydown", handleKeyDown);
+      resolve(shouldApply);
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        close(false);
+      }
+    };
+
+    applyButton.addEventListener("click", () => close(true));
+    laterButton.addEventListener("click", () => close(false));
+    document.addEventListener("keydown", handleKeyDown);
+
+    actions.append(applyButton, laterButton);
+    card.append(title, message, description, actions);
+    overlay.append(card);
+    document.body.append(overlay);
+    applyButton.focus();
+  });
 }
 
 function setLocalizedText(element, value) {
@@ -691,12 +1038,12 @@ function translateTextNodes(root) {
 }
 
 function translateAttributes(root) {
-  const elements = root.querySelectorAll("[placeholder], [title]");
+  const elements = root.querySelectorAll("[placeholder], [title], [aria-label]");
   for (const element of elements) {
     if (element.closest("[data-i18n-skip]")) {
       continue;
     }
-    for (const attr of ["placeholder", "title"]) {
+    for (const attr of ["placeholder", "title", "aria-label"]) {
       if (!element.hasAttribute(attr)) {
         continue;
       }
@@ -730,7 +1077,7 @@ function localizeString(value) {
     .replace(/前回読み込みからランプ、BP、スコアが更新された譜面: ([0-9,]+)件/g, "Updated charts with lamp, BP, or score changes since the previous load: $1")
     .replace(/前回読み込みからランプまたはスコアが更新された譜面: ([0-9,]+)件/g, "Updated charts with lamp or score changes since the previous load: $1")
     .replace(/([0-9,]+)件の難易度表を読み込みました。/g, "Loaded $1 tables.")
-    .replace(/難易度表URL未入力のため、プレイヤーデータのみ読み込みました。/g, "No table URL was entered, so only player data was loaded.")
+    .replace(/難易度表が未選択のため、プレイヤーデータのみ読み込みました。/g, "No table is selected, so only player data was loaded.")
     .replace(/score\.db からプロフィールを取得しました。/g, "Loaded the profile from score.db.")
     .replace(/score\.db からプレイヤー名と段位を取得しています。/g, "Loading the player name and grade from score.db.")
     .replace(/score\.db からプロフィールを取得できませんでした。/g, "Could not load the profile from score.db.")
@@ -886,13 +1233,68 @@ function parseTableUrls(text) {
 }
 
 function getManualTableUrls() {
+  if (!manualTableUrlTogglesContainer) {
+    return [];
+  }
   return [...new Set(parseTableUrls(tableUrlsInput.value))];
 }
 
 function collectSelectedTableUrls() {
-  const presetUrls = TABLE_PRESETS.filter((preset) => selectedTablePresetIds.has(preset.id)).map((preset) => preset.url);
+  const selectedUrls = [...selectedTableUrls];
   const manualUrls = getManualTableUrls().filter((url) => !disabledManualTableUrls.has(url));
-  return [...new Set([...presetUrls, ...manualUrls])];
+  return dedupeTableUrlsByNormalizedKey([...selectedUrls, ...manualUrls]);
+}
+
+function dedupeTableUrlsByNormalizedKey(urls) {
+  const result = [];
+  const seen = new Set();
+  for (const url of urls) {
+    const value = migrateLegacyTableUrl(url);
+    if (!/^https?:\/\//i.test(value)) {
+      continue;
+    }
+    const key = normalizeTableUrlForDisplayLookup(value);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(value);
+  }
+  return result;
+}
+
+function isTableUrlSelected(url) {
+  const key = normalizeTableUrlForDisplayLookup(url);
+  if (!key) {
+    return false;
+  }
+  for (const selectedUrl of selectedTableUrls) {
+    if (normalizeTableUrlForDisplayLookup(selectedUrl) === key) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function selectTableUrl(url) {
+  const value = migrateLegacyTableUrl(url);
+  if (!/^https?:\/\//i.test(value)) {
+    return;
+  }
+  deselectTableUrl(value);
+  selectedTableUrls.add(value);
+}
+
+function deselectTableUrl(url) {
+  const key = normalizeTableUrlForDisplayLookup(url);
+  if (!key) {
+    return;
+  }
+  for (const selectedUrl of [...selectedTableUrls]) {
+    if (normalizeTableUrlForDisplayLookup(selectedUrl) === key) {
+      selectedTableUrls.delete(selectedUrl);
+    }
+  }
 }
 
 function renderManualTableUrlToggles() {
@@ -906,6 +1308,7 @@ function renderManualTableUrlToggles() {
 
   if (!manualUrls.length) {
     manualTableUrlTogglesContainer.classList.add("hidden");
+    updateTableListSelectionSummary(getFilteredTableListEntries().length);
     return;
   }
 
@@ -923,6 +1326,7 @@ function renderManualTableUrlToggles() {
       } else {
         disabledManualTableUrls.add(tableUrl);
       }
+      updateTableListSelectionSummary(getFilteredTableListEntries().length);
       persistFormStateDebounced();
     });
 
@@ -933,6 +1337,7 @@ function renderManualTableUrlToggles() {
     manualTableUrlTogglesContainer.append(label);
   }
   translateApp(manualTableUrlTogglesContainer);
+  updateTableListSelectionSummary(getFilteredTableListEntries().length);
 }
 
 function getManualTableUrlDisplayName(tableUrl) {
@@ -945,7 +1350,7 @@ function getManualTableUrlDisplayName(tableUrl) {
     return loadedName;
   }
 
-  const preset = TABLE_PRESETS.find((entry) => normalizeTableUrlForDisplayLookup(entry.url) === normalizedUrl);
+  const preset = availableTableListEntries.find((entry) => normalizeTableUrlForDisplayLookup(entry.url) === normalizedUrl);
   if (preset?.name) {
     return preset.name;
   }
@@ -957,29 +1362,106 @@ function normalizeTableUrlForDisplayLookup(value) {
   return String(value ?? "").trim().replace(/\/+$/, "").toLowerCase();
 }
 
+function migrateLegacyTableUrl(value) {
+  const url = String(value ?? "").trim();
+  const key = normalizeTableUrlForDisplayLookup(url);
+  return LEGACY_TABLE_URL_REPLACEMENTS.get(key) || url;
+}
+
+function mergeTableListEntries(baseEntries, extraEntries) {
+  const merged = [];
+  const seen = new Set();
+  for (const entry of [...(Array.isArray(baseEntries) ? baseEntries : []), ...(Array.isArray(extraEntries) ? extraEntries : [])]) {
+    const url = migrateLegacyTableUrl(entry?.url);
+    if (!/^https?:\/\//i.test(url)) {
+      continue;
+    }
+    const key = normalizeTableUrlForDisplayLookup(url);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    merged.push({ ...entry, url });
+  }
+  return merged;
+}
+
+function rebuildAvailableTableListEntries() {
+  availableTableListEntries = mergeTableListEntries(baseTableListEntries, customTableListEntries);
+  appendSelectedUrlEntriesMissingFromTableList();
+}
+
+function appendSelectedUrlEntriesMissingFromTableList() {
+  if (!selectedTableUrls.size) {
+    return;
+  }
+  const knownUrls = new Set(
+    availableTableListEntries.map((entry) => normalizeTableUrlForDisplayLookup(entry.url)).filter(Boolean),
+  );
+  for (const url of selectedTableUrls) {
+    const key = normalizeTableUrlForDisplayLookup(url);
+    if (!key || knownUrls.has(key)) {
+      continue;
+    }
+    const entry = normalizeCustomTableListEntry({
+      url,
+      comment: "URL指定で追加された表",
+    });
+    if (!entry) {
+      continue;
+    }
+    entry.id = `selected:${entry.url}`;
+    entry.custom = true;
+    availableTableListEntries.unshift(entry);
+    knownUrls.add(key);
+  }
+}
+
 function renderTablePresetPicker() {
   if (!tablePresetsContainer) {
     return;
   }
 
   tablePresetsContainer.innerHTML = "";
+  tablePresetsContainer.classList.toggle("table-presets-selected-only", tableListSelectedOnly);
+  syncTableListFilterControls();
+  const entries = getFilteredTableListEntries();
+  updateTableListSelectionSummary(entries.length);
 
-  for (const preset of TABLE_PRESETS) {
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "table-list-empty";
+    setLocalizedText(empty, "該当する難易度表がありません。");
+    tablePresetsContainer.append(empty);
+    return;
+  }
+
+  for (const preset of entries) {
     const label = document.createElement("label");
     label.className = "table-preset-item";
+    label.dataset.tableUrl = preset.url;
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.checked = selectedTablePresetIds.has(preset.id);
-    checkbox.dataset.presetId = preset.id;
+    checkbox.checked = isTableUrlSelected(preset.url);
+    checkbox.dataset.tableUrl = preset.url;
     checkbox.addEventListener("change", () => {
       if (checkbox.checked) {
-        selectedTablePresetIds.add(preset.id);
+        selectTableUrl(preset.url);
+        label.classList.add("selected");
       } else {
-        selectedTablePresetIds.delete(preset.id);
+        deselectTableUrl(preset.url);
+        label.classList.remove("selected");
+      }
+      rebuildAvailableTableListEntries();
+      if (tableListSelectedOnly) {
+        renderTablePresetPicker();
+      } else {
+        syncTableListFilterControls();
+        updateTableListSelectionSummary(entries.length);
       }
       void persistTablePresetSelection().catch((error) =>
-        console.error("Failed to persist table preset selection", error),
+        console.error("Failed to persist table selection", error),
       );
     });
 
@@ -987,26 +1469,677 @@ function renderTablePresetPicker() {
     textWrap.className = "table-preset-text";
 
     const name = document.createElement("strong");
-    setUntranslatedText(name, preset.name);
+    setUntranslatedText(name, formatTableListEntryDisplayName(preset));
+    label.title = preset.url;
 
-    const url = document.createElement("small");
-    url.textContent = preset.url;
-
-    textWrap.append(name, url);
+    textWrap.append(name);
     label.append(checkbox, textWrap);
+    const orderControls = createTablePresetOrderControls(preset);
+    if (orderControls) {
+      label.append(orderControls);
+    }
+    configureTablePresetDragHandlers(label, preset);
+    label.classList.toggle("selected", checkbox.checked);
     tablePresetsContainer.append(label);
   }
   translateApp(tablePresetsContainer);
+}
+
+function configureTablePresetDragHandlers(label, preset) {
+  if (!tableListSelectedOnly || !isTableUrlSelected(preset?.url)) {
+    label.draggable = false;
+    return;
+  }
+
+  label.draggable = true;
+  label.classList.add("table-preset-reorderable");
+  label.addEventListener("dragstart", (event) => {
+    if (event.target?.closest?.("input, button")) {
+      event.preventDefault();
+      return;
+    }
+    draggedTableListUrl = preset.url;
+    label.classList.add("dragging");
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", preset.url);
+    }
+  });
+  label.addEventListener("dragover", (event) => {
+    if (!draggedTableListUrl || normalizeTableUrlForDisplayLookup(draggedTableListUrl) === normalizeTableUrlForDisplayLookup(preset.url)) {
+      return;
+    }
+    event.preventDefault();
+    updateTablePresetDragTarget(label, event);
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = "move";
+    }
+  });
+  label.addEventListener("dragleave", () => {
+    label.classList.remove("drag-over-before", "drag-over-after");
+  });
+  label.addEventListener("drop", (event) => {
+    if (!draggedTableListUrl) {
+      return;
+    }
+    event.preventDefault();
+    const insertAfter = getTablePresetDropInsertAfter(label, event);
+    const moved = moveSelectedTableUrlToTarget(draggedTableListUrl, preset.url, insertAfter);
+    draggedTableListUrl = "";
+    clearTablePresetDragClasses();
+    if (!moved) {
+      return;
+    }
+    renderTablePresetPicker();
+    if (latestAnalysis) {
+      renderAnalysis();
+    }
+    void persistTablePresetSelection().catch((error) =>
+      console.error("Failed to persist table selection order", error),
+    );
+  });
+  label.addEventListener("dragend", () => {
+    draggedTableListUrl = "";
+    clearTablePresetDragClasses();
+  });
+}
+
+function updateTablePresetDragTarget(label, event) {
+  const insertAfter = getTablePresetDropInsertAfter(label, event);
+  label.classList.toggle("drag-over-before", !insertAfter);
+  label.classList.toggle("drag-over-after", insertAfter);
+}
+
+function getTablePresetDropInsertAfter(label, event) {
+  const rect = label.getBoundingClientRect();
+  return event.clientY > rect.top + rect.height / 2;
+}
+
+function clearTablePresetDragClasses() {
+  tablePresetsContainer
+    ?.querySelectorAll(".table-preset-item")
+    .forEach((element) => element.classList.remove("dragging", "drag-over-before", "drag-over-after"));
+}
+
+function createTablePresetOrderControls(preset) {
+  if (!tableListSelectedOnly || !isTableUrlSelected(preset?.url)) {
+    return null;
+  }
+
+  const selectedIndex = getSelectedTableUrlIndex(preset.url);
+  if (selectedIndex < 0) {
+    return null;
+  }
+
+  const selectedCount = selectedTableUrls.size;
+  const controls = document.createElement("span");
+  controls.className = "table-preset-order-controls";
+
+  const upButton = createTablePresetOrderButton("↑", "上へ", selectedIndex <= 0, () => {
+    moveSelectedTableUrl(preset.url, -1);
+  });
+  const downButton = createTablePresetOrderButton("↓", "下へ", selectedIndex >= selectedCount - 1, () => {
+    moveSelectedTableUrl(preset.url, 1);
+  });
+
+  controls.append(upButton, downButton);
+  return controls;
+}
+
+function createTablePresetOrderButton(text, label, disabled, onMove) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "table-preset-order-button";
+  button.textContent = text;
+  button.title = label;
+  button.setAttribute("aria-label", label);
+  button.disabled = disabled;
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (button.disabled) {
+      return;
+    }
+    onMove();
+    renderTablePresetPicker();
+    if (latestAnalysis) {
+      renderAnalysis();
+    }
+    void persistTablePresetSelection().catch((error) =>
+      console.error("Failed to persist table selection order", error),
+    );
+  });
+  return button;
+}
+
+function formatTableListEntryDisplayName(entry) {
+  const symbol = String(entry?.symbol ?? "").trim();
+  const name = String(entry?.name ?? "").trim();
+  if (symbol && name) {
+    return `${symbol}: ${name}`;
+  }
+  return name || symbol || String(entry?.url ?? "").trim();
+}
+
+function getFilteredTableListEntries() {
+  return sortTableListEntriesForDisplay(
+    availableTableListEntries.filter((entry) => {
+      if (!doesTableListEntryMatchSearchFilter(entry)) {
+        return false;
+      }
+      if (!doesTableListEntryMatchSelectedOnlyFilter(entry)) {
+        return false;
+      }
+      if (!doesTableListEntryMatchTagFilter(entry)) {
+        return false;
+      }
+      return true;
+    }),
+  );
+}
+
+function sortTableListEntriesForDisplay(entries) {
+  return [...entries].sort((a, b) => {
+    if (tableListSelectedOnly) {
+      const selectedOrderDelta = getSelectedTableUrlIndex(a?.url) - getSelectedTableUrlIndex(b?.url);
+      if (selectedOrderDelta !== 0) {
+        return selectedOrderDelta;
+      }
+    }
+    const customDelta = Number(Boolean(b?.custom)) - Number(Boolean(a?.custom));
+    if (customDelta !== 0) {
+      return customDelta;
+    }
+    const selectedDelta = Number(isTableUrlSelected(b?.url)) - Number(isTableUrlSelected(a?.url));
+    if (tableListSelectedOnly && selectedDelta !== 0) {
+      return selectedDelta;
+    }
+    return 0;
+  });
+}
+
+function getSelectedTableUrlIndex(url) {
+  const key = normalizeTableUrlForDisplayLookup(url);
+  if (!key) {
+    return -1;
+  }
+  return [...selectedTableUrls].findIndex((selectedUrl) => normalizeTableUrlForDisplayLookup(selectedUrl) === key);
+}
+
+function moveSelectedTableUrl(url, direction) {
+  const key = normalizeTableUrlForDisplayLookup(url);
+  const offset = Number(direction);
+  if (!key || !Number.isFinite(offset) || offset === 0) {
+    return false;
+  }
+
+  const urls = [...selectedTableUrls];
+  const currentIndex = urls.findIndex((selectedUrl) => normalizeTableUrlForDisplayLookup(selectedUrl) === key);
+  const nextIndex = currentIndex + offset;
+  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= urls.length) {
+    return false;
+  }
+
+  [urls[currentIndex], urls[nextIndex]] = [urls[nextIndex], urls[currentIndex]];
+  selectedTableUrls = new Set(urls);
+  return true;
+}
+
+function moveSelectedTableUrlToTarget(sourceUrl, targetUrl, insertAfter) {
+  const sourceKey = normalizeTableUrlForDisplayLookup(sourceUrl);
+  const targetKey = normalizeTableUrlForDisplayLookup(targetUrl);
+  if (!sourceKey || !targetKey || sourceKey === targetKey) {
+    return false;
+  }
+
+  const urls = [...selectedTableUrls];
+  const sourceIndex = urls.findIndex((url) => normalizeTableUrlForDisplayLookup(url) === sourceKey);
+  if (sourceIndex < 0) {
+    return false;
+  }
+
+  const [sourceValue] = urls.splice(sourceIndex, 1);
+  const targetIndex = urls.findIndex((url) => normalizeTableUrlForDisplayLookup(url) === targetKey);
+  if (targetIndex < 0) {
+    return false;
+  }
+
+  urls.splice(targetIndex + (insertAfter ? 1 : 0), 0, sourceValue);
+  selectedTableUrls = new Set(urls);
+  return true;
+}
+
+function doesTableListEntryMatchSearchFilter(entry) {
+  const filterText = normalizeTableListFilterText(tableListFilterText);
+  if (!filterText) {
+    return true;
+  }
+  return normalizeTableListFilterText(`${entry.name} ${entry.symbol} ${entry.type} ${entry.tag} ${entry.comment} ${entry.url}`).includes(filterText);
+}
+
+function doesTableListEntryMatchSelectedOnlyFilter(entry) {
+  return !tableListSelectedOnly || isTableUrlSelected(entry?.url);
+}
+
+function doesTableListEntryMatchTagFilter(entry) {
+  if (selectedTableTagFilter === "all") {
+    return true;
+  }
+  return getTableListEntryTagKeys(entry).has(selectedTableTagFilter);
+}
+
+function getTableListEntryTagKeys(entry) {
+  const keys = new Set();
+  const values = [entry?.tag];
+  for (const rawValue of values) {
+    const tagText = String(rawValue ?? "");
+    const tagParts = tagText.split(/[,\u3001/|]/);
+    for (const value of [tagText, ...tagParts]) {
+      const key = normalizeTableListTagKey(value);
+      if (key) {
+        keys.add(key);
+      }
+    }
+  }
+  return keys;
+}
+
+function normalizeTableListTagKey(value) {
+  const text = String(value ?? "").trim().toLowerCase();
+  if (!text) {
+    return "";
+  }
+  const compact = text.replace(/[\s_-]+/g, "");
+  if (compact.includes("selfmadechartonly") || compact.includes("selfmade") || compact.includes("selfonly")) {
+    return "self-made-chart-only";
+  }
+  if (compact.includes("personal")) {
+    return "personal";
+  }
+  if (compact.includes("general")) {
+    return "general";
+  }
+  return "";
+}
+
+function syncTableListFilterControls() {
+  if (!tableListTagFilters) {
+    return;
+  }
+  const counts = getTableListTagCounts();
+  const buttons = tableListTagFilters.querySelectorAll("[data-table-tag-filter]");
+  for (const button of buttons) {
+    const key = String(button.dataset.tableTagFilter ?? "all");
+    const active = key === selectedTableTagFilter;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+    const countElement = button.querySelector("[data-table-tag-count]");
+    if (countElement) {
+      countElement.textContent = formatInteger(counts[key] ?? 0);
+    }
+  }
+  if (tableListSelectedOnlyToggle) {
+    tableListSelectedOnlyToggle.classList.toggle("active", tableListSelectedOnly);
+    tableListSelectedOnlyToggle.setAttribute("aria-pressed", tableListSelectedOnly ? "true" : "false");
+    const label = tableListSelectedOnlyToggle.querySelector(".table-list-selected-only-label");
+    if (label) {
+      setLocalizedText(label, tableListSelectedOnly ? "一覧に戻る" : "追加済み");
+    }
+  }
+  if (tableListSelectedOnlyCount) {
+    tableListSelectedOnlyCount.classList.toggle("hidden", tableListSelectedOnly);
+    tableListSelectedOnlyCount.textContent = formatInteger(countSelectedTableListEntries());
+  }
+  syncTableListInputModeControls();
+}
+
+function syncTableListInputModeControls() {
+  const urlMode = tableListInputMode === "url";
+  tableListSearchModeButton?.classList.toggle("active", !urlMode);
+  tableListSearchModeButton?.setAttribute("aria-pressed", urlMode ? "false" : "true");
+  tableListUrlModeButton?.classList.toggle("active", urlMode);
+  tableListUrlModeButton?.setAttribute("aria-pressed", urlMode ? "true" : "false");
+  tableListFilterInput?.classList.toggle("hidden", urlMode);
+  customTableUrlInput?.classList.toggle("hidden", !urlMode);
+  addCustomTableUrlButton?.classList.toggle("hidden", !urlMode);
+  refreshTableListButton?.classList.toggle("hidden", urlMode);
+}
+
+function getTableListTagCounts() {
+  const counts = {
+    all: 0,
+    general: 0,
+    personal: 0,
+    "self-made-chart-only": 0,
+  };
+  for (const entry of availableTableListEntries) {
+    if (!doesTableListEntryMatchSearchFilter(entry) || !doesTableListEntryMatchSelectedOnlyFilter(entry)) {
+      continue;
+    }
+    counts.all += 1;
+    const keys = getTableListEntryTagKeys(entry);
+    for (const key of Object.keys(counts)) {
+      if (key !== "all" && keys.has(key)) {
+        counts[key] += 1;
+      }
+    }
+  }
+  return counts;
+}
+
+function countSelectedTableListEntries() {
+  return collectSelectedTableUrls().length;
+}
+
+function updateTableListSelectionSummary(visibleCount = null) {
+  if (!tableListSelectionSummary) {
+    return;
+  }
+  const selectedCount = collectSelectedTableUrls().length;
+  const visiblePart =
+    typeof visibleCount === "number"
+      ? selectedLanguage === "en"
+        ? ` / Showing: ${formatInteger(visibleCount)}`
+        : ` / 表示: ${formatInteger(visibleCount)}件`
+      : "";
+  tableListSelectionSummary.textContent =
+    selectedLanguage === "en"
+      ? `Selected: ${formatInteger(selectedCount)}${visiblePart}`
+      : `選択中: ${formatInteger(selectedCount)}件${visiblePart}`;
 }
 
 function syncPresetCheckboxesFromState() {
   if (!tablePresetsContainer) {
     return;
   }
-  const checkboxes = tablePresetsContainer.querySelectorAll('input[type="checkbox"][data-preset-id]');
+  const checkboxes = tablePresetsContainer.querySelectorAll('input[type="checkbox"][data-table-url]');
   for (const checkbox of checkboxes) {
-    const presetId = checkbox.dataset.presetId;
-    checkbox.checked = selectedTablePresetIds.has(presetId);
+    const tableUrl = checkbox.dataset.tableUrl;
+    checkbox.checked = isTableUrlSelected(tableUrl);
+    checkbox.closest(".table-preset-item")?.classList.toggle("selected", checkbox.checked);
+  }
+  updateTableListSelectionSummary(getFilteredTableListEntries().length);
+}
+
+function normalizeTableListFilterText(value) {
+  return String(value ?? "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+async function refreshTableList({ force = false, silent = false } = {}) {
+  if (refreshTableListButton) {
+    refreshTableListButton.disabled = true;
+  }
+  if (!silent) {
+    setTableListStatus("難易度表一覧を取得しています。");
+  }
+
+  try {
+    const payload = await postJsonApi("/api/table-list", { force });
+    const remoteEntries = normalizeTableListEntries(payload?.tables);
+    if (remoteEntries.length) {
+      baseTableListEntries = remoteEntries;
+      rebuildAvailableTableListEntries();
+      tableListLoadedFromRemote = true;
+      setTableListStatus(
+        selectedLanguage === "en"
+          ? `Loaded the table list. ${formatInteger(remoteEntries.length)} tables`
+          : `難易度表一覧を取得しました。${formatInteger(remoteEntries.length)}件`,
+      );
+      renderTablePresetPicker();
+      syncPresetCheckboxesFromState();
+      return;
+    }
+    throw new Error("No table entries");
+  } catch (error) {
+    tableListLoadedFromRemote = false;
+    baseTableListEntries = DEFAULT_TABLE_LIST_ENTRIES.map((entry) => ({ ...entry }));
+    rebuildAvailableTableListEntries();
+    renderTablePresetPicker();
+    syncPresetCheckboxesFromState();
+    const message = "難易度表一覧の取得に失敗しました。代表的な表だけ表示します。";
+    setTableListStatus(message);
+    if (!silent) {
+      setStatus(error instanceof Error ? `${message}\n${error.message}` : message);
+    }
+  } finally {
+    if (refreshTableListButton) {
+      refreshTableListButton.disabled = false;
+    }
+  }
+}
+
+function normalizeTableListEntries(entries) {
+  const seen = new Set();
+  const normalizedEntries = [];
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    if (!isSpTableListEntry(entry)) {
+      continue;
+    }
+    const url = String(entry?.url ?? "").trim();
+    if (!/^https?:\/\//i.test(url) || seen.has(url)) {
+      continue;
+    }
+    seen.add(url);
+    const tag1 = String(entry?.tag1 ?? entry?.type ?? "").trim();
+    const tag2 = String(entry?.tag2 ?? entry?.tag ?? "").trim();
+    normalizedEntries.push({
+      id: String(entry?.id ?? url),
+      name: String(entry?.name ?? "").trim() || url,
+      url,
+      symbol: String(entry?.symbol ?? "").trim(),
+      type: tag1,
+      tag1,
+      tag: tag2,
+      tag2,
+      comment: String(entry?.comment ?? "").trim(),
+      year: String(entry?.year ?? "").trim(),
+    });
+  }
+  return normalizedEntries;
+}
+
+function isSpTableListEntry(entry) {
+  return normalizeTableListPlayMode(entry?.tag1 ?? entry?.type) === "sp";
+}
+
+function normalizeTableListPlayMode(value) {
+  const compact = String(value ?? "").trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!compact) {
+    return "";
+  }
+  if (compact === "sp" || compact === "single" || compact === "singleplay") {
+    return "sp";
+  }
+  if (compact === "dp" || compact === "double" || compact === "doubleplay") {
+    return "dp";
+  }
+  return compact;
+}
+
+function normalizeCustomTableListEntry(entry) {
+  const url = normalizeCustomTableUrl(entry?.url ?? entry);
+  if (!url) {
+    return null;
+  }
+  const tag1 = String(entry?.tag1 ?? entry?.type ?? "").trim();
+  const tag2 = String(entry?.tag2 ?? entry?.tag ?? "").trim();
+  return {
+    id: String(entry?.id ?? `custom:${url}`),
+    name: String(entry?.name ?? "").trim() || buildCustomTableDisplayName(url),
+    url,
+    symbol: String(entry?.symbol ?? "").trim(),
+    type: tag1,
+    tag1,
+    tag: tag2,
+    tag2,
+    comment: String(entry?.comment ?? "").trim() || "URL追加",
+    year: String(entry?.year ?? "").trim(),
+    custom: true,
+  };
+}
+
+function normalizeCustomTableUrl(value) {
+  const rawUrl = String(value ?? "").trim();
+  if (!rawUrl) {
+    return "";
+  }
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(rawUrl);
+  } catch {
+    return "";
+  }
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    return "";
+  }
+  parsedUrl.hash = "";
+  return migrateLegacyTableUrl(parsedUrl.href);
+}
+
+function buildCustomTableDisplayName(url) {
+  try {
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname.replace(/\/(?:table\.html|header\.json)?$/i, "") || "/";
+    return `URL追加: ${parsedUrl.hostname}${path}`;
+  } catch {
+    return "URL追加";
+  }
+}
+
+async function handleAddCustomTableUrl() {
+  if (addCustomTableUrlButton) {
+    addCustomTableUrlButton.disabled = true;
+  }
+  if (!customTableUrlInput || customTableUrlInput.classList.contains("hidden")) {
+    tableListInputMode = "url";
+    syncTableListInputModeControls();
+    customTableUrlInput?.focus();
+    setTableListStatus("追加する難易度表URLを入力してください。");
+    if (addCustomTableUrlButton) {
+      addCustomTableUrlButton.disabled = false;
+    }
+    return;
+  }
+  const inputUrl = customTableUrlInput.value;
+
+  try {
+    const entry = normalizeCustomTableListEntry(inputUrl);
+    if (!entry) {
+      if (customTableUrlInput && !customTableUrlInput.classList.contains("hidden")) {
+        customTableUrlInput.focus();
+      }
+      setTableListStatus("http / https のURLのみ読み込めます。");
+      return;
+    }
+
+    const urlKey = normalizeTableUrlForDisplayLookup(entry.url);
+    const existingEntry = availableTableListEntries.find(
+      (tableEntry) => normalizeTableUrlForDisplayLookup(tableEntry.url) === urlKey,
+    );
+    const alreadyExists = Boolean(existingEntry);
+    let tableEntry = existingEntry || entry;
+    if (!existingEntry || existingEntry.custom || !existingEntry.name || !existingEntry.symbol) {
+      setTableListStatus("難易度表情報を取得しています。");
+      tableEntry = await fetchCustomTableEntryMeta(entry).catch((error) => {
+        console.error("Failed to fetch custom table metadata", error);
+        setTableListStatus("難易度表情報の取得に失敗しました。URL名で追加します。");
+        return entry;
+      });
+    }
+    const customWithoutDuplicate = customTableListEntries.filter(
+      (tableEntry) => normalizeTableUrlForDisplayLookup(tableEntry.url) !== urlKey,
+    );
+    if (!existingEntry || existingEntry.custom) {
+      customTableListEntries = [...customWithoutDuplicate, tableEntry];
+    } else {
+      customTableListEntries = customWithoutDuplicate;
+      updateBaseTableListEntryMeta(urlKey, tableEntry);
+    }
+    rebuildAvailableTableListEntries();
+    selectTableUrl(tableEntry.url);
+    selectedTableTagFilter = "all";
+    tableListSelectedOnly = true;
+    tableListFilterText = "";
+    if (tableListFilterInput) {
+      tableListFilterInput.value = "";
+    }
+    if (customTableUrlInput) {
+      customTableUrlInput.value = "";
+    }
+    renderTablePresetPicker();
+    syncPresetCheckboxesFromState();
+    if (alreadyExists) {
+      setTableListStatus("このURLはすでに一覧にあります。");
+    } else if (tableEntry !== entry) {
+      setTableListStatus("難易度表情報を取得しました。");
+    } else {
+      setTableListStatus("URLを追加しました。");
+    }
+    await Promise.all([
+      persistCustomTableListEntries().catch((error) => console.error("Failed to persist custom table list", error)),
+      persistTablePresetSelection().catch((error) => console.error("Failed to persist table selection", error)),
+    ]);
+  } finally {
+    if (addCustomTableUrlButton) {
+      addCustomTableUrlButton.disabled = false;
+    }
+  }
+}
+
+async function fetchCustomTableEntryMeta(entry) {
+  const payload = await postJsonApi("/api/table-meta", { url: entry.url });
+  return normalizeCustomTableListEntry({
+    ...entry,
+    id: payload?.id || entry.id,
+    name: payload?.name || entry.name,
+    symbol: payload?.symbol || entry.symbol,
+    url: payload?.url || payload?.sourceUrl || entry.url,
+    comment: entry.comment || "URL指定で追加された表",
+  }) || entry;
+}
+
+function updateBaseTableListEntryMeta(urlKey, entry) {
+  if (!urlKey || !entry) {
+    return;
+  }
+  baseTableListEntries = baseTableListEntries.map((baseEntry) => {
+    if (normalizeTableUrlForDisplayLookup(baseEntry.url) !== urlKey) {
+      return baseEntry;
+    }
+    return {
+      ...baseEntry,
+      name: entry.name || baseEntry.name,
+      symbol: entry.symbol || baseEntry.symbol,
+      url: entry.url || baseEntry.url,
+    };
+  });
+}
+
+function setTableListStatus(message) {
+  if (tableListStatus) {
+    setLocalizedText(tableListStatus, message);
+  }
+  if (tableListModalStatus) {
+    setLocalizedText(tableListModalStatus, message);
+  }
+}
+
+function isTableListModalOpen() {
+  return tableListModal?.getAttribute("aria-hidden") === "false";
+}
+
+function setTableListModalOpen(shouldOpen) {
+  if (!tableListModal) {
+    return;
+  }
+  tableListModal.classList.toggle("hidden", !shouldOpen);
+  tableListModal.setAttribute("aria-hidden", shouldOpen ? "false" : "true");
+  if (shouldOpen) {
+    renderTablePresetPicker();
+    syncPresetCheckboxesFromState();
+    setTimeout(() => tableListFilterInput?.focus(), 0);
+  } else {
+    openTableListButton?.focus();
   }
 }
 
@@ -1086,7 +2219,15 @@ form.addEventListener("submit", async (event) => {
   setStatus(loadingMessage);
 
   try {
-    const payload = await postJsonApi("/api/analyze", { scoreDbPath, songDbPath, rivalFolderPath, tableUrls });
+    const payload = await postJsonApi("/api/analyze", {
+      scoreDbPath,
+      songDbPath,
+      rivalFolderPath,
+      tableUrls,
+      includeUnlistedUpdates: includeUnlistedChartsInLampUpdates,
+      skillAnalyzerFetchMode,
+      scoreDbMode,
+    });
 
     latestAnalysis = normalizeAnalysisLampStatuses(payload);
     syncSelectedRivalsWithAnalysis(latestAnalysis);
@@ -1119,6 +2260,74 @@ rivalFolderPathInput?.addEventListener("input", persistFormStateDebounced);
 tableUrlsInput.addEventListener("input", persistFormStateDebounced);
 tableUrlsInput.addEventListener("input", () => {
   renderManualTableUrlToggles();
+  updateTableListSelectionSummary(getFilteredTableListEntries().length);
+});
+openTableListButton?.addEventListener("click", () => {
+  setTableListModalOpen(true);
+});
+tableListCloseButton?.addEventListener("click", () => {
+  setTableListModalOpen(false);
+});
+tableListModal?.addEventListener("click", (event) => {
+  if (event.target === tableListModal) {
+    setTableListModalOpen(false);
+  }
+});
+refreshTableListButton?.addEventListener("click", () => {
+  void refreshTableList({ force: true }).catch((error) => {
+    console.error("Failed to refresh table list", error);
+  });
+});
+addCustomTableUrlButton?.addEventListener("click", () => {
+  void handleAddCustomTableUrl().catch((error) => {
+    console.error("Failed to add custom table URL", error);
+  });
+});
+tableListFilterInput?.addEventListener("input", () => {
+  tableListFilterText = tableListFilterInput.value;
+  renderTablePresetPicker();
+});
+tableListSearchModeButton?.addEventListener("click", () => {
+  tableListInputMode = "search";
+  syncTableListInputModeControls();
+  tableListFilterInput?.focus();
+});
+tableListUrlModeButton?.addEventListener("click", () => {
+  tableListInputMode = "url";
+  syncTableListInputModeControls();
+  customTableUrlInput?.focus();
+});
+customTableUrlInput?.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+  event.preventDefault();
+  void handleAddCustomTableUrl().catch((error) => {
+    console.error("Failed to add custom table URL", error);
+  });
+});
+tableListSelectedOnlyToggle?.addEventListener("click", () => {
+  tableListSelectedOnly = !tableListSelectedOnly;
+  if (tableListSelectedOnly) {
+    setTableListStatus("追加済みの難易度表だけ表示しています。");
+  } else {
+    setTableListStatus("チェックした難易度表が読み込み対象になります。");
+  }
+  renderTablePresetPicker();
+});
+tableListTagFilters?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-table-tag-filter]");
+  if (!button || !tableListTagFilters.contains(button)) {
+    return;
+  }
+  const nextFilter = String(button.dataset.tableTagFilter ?? "all");
+  selectedTableTagFilter = TABLE_LIST_TAG_FILTERS.has(nextFilter) ? nextFilter : "all";
+  renderTablePresetPicker();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && isTableListModalOpen()) {
+    setTableListModalOpen(false);
+  }
 });
 scoreDbPathInput.addEventListener("input", () => {
   if (latestAnalysis) {
@@ -1189,9 +2398,11 @@ scoreDbPathInput.addEventListener("change", () => {
 });
 
 clearSavedButton.addEventListener("click", async () => {
-  const shouldClear = window.confirm(
-    localizeString("保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表プリセットの選択状態は保持されます。"),
-  );
+  const shouldClear = await showAppConfirm("保存してある入力内容と前回の読み込み結果を削除しますか？", {
+    description: "※難易度表の選択状態は保持されます。",
+    confirmLabel: "削除する",
+    cancelLabel: "キャンセル",
+  });
   if (!shouldClear) {
     return;
   }
@@ -1232,8 +2443,18 @@ clearSavedButton.addEventListener("click", async () => {
   if (includeBpUpdatesInput) {
     includeBpUpdatesInput.checked = false;
   }
+  includeUnlistedChartsInLampUpdates = false;
+  if (includeUnlistedUpdatesInput) {
+    includeUnlistedUpdatesInput.checked = false;
+  }
+  skillAnalyzerFetchMode = "both";
+  scoreDbMode = "auto";
+  if (scoreDbModeSelect) {
+    scoreDbModeSelect.value = scoreDbMode;
+  }
+  syncSkillAnalyzerFetchModeControls();
   renderAnalysis();
-  setStatus("保存済みデータを削除しました。難易度表プリセットの選択状態は保持しています。");
+  setStatus("保存済みデータを削除しました。難易度表の選択状態は保持しています。");
 });
 
 function renderAnalysis() {
@@ -1256,7 +2477,11 @@ function renderAnalysis() {
   if (lampImprovementPanel) {
     resultsRoot.append(lampImprovementPanel);
   }
-  const visibleTables = latestAnalysis.tables;
+  const forceBest50Folder = renderForceRatingBest50Folder(latestAnalysis.player?.forceRating);
+  if (forceBest50Folder) {
+    resultsRoot.append(forceBest50Folder);
+  }
+  const visibleTables = getAnalysisTablesForDisplay(latestAnalysis.tables);
 
   const visibleTableKeys = new Set(visibleTables.map((table) => buildTableInfoStateKey(table)));
   for (const key of tableInfoPanelOpenState.keys()) {
@@ -1280,7 +2505,7 @@ function renderAnalysis() {
     emptyPanel.className = "panel overview-panel";
     emptyPanel.innerHTML =
       latestAnalysis.tables.length === 0
-        ? '<p class="helper">難易度表URL未入力のため、プレイヤーデータのみ表示しています。</p>'
+        ? '<p class="helper">難易度表が未選択のため、プレイヤーデータのみ表示しています。</p>'
         : '<p class="helper">表示対象の難易度表がありません。</p>';
     resultsRoot.append(emptyPanel);
     translateApp();
@@ -1291,6 +2516,23 @@ function renderAnalysis() {
     resultsRoot.append(renderTableSection(table, table.charts));
   }
   translateApp();
+}
+
+function getAnalysisTablesForDisplay(tables) {
+  return (Array.isArray(tables) ? tables : [])
+    .map((table, index) => ({ table, index, selectedIndex: getSelectedTableUrlIndex(table?.sourceUrl) }))
+    .sort((left, right) => {
+      const leftSelected = left.selectedIndex >= 0;
+      const rightSelected = right.selectedIndex >= 0;
+      if (leftSelected && rightSelected && left.selectedIndex !== right.selectedIndex) {
+        return left.selectedIndex - right.selectedIndex;
+      }
+      if (leftSelected !== rightSelected) {
+        return leftSelected ? -1 : 1;
+      }
+      return left.index - right.index;
+    })
+    .map((entry) => entry.table);
 }
 
 function renderInitialGuidePanel() {
@@ -1663,6 +2905,10 @@ function renderOverviewPanel(analysis) {
   for (const card of createSkillAnalyzerMetricCards(analysis.player)) {
     metricGrid.append(card);
   }
+  const forceRatingCard = createForceRatingCard(analysis.player.forceRating);
+  if (forceRatingCard) {
+    metricGrid.append(forceRatingCard);
+  }
   if (latestKeyHitCountDelta != null && latestKeyHitCountDelta > 0) {
     metricGrid.append(
       createMetricCard(
@@ -1687,6 +2933,244 @@ function renderOverviewPanel(analysis) {
   }
 
   return section;
+}
+
+function renderForceRatingBest50Folder(forceRating) {
+  if (!forceRating || forceRating.available === false) {
+    return null;
+  }
+
+  const charts = Array.isArray(forceRating.topCharts) ? forceRating.topCharts : [];
+  const section = document.createElement("section");
+  section.className = "panel table-section force-best50-section";
+
+  const header = document.createElement("div");
+  header.className = "table-header force-best50-header";
+
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "table-title-wrap";
+  const heading = document.createElement("h2");
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "table-name-toggle";
+  toggle.setAttribute("aria-expanded", forceBest50Open ? "true" : "false");
+  const title = document.createElement("span");
+  title.textContent = "FORCE RATE TARGETS";
+  toggle.append(title);
+  heading.append(toggle);
+  titleWrap.append(heading);
+
+  const count = document.createElement("div");
+  count.className = "force-best50-count";
+  count.dataset.i18nSkip = "true";
+  count.textContent =
+    selectedLanguage === "en" ? `${charts.length} targets` : `${charts.length}対象`;
+  header.append(titleWrap, count);
+
+  const panel = document.createElement("div");
+  panel.className = "table-info-panel force-best50-panel";
+  panel.classList.toggle("hidden", !forceBest50Open);
+
+  const summary = document.createElement("div");
+  summary.className = "force-best50-summary";
+  summary.dataset.i18nSkip = "true";
+  const cutoff = Number(forceRating.cutoff);
+  const cutoffText = Number.isFinite(cutoff) && charts.length ? cutoff.toFixed(3) : "-";
+  const broadCount = Math.max(0, Number.parseInt(forceRating.broadCount, 10) || charts.length);
+  const broadAverage = Number(forceRating.broadAverage);
+  const best20Average = Number(forceRating.best20Average);
+  const broadAverageText = Number.isFinite(broadAverage) ? broadAverage.toFixed(3) : "-";
+  const best20AverageText = Number.isFinite(best20Average) ? best20Average.toFixed(3) : "-";
+  summary.textContent =
+    selectedLanguage === "en"
+      ? `Targets ${broadCount}/51 · BEST20 avg ${best20AverageText} · Broad avg ${broadAverageText} · Cutoff ${cutoffText}`
+      : `対象 ${broadCount}/51 · BEST20平均 ${best20AverageText} · 全体平均 ${broadAverageText} · 下限 ${cutoffText}`;
+  panel.append(summary);
+
+  if (charts.length) {
+    panel.append(createForceBest50Table(charts));
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "helper force-best50-empty";
+    empty.textContent =
+      selectedLanguage === "en"
+        ? "There are no played charts eligible for FORCE RATE."
+        : "レーティング対象のプレイ済み譜面がありません。";
+    panel.append(empty);
+  }
+
+  toggle.addEventListener("click", () => {
+    forceBest50Open = panel.classList.contains("hidden");
+    panel.classList.toggle("hidden", !forceBest50Open);
+    toggle.setAttribute("aria-expanded", forceBest50Open ? "true" : "false");
+  });
+
+  section.append(header, panel);
+  return section;
+}
+
+function createForceBest50Table(charts) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "force-best50-table-wrap";
+
+  const columns =
+    selectedLanguage === "en"
+      ? [
+          { key: "rank", label: "#" },
+          { key: "title", label: "Title" },
+          { key: "chartConstant", label: "Chart Constant" },
+          { key: "lampStatus", label: "Lamp" },
+          { key: "scoreRate", label: "EX/Rate" },
+          { key: "force", label: "Chart FORCE" },
+          { key: "source", label: "Source" },
+        ]
+      : [
+          { key: "rank", label: "#" },
+          { key: "title", label: "Title" },
+          { key: "chartConstant", label: "譜面定数" },
+          { key: "lampStatus", label: "Lamp" },
+          { key: "scoreRate", label: "EX/Rate" },
+          { key: "force", label: "単曲レート" },
+          { key: "source", label: "対象表" },
+        ];
+
+  const render = () => {
+    wrapper.innerHTML = "";
+
+    const table = document.createElement("table");
+    table.className = "chart-table force-best50-table";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const column of columns) {
+      const th = document.createElement("th");
+      th.className = `force-best50-column-${column.key}`;
+      th.setAttribute(
+        "aria-sort",
+        forceBest50SortState.sortKey === column.key
+          ? forceBest50SortState.sortDirection === "asc"
+            ? "ascending"
+            : "descending"
+          : "none",
+      );
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "sort-button";
+      button.classList.toggle("is-active", forceBest50SortState.sortKey === column.key);
+      button.innerHTML =
+        `<span>${escapeHtml(column.label)}</span>` +
+        `<span class="sort-indicator">${getSortIndicator(column.key, forceBest50SortState)}</span>`;
+      button.addEventListener("click", () => {
+        if (forceBest50SortState.sortKey === column.key) {
+          forceBest50SortState.sortDirection =
+            forceBest50SortState.sortDirection === "asc" ? "desc" : "asc";
+        } else {
+          forceBest50SortState.sortKey = column.key;
+          forceBest50SortState.sortDirection = "asc";
+        }
+        render();
+      });
+      th.append(button);
+      headRow.append(th);
+    }
+    thead.append(headRow);
+
+    const tbody = document.createElement("tbody");
+    for (const chart of sortForceBest50Charts(charts, forceBest50SortState)) {
+      const lampStatus = normalizeLampStatusForUi(chart?.lampStatus);
+      const lampClass = `lamp-${toLampSlug(lampStatus)}`;
+      const row = document.createElement("tr");
+      row.className = lampClass;
+
+      const rankCell = document.createElement("td");
+      rankCell.className = "force-best50-rank";
+      rankCell.textContent = String(chart.rank ?? "-");
+
+      const titleCell = document.createElement("td");
+      titleCell.className = `chart-title-cell force-best50-title ${lampClass}`;
+      const chartTitle = String(chart.title || "").trim();
+      titleCell.innerHTML = `<div class="chart-title">${escapeHtml(chartTitle || "-")}</div>`;
+
+      const constantCell = document.createElement("td");
+      constantCell.className = "force-best50-constant";
+      constantCell.textContent = Number.isFinite(Number(chart.chartConstant))
+        ? Number(chart.chartConstant).toFixed(2)
+        : "-";
+
+      const lampCell = document.createElement("td");
+      lampCell.className = "chart-lamp-cell force-best50-lamp";
+      lampCell.textContent = lampLabels[lampStatus] || lampStatus;
+
+      const scoreCell = createScoreCell({
+        lampStatus,
+        exScore: Number(chart.exScore),
+        maxExScore: Number(chart.maxExScore),
+        scoreRate: Number(chart.scoreRate),
+        maxOffset: Number(chart.maxExScore) - Number(chart.exScore),
+      });
+      scoreCell.classList.add("force-best50-score");
+
+      const forceCell = document.createElement("td");
+      forceCell.className = "force-best50-value";
+      forceCell.textContent = Number.isFinite(Number(chart.force)) ? Number(chart.force).toFixed(3) : "-";
+
+      const sourceCell = document.createElement("td");
+      sourceCell.className = "force-best50-source";
+      sourceCell.textContent =
+        chart.source === "insane"
+          ? "発狂BMS"
+          : chart.source === "overjoy"
+            ? "Overjoy"
+            : chart.source === "dan"
+              ? selectedLanguage === "en" ? "Dan" : "段位"
+              : "-";
+
+      row.append(rankCell, titleCell, constantCell, lampCell, scoreCell, forceCell, sourceCell);
+      tbody.append(row);
+    }
+
+    table.append(thead, tbody);
+    wrapper.append(table);
+  };
+
+  render();
+  return wrapper;
+}
+
+function sortForceBest50Charts(charts, state) {
+  return [...charts].sort((left, right) => {
+    let compared = 0;
+    switch (state.sortKey) {
+      case "title":
+        compared = applySortDirection(compareText(left.title, right.title), state.sortDirection);
+        break;
+      case "chartConstant":
+        compared = compareNumericNullable(left.chartConstant, right.chartConstant, state.sortDirection);
+        break;
+      case "lampStatus":
+        compared = applySortDirection(
+          compareLampStatus(
+            normalizeLampStatusForUi(left.lampStatus),
+            normalizeLampStatusForUi(right.lampStatus),
+          ),
+          state.sortDirection,
+        );
+        break;
+      case "scoreRate":
+        compared = compareNumericNullable(left.scoreRate, right.scoreRate, state.sortDirection);
+        break;
+      case "force":
+        compared = compareNumericNullable(left.force, right.force, state.sortDirection);
+        break;
+      case "source":
+        compared = applySortDirection(compareText(left.source, right.source), state.sortDirection);
+        break;
+      case "rank":
+      default:
+        compared = compareNumericNullable(left.rank, right.rank, state.sortDirection);
+        break;
+    }
+    return compared || compareNumericNullable(left.rank, right.rank, "asc");
+  });
 }
 
 function getPlayerDisplayId(player) {
@@ -1996,28 +3480,57 @@ function getLampImprovementGroupDefs() {
 }
 
 async function exportLampUpdatesSnapshot({ improvements, keyHitCountDelta, playTimeDeltaSeconds, themeMode }) {
-  const dataUrl = renderLampUpdatesSnapshotDataUrl({
-    improvements: Array.isArray(improvements) ? improvements : [],
-    keyHitCountDelta,
-    playTimeDeltaSeconds,
-    themeMode,
-  });
-  const fileName = buildLampUpdatesSnapshotFileName();
+  const snapshotParts = createLampUpdatesSnapshotParts(Array.isArray(improvements) ? improvements : []);
+  const totalParts = snapshotParts.length;
+  const totalUpdateCount = Array.isArray(improvements) ? improvements.length : 0;
+  const timestamp = new Date();
 
   if (hasDesktopImageSave()) {
-    const saved = await window.lr2irDesktop.saveImage({
-      dataUrl,
-      fileName,
-      directoryPath: getScreenshotDirectoryPath(),
-    });
-    const savedPath = String(saved?.filePath ?? "").trim();
-    if (savedPath) {
-      return `画像を保存しました: ${savedPath}`;
+    const savedPaths = [];
+    for (let index = 0; index < snapshotParts.length; index += 1) {
+      const dataUrl = renderLampUpdatesSnapshotDataUrl({
+        improvements: snapshotParts[index],
+        keyHitCountDelta,
+        playTimeDeltaSeconds,
+        themeMode,
+        totalUpdateCount,
+        snapshotPart: { index, total: totalParts },
+      });
+      assertPngDataUrl(dataUrl);
+      const saved = await window.lr2irDesktop.saveImage({
+        dataUrl,
+        fileName: buildLampUpdatesSnapshotFileName(timestamp, { index, total: totalParts }),
+        directoryPath: getScreenshotDirectoryPath(),
+      });
+      const savedPath = String(saved?.filePath ?? "").trim();
+      if (savedPath) {
+        savedPaths.push(savedPath);
+      }
+    }
+    if (totalParts > 1) {
+      return `${localizeString("画像を分割して保存しました。")} (${totalParts} files)`;
+    }
+    if (savedPaths[0]) {
+      return `画像を保存しました: ${savedPaths[0]}`;
     }
     return "画像を保存しました。";
   }
 
-  downloadDataUrl(dataUrl, fileName);
+  for (let index = 0; index < snapshotParts.length; index += 1) {
+    const dataUrl = renderLampUpdatesSnapshotDataUrl({
+      improvements: snapshotParts[index],
+      keyHitCountDelta,
+      playTimeDeltaSeconds,
+      themeMode,
+      totalUpdateCount,
+      snapshotPart: { index, total: totalParts },
+    });
+    assertPngDataUrl(dataUrl);
+    downloadDataUrl(dataUrl, buildLampUpdatesSnapshotFileName(timestamp, { index, total: totalParts }));
+  }
+  if (totalParts > 1) {
+    return `${localizeString("画像を分割してダウンロードしました。")} (${totalParts} files)`;
+  }
   return "画像をダウンロードしました。";
 }
 
@@ -2029,8 +3542,34 @@ function getScreenshotDirectoryPath() {
   return screenshotDirPathInput?.value.trim() ?? "";
 }
 
-function buildLampUpdatesSnapshotFileName() {
-  return `L2TV_Today_${formatSnapshotTimestamp(new Date())}.png`;
+function createLampUpdatesSnapshotParts(improvements) {
+  const sortedImprovements = [...(Array.isArray(improvements) ? improvements : [])].sort(compareLampImprovements);
+  if (sortedImprovements.length <= LAMP_UPDATES_SNAPSHOT_MAX_ITEMS_PER_IMAGE) {
+    return [sortedImprovements];
+  }
+
+  const parts = [];
+  for (let index = 0; index < sortedImprovements.length; index += LAMP_UPDATES_SNAPSHOT_MAX_ITEMS_PER_IMAGE) {
+    parts.push(sortedImprovements.slice(index, index + LAMP_UPDATES_SNAPSHOT_MAX_ITEMS_PER_IMAGE));
+  }
+  return parts;
+}
+
+function assertPngDataUrl(dataUrl) {
+  if (typeof dataUrl === "string" && dataUrl.startsWith("data:image/png;base64,")) {
+    return;
+  }
+  throw new Error("画像出力データの作成に失敗しました。");
+}
+
+function buildLampUpdatesSnapshotFileName(date = new Date(), partInfo = null) {
+  const timestamp = formatSnapshotTimestamp(date);
+  if (partInfo && partInfo.total > 1) {
+    const width = String(partInfo.total).length;
+    const partNumber = String(partInfo.index + 1).padStart(width, "0");
+    return `L2TV_Today_${timestamp}_${partNumber}of${partInfo.total}.png`;
+  }
+  return `L2TV_Today_${timestamp}.png`;
 }
 
 async function exportTableSummarySnapshot({ table, charts, mode, themeMode }) {
@@ -2387,7 +3926,14 @@ function groupChartsForSnapshot(charts, levelOrder) {
     }));
 }
 
-function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, playTimeDeltaSeconds, themeMode }) {
+function renderLampUpdatesSnapshotDataUrl({
+  improvements,
+  keyHitCountDelta,
+  playTimeDeltaSeconds,
+  themeMode,
+  totalUpdateCount = null,
+  snapshotPart = null,
+}) {
   const normalizedTheme = normalizeThemeMode(themeMode);
   const updateDateText = formatDateYmd(new Date());
   const sortedImprovements = [...(Array.isArray(improvements) ? improvements : [])].sort(compareLampImprovements);
@@ -2469,7 +4015,11 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, play
   ctx.font = "700 34px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
   ctx.textBaseline = "top";
-  ctx.fillText("L2TV Lamp Updates", metrics.paddingX, y);
+  const snapshotTitle =
+    snapshotPart && snapshotPart.total > 1
+      ? `L2TV Lamp Updates (${snapshotPart.index + 1}/${snapshotPart.total})`
+      : "L2TV Lamp Updates";
+  ctx.fillText(snapshotTitle, metrics.paddingX, y);
 
   const timestampText = new Date().toLocaleString(getCurrentLocale());
   ctx.font = "600 18px 'Segoe UI', 'Meiryo', sans-serif";
@@ -2491,7 +4041,8 @@ function renderLampUpdatesSnapshotDataUrl({ improvements, keyHitCountDelta, play
   ctx.fillStyle = palette.textStrong;
   ctx.fillText(`${localizeString("今回の打鍵数")}: ${keyHitText}`, metrics.paddingX, y);
   ctx.fillText(`${localizeString("プレイ時間")}: ${playTimeText}`, metrics.paddingX + 350, y);
-  ctx.fillText(`${localizeString("更新譜面数")}: ${formatInteger(sortedImprovements.length)}`, metrics.paddingX + 720, y);
+  const updateCountText = totalUpdateCount == null ? sortedImprovements.length : totalUpdateCount;
+  ctx.fillText(`${localizeString("更新譜面数")}: ${formatInteger(updateCountText)}`, metrics.paddingX + 720, y);
 
   y += metrics.metaHeight;
 
@@ -2982,11 +4533,12 @@ function renderTableSection(table, filteredCharts) {
   tableLink.href = table.sourceUrl;
 
   const metricStrip = root.querySelector(".metric-strip");
-  metricStrip.append(
+  const metricCards = [
     createMetricCard("総譜面数", String(table.stats.totalCharts), ""),
     createMetricCard("クリア率", formatPercent(table.stats.clearRate), ""),
     createMetricCard("プレイ率", formatPercent(table.stats.playedRate), ""),
-  );
+  ];
+  metricStrip.append(...metricCards);
 
   const lampSummary = root.querySelector(".lamp-summary");
   for (const lamp of lampOptions) {
@@ -3353,37 +4905,22 @@ function renderGroupedChartTables(table, charts, state, rerender) {
     const levelCharts = chartGroups.get(level);
     const group = document.createElement("details");
     group.className = "level-group";
-    const completedLamp = getLevelGroupCompletedLamp(levelCharts);
-    if (completedLamp) {
-      group.classList.add(`level-group-complete-${toLampSlug(completedLamp)}`);
-    }
     group.open = state.level ? state.level === level : state.openLevels.has(level);
 
     const summary = document.createElement("summary");
     summary.className = "level-group-summary";
 
-    const groupLabel = document.createElement("span");
-    groupLabel.className = "level-group-label";
-
     const groupName = document.createElement("span");
     groupName.className = "level-group-name";
     groupName.textContent = formatLevelWithSymbol(level, table.symbol);
-    groupLabel.append(groupName);
 
-    if (completedLamp) {
-      const groupLampBadge = document.createElement("span");
-      groupLampBadge.className = `lamp-badge level-group-lamp-badge lamp-${toLampSlug(completedLamp)}`;
-      groupLampBadge.textContent = lampLabels[completedLamp] || completedLamp;
-      groupLabel.append(groupLampBadge);
-    }
-
-    const breakdown = createLevelGroupBreakdown(levelCharts);
+    const graph = createLevelGroupGraph(levelCharts, levelChartMode);
 
     const groupCount = document.createElement("span");
     groupCount.className = "level-group-count";
     groupCount.textContent = `${levelCharts.length}譜面`;
 
-    summary.append(groupLabel, breakdown, groupCount);
+    summary.append(groupName, graph, groupCount);
 
     const sortedCharts = sortChartsForList(levelCharts, table, {
       ...state,
@@ -3704,50 +5241,42 @@ function renderChartTable(charts, tableInfo, state, rerender) {
   return table;
 }
 
-function createLevelGroupBreakdown(charts) {
-  const wrapper = document.createElement("span");
-  wrapper.className = "level-group-breakdown";
+function createLevelGroupGraph(charts, mode = "lamp") {
+  const graph = document.createElement("span");
+  graph.className = "level-group-graph";
+  const segmentDefs = mode === "score" ? buildScoreChartDefs() : buildLampChartDefs(charts);
+  const total = Math.max(1, charts.length);
 
-  const lampGroup = document.createElement("span");
-  lampGroup.className = "level-group-breakdown-row";
-  for (const lamp of levelChartLampOrder) {
-    const count = charts.filter((chart) => chart.lampStatus === lamp).length;
-    lampGroup.append(createLevelGroupBreakdownChip(toChartLampLabel(lamp), count, `lamp-${toLampSlug(lamp)}`));
-  }
-
-  const scoreGroup = document.createElement("span");
-  scoreGroup.className = "level-group-breakdown-row";
-  for (const tier of levelChartScoreOrder) {
-    const count = charts.filter((chart) => classifyScoreTier(chart) === tier).length;
-    scoreGroup.append(createLevelGroupBreakdownChip(levelChartScoreLabels[tier] || tier, count, `score-${toScoreTierSlug(tier)}`));
-  }
-
-  wrapper.append(lampGroup, scoreGroup);
-  return wrapper;
-}
-
-function createLevelGroupBreakdownChip(label, count, toneClass) {
-  const chip = document.createElement("span");
-  chip.className = `level-group-breakdown-chip ${toneClass}`;
-  chip.textContent = `${label} ${formatInteger(count)}`;
-  return chip;
-}
-
-function getLevelGroupCompletedLamp(charts) {
-  if (!charts.length) {
-    return null;
-  }
-
-  if (charts.some((chart) => !chart?.lampStatus || isNoPlayableDataLamp(chart.lampStatus))) {
-    return null;
-  }
-
-  return charts.reduce((weakestLamp, chart) => {
-    if (!weakestLamp) {
-      return chart.lampStatus;
+  for (const def of segmentDefs) {
+    const count = charts.reduce((sum, chart) => sum + (def.matches(chart) ? 1 : 0), 0);
+    if (!count) {
+      continue;
     }
-    return compareLampStatus(chart.lampStatus, weakestLamp) > 0 ? chart.lampStatus : weakestLamp;
-  }, null);
+
+    const ratio = count / total;
+    const segment = document.createElement("span");
+    segment.className = `level-group-graph-segment ${def.segmentClass}`;
+    segment.style.width = `${ratio * 100}%`;
+    const tooltipText = `${def.label}: ${count} (${formatPercent(ratio * 100)})`;
+    if (ratio >= 0.12) {
+      const percentage = document.createElement("span");
+      percentage.className = "level-group-graph-label";
+      percentage.textContent = formatPercent(ratio * 100);
+      segment.append(percentage);
+    }
+    segment.addEventListener("mouseenter", (event) => {
+      showFloatingTooltip(tooltipText, event);
+    });
+    segment.addEventListener("mousemove", (event) => {
+      showFloatingTooltip(tooltipText, event);
+    });
+    segment.addEventListener("mouseleave", () => {
+      hideFloatingTooltip();
+    });
+    graph.append(segment);
+  }
+
+  return graph;
 }
 
 function chartMatchesChartListFilters(chart, query, lamp, level) {
@@ -4116,6 +5645,162 @@ function createMetricCard(label, value, subvalue, cardClass = "") {
   return card;
 }
 
+function createForceRatingCard(forceRating) {
+  if (!forceRating || forceRating.available === false) {
+    return null;
+  }
+
+  const rating = Number(forceRating.rating);
+  const displayedRating = Number.isFinite(rating) ? rating.toFixed(3) : "0.000";
+  const title = String(forceRating.title || "SLATE").trim() || "SLATE";
+  const tier = String(forceRating.tier || "slate").trim().toLowerCase();
+  const top50Count = Math.max(0, Number.parseInt(forceRating.top50Count, 10) || 0);
+  const broadCount = Math.max(0, Number.parseInt(forceRating.broadCount, 10) || top50Count);
+  const playedCharts = Math.max(0, Number.parseInt(forceRating.playedCharts, 10) || 0);
+
+  const card = document.createElement("div");
+  card.className = `metric force-rating-card force-tier-${tier}`;
+
+  const helpButton = document.createElement("button");
+  helpButton.type = "button";
+  helpButton.className = "force-rating-help-button";
+  helpButton.textContent = "?";
+  helpButton.dataset.i18nSkip = "true";
+  helpButton.setAttribute("aria-label", selectedLanguage === "en" ? "About FORCE RATE" : "FORCE RATEについて");
+  helpButton.title = selectedLanguage === "en" ? "About FORCE RATE" : "FORCE RATEについて";
+  helpButton.addEventListener("click", () => showForceRatingHelp(helpButton));
+
+  const label = document.createElement("div");
+  label.className = "label force-rating-label";
+  label.textContent = "FORCE RATE";
+
+  const content = document.createElement("div");
+  content.className = "force-rating-content";
+
+  const badge = document.createElement("div");
+  badge.className = "force-rating-badge";
+  badge.setAttribute("role", "img");
+  badge.setAttribute("aria-label", `${title} badge`);
+
+  const copy = document.createElement("div");
+  copy.className = "force-rating-copy";
+
+  const value = document.createElement("div");
+  value.className = "value force-rating-value";
+  value.textContent = displayedRating;
+
+  const titleElement = document.createElement("div");
+  titleElement.className = "force-rating-title";
+  titleElement.textContent = title;
+
+  const detail = document.createElement("div");
+  detail.className = "subvalue force-rating-detail";
+  detail.dataset.i18nSkip = "true";
+  detail.textContent =
+    selectedLanguage === "en"
+      ? `BEST20/${broadCount} · charts ${top50Count}/50 · ${playedCharts} rated charts`
+      : `BEST20/${broadCount} · 譜面 ${top50Count}/50 · 対象 ${playedCharts}譜面`;
+
+  copy.append(label, value, titleElement, detail);
+  content.append(badge, copy);
+  card.append(helpButton, content);
+  return card;
+}
+
+function showForceRatingHelp(triggerButton) {
+  if (document.querySelector(".force-rating-help-modal")) {
+    return;
+  }
+
+  const isEnglish = selectedLanguage === "en";
+  const overlay = document.createElement("div");
+  overlay.className = "language-startup-modal force-rating-help-modal";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", "force-rating-help-title");
+  overlay.dataset.i18nSkip = "true";
+
+  const dialog = document.createElement("div");
+  dialog.className = "language-startup-card force-rating-help-dialog";
+
+  const header = document.createElement("div");
+  header.className = "force-rating-help-header";
+  const title = document.createElement("h2");
+  title.id = "force-rating-help-title";
+  title.textContent = isEnglish ? "About FORCE RATE" : "FORCE RATEについて";
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "force-rating-help-close-button";
+  closeButton.textContent = "×";
+  closeButton.setAttribute("aria-label", isEnglish ? "Close" : "閉じる");
+  closeButton.title = isEnglish ? "Close" : "閉じる";
+  header.append(title, closeButton);
+
+  const introduction = document.createElement("p");
+  introduction.textContent = isEnglish
+    ? "FORCE RATE is an index from 0.000 to 30.000 calculated by matching score.db charts to Insane BMS and second-period Overjoy chart constants by MD5. Third-period-only Overjoy charts are excluded. Chart constants use LR2IR Archive statistics."
+    : "FORCE RATEは、score.dbの譜面を発狂BMSと第二期Overjoyの譜面定数へMD5で照合し、0.000〜30.000で表す指標です。第三期Overjoyにのみ登録されている譜面は対象外です。譜面定数にはLR2IR Archiveの集計を使用します。";
+
+  const formula = document.createElement("div");
+  formula.className = "force-rating-help-formula";
+  formula.textContent = isEnglish
+    ? "FORCE RATE = Broad Average × 0.2 + BEST20 Average × 0.8"
+    : "FORCE RATE = 全体平均 × 0.2 + BEST20平均 × 0.8";
+
+  const details = document.createElement("ul");
+  details.className = "force-rating-help-list";
+  const items = isEnglish
+      ? [
+        "Chart constants compare all eligible charts on one global scale using LR2IR Archive FC, HC, NC, EC and failed totals. Difficulty-table levels are not used in the comparison.",
+        "The score coefficient is the EX score rate rounded to three decimal places: AAA = 0.889, 90% = 0.900, and 93.53% = 0.935.",
+        "Lamp coefficients: FC 1.00 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50. NP and NS are excluded.",
+        "Chart FORCE = Chart Constant × Score Coefficient × Lamp Coefficient.",
+        "The target set is up to 51 entries: the best 50 chart FORCE values plus the highest passed GENOSIDE2018 SP dan course. If no dan course is found, the target set remains 50 charts.",
+        "FORCE RATE blends the broad target average with the stronger BEST20 average, so the top-end density matters while the 50-chart requirement still remains.",
+        "The displayed maximum is 30.000. Title thresholds are unchanged.",
+        "The FORCE RATE BEST50 folder lists the rated charts and each Chart FORCE value.",
+      ]
+      : [
+        "譜面定数は、LR2IR ArchiveのFC・HC・NC・EC・FAILED総数を使い、全対象譜面を共通尺度で比較します。難易度表のレベル内順位は使いません。",
+        "スコア係数はEXスコア率を小数第3位へ四捨五入します。AAAは0.889、90%は0.900、93.53%は0.935です。",
+        "ランプ係数は FC 1.00 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50です。NPとNSは対象外です。",
+        "単曲レート = 譜面定数 × スコア係数 × ランプ係数です。",
+        "対象は最大51個です。単曲レート上位50譜面に、GENOSIDE2018 SP段位の最高合格段位を1個加えます。段位コースが見つからない場合は50譜面のままです。",
+        "FORCE RATEは、広さを見る全体平均と上位密度を見るBEST20平均を混ぜて計算します。50譜面を埋める意味は残しつつ、高い単曲レートの厚みも評価します。",
+        "表示上限は30.000です。称号付与条件は変更していません。",
+        "対象譜面と各単曲レートは、FORCE RATE BEST50フォルダで確認できます。",
+      ];
+  for (const itemText of items) {
+    const item = document.createElement("li");
+    item.textContent = itemText;
+    details.append(item);
+  }
+
+  const close = () => {
+    document.removeEventListener("keydown", handleKeyDown);
+    overlay.remove();
+    triggerButton?.focus();
+  };
+  const handleKeyDown = (event) => {
+    if (event.key === "Escape") {
+      close();
+    }
+  };
+
+  closeButton.addEventListener("click", close);
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) {
+      close();
+    }
+  });
+  document.addEventListener("keydown", handleKeyDown);
+
+  dialog.append(header, introduction, formula, details);
+  overlay.append(dialog);
+  document.body.append(overlay);
+  closeButton.focus();
+}
+
 function createLampPill(lamp, count) {
   const pill = document.createElement("div");
   pill.className = `lamp-pill lamp-pill-${toLampSlug(lamp)}`;
@@ -4177,7 +5862,7 @@ function buildStatusMessage(analysis) {
   const lines = [
     analysis.tables.length
       ? `${analysis.tables.length}件の難易度表を読み込みました。`
-      : "難易度表URL未入力のため、プレイヤーデータのみ読み込みました。",
+      : "難易度表が未選択のため、プレイヤーデータのみ読み込みました。",
     `プレイヤー: ${analysis.player.name || "-"} / SP段位 ${formatPlayerGrade(analysis.player)}`,
     sourceLine,
     localSongDbLine,
@@ -4229,6 +5914,8 @@ async function autoFetchProfileFromScoreDb() {
     const payload = await postJsonApi("/api/profile-from-db", {
       scoreDbPath,
       songDbPath: songDbPathInput.value.trim(),
+      skillAnalyzerFetchMode,
+      scoreDbMode,
     });
 
     if (token !== autoDbProfileFetchToken) {
@@ -4457,34 +6144,70 @@ function createSkillAnalyzerMetricCards(player) {
     return [];
   }
 
-  const cards = [];
-  const stGrade = normalizeSkillGradeText(skill.st?.grade, "st");
-  const slGrade = normalizeSkillGradeText(skill.sl?.grade, "sl");
-  const hasStGrade = Boolean(stGrade);
-
-  if (skill.st) {
-    cards.push(
-      createMetricCard(
-        "st段位",
-        stGrade || "-",
-        buildSkillAnalyzerFormalSupplement(skill.st, stGrade, "Stella Skill Simulator 4th"),
-        getSkillAnalyzerToneClass(stGrade),
-      ),
-    );
+  const bestSkillGrade = getBestSkillAnalyzerGrade(skill);
+  if (!bestSkillGrade) {
+    return [];
   }
 
-  if (!hasStGrade && skill.sl) {
-    cards.push(
-      createMetricCard(
-        "sl段位",
-        slGrade || "-",
-        buildSkillAnalyzerFormalSupplement(skill.sl, slGrade, "Satellite Skill Analyzer 2nd"),
-        getSkillAnalyzerToneClass(slGrade),
-      ),
-    );
+  return [
+    createMetricCard(
+      bestSkillGrade.label,
+      bestSkillGrade.grade,
+      buildSkillAnalyzerFormalSupplement(bestSkillGrade.entry, bestSkillGrade.grade, bestSkillGrade.fallbackName),
+      getSkillAnalyzerToneClass(bestSkillGrade.grade),
+    ),
+  ];
+}
+
+function getBestSkillAnalyzerGrade(skill) {
+  const candidates = [
+    {
+      kind: "st",
+      label: "st段位",
+      fallbackName: "Stella Skill Simulator 4th",
+      entry: skill?.st,
+      grade: normalizeSkillGradeText(skill?.st?.grade, "st"),
+    },
+    {
+      kind: "sl",
+      label: "sl段位",
+      fallbackName: "Satellite Skill Analyzer 2nd",
+      entry: skill?.sl,
+      grade: normalizeSkillGradeText(skill?.sl?.grade, "sl"),
+    },
+  ].filter((candidate) => candidate.entry && candidate.grade);
+
+  if (!candidates.length) {
+    return null;
   }
 
-  return cards;
+  return candidates.sort(compareSkillAnalyzerGradeCandidates)[0];
+}
+
+function compareSkillAnalyzerGradeCandidates(left, right) {
+  const leftRank = getSkillAnalyzerGradeRank(left);
+  const rightRank = getSkillAnalyzerGradeRank(right);
+  if (leftRank !== rightRank) {
+    return rightRank - leftRank;
+  }
+  if (left.kind === right.kind) {
+    return 0;
+  }
+  return left.kind === "st" ? -1 : 1;
+}
+
+function getSkillAnalyzerGradeRank(candidate) {
+  const match = String(candidate?.grade ?? "").match(/^(st|sl)(\d{1,2})$/);
+  if (!match) {
+    return -1;
+  }
+
+  const level = Number.parseInt(match[2], 10);
+  if (!Number.isFinite(level)) {
+    return -1;
+  }
+
+  return match[1] === "st" ? level + 100 : level;
 }
 
 function buildSkillAnalyzerFormalSupplement(entry, gradeText, fallbackName) {
@@ -5024,7 +6747,7 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
   }
 
   const previousByTable = new Map();
-  for (const table of previousAnalysis.tables) {
+  for (const table of getLampImprovementSources(previousAnalysis, { useLocalScoreStateForUnlisted: true })) {
     const tableKey = buildTableInfoStateKey(table);
     const chartMap = new Map();
     for (const chart of table?.charts ?? []) {
@@ -5040,7 +6763,7 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
 
   const improvementsByChart = new Map();
 
-  for (const table of currentAnalysis.tables) {
+  for (const table of getLampImprovementSources(currentAnalysis)) {
     const tableKey = buildTableInfoStateKey(table);
     const previousCharts = previousByTable.get(tableKey);
     if (!previousCharts) {
@@ -5130,7 +6853,11 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
           }
         }
 
-        addLampImprovementLevelEntry(entry, table?.symbol, chart?.level);
+        if (table?.isUnlistedUpdateSource) {
+          addLampImprovementLevelEntry(entry, "", localizeString("表外"));
+        } else {
+          addLampImprovementLevelEntry(entry, table?.symbol, chart?.level);
+        }
       }
     }
   }
@@ -5162,6 +6889,36 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
   }
 
   return improvements;
+}
+
+function getLampImprovementSources(analysis, options = {}) {
+  const useLocalScoreStateForUnlisted = Boolean(options.useLocalScoreStateForUnlisted);
+  const sources = Array.isArray(analysis?.tables) ? [...analysis.tables] : [];
+  const unlistedCharts = Array.isArray(analysis?.unlistedUpdateCharts) ? analysis.unlistedUpdateCharts : [];
+  const localScoreStateCharts = Array.isArray(analysis?.localScoreState?.entries) ? analysis.localScoreState.entries : [];
+  const unlistedSourceCharts =
+    useLocalScoreStateForUnlisted ? mergeUnlistedSourceCharts(localScoreStateCharts, unlistedCharts) : unlistedCharts;
+  if (unlistedSourceCharts.length > 0) {
+    sources.push({
+      sourceUrl: "__unlisted_updates__",
+      name: "__unlisted_updates__",
+      symbol: "",
+      isUnlistedUpdateSource: true,
+      charts: unlistedSourceCharts,
+    });
+  }
+  return sources;
+}
+
+function mergeUnlistedSourceCharts(baseCharts, overrideCharts) {
+  const merged = new Map();
+  for (const chart of Array.isArray(baseCharts) ? baseCharts : []) {
+    merged.set(buildChartIdentityKey(chart), chart);
+  }
+  for (const chart of Array.isArray(overrideCharts) ? overrideCharts : []) {
+    merged.set(buildChartIdentityKey(chart), chart);
+  }
+  return [...merged.values()];
 }
 
 function collectKeyHitCountDelta(previousAnalysis, currentAnalysis) {
@@ -5407,15 +7164,30 @@ initializePersistence().catch((error) => {
 });
 
 async function initializePersistence() {
+  await restoreCustomTableListEntries();
   await restoreTablePresetSelection();
   syncPresetCheckboxesFromState();
+  void refreshTableList({ silent: true }).catch((error) => {
+    console.error("Failed to load table list", error);
+  });
   const restoredFormState = await restoreFormState();
   const restoredAnalysis = await restoreLatestAnalysis();
-  const shouldShowLanguagePrompt = !hasStoredLanguagePreference;
+  let shouldShowLanguagePrompt = !hasStoredLanguagePreference;
+  if (shouldShowLanguagePrompt && shouldSkipInitialLanguagePrompt()) {
+    hasStoredLanguagePreference = true;
+    applyLanguage(getStartupLanguagePreference());
+    shouldShowLanguagePrompt = false;
+  }
 
   if (restoredAnalysis) {
-    const autoReloaded = await maybeAutoReloadOnDbUpdate(restoredAnalysis);
-    if (autoReloaded) {
+    const autoReloadResult = await maybeAutoReloadOnDbUpdate(restoredAnalysis);
+    if (autoReloadResult === "reloading") {
+      if (shouldShowLanguagePrompt) {
+        showInitialLanguagePrompt();
+      }
+      return;
+    }
+    if (autoReloadResult === "declined") {
       if (shouldShowLanguagePrompt) {
         showInitialLanguagePrompt();
       }
@@ -5442,12 +7214,12 @@ async function initializePersistence() {
 async function maybeAutoReloadOnDbUpdate(restoredAnalysis) {
   const scoreDbPath = scoreDbPathInput.value.trim();
   if (!scoreDbPath || !restoredAnalysis) {
-    return false;
+    return "unchanged";
   }
 
   const previousState = normalizeLocalDbStateForCompare(restoredAnalysis.localDbState);
   if (!previousState.scoreDb.path) {
-    return false;
+    return "unchanged";
   }
 
   try {
@@ -5455,10 +7227,16 @@ async function maybeAutoReloadOnDbUpdate(restoredAnalysis) {
       await fetchLocalDbState(scoreDbPath, songDbPathInput.value.trim()),
     );
     if (!hasLocalDbStateChanged(previousState, currentState)) {
-      return false;
+      return "unchanged";
     }
 
-    setStatus("score.db / song.db の更新を検知したため、自動で再読み込みしています。");
+    const shouldReload = await showPlayUpdatePrompt();
+    if (!shouldReload) {
+      setStatus("プレイ更新を検知しました。反映する場合は読み込みボタンを押してください。");
+      return "declined";
+    }
+
+    setStatus("プレイ更新を反映しています。");
     window.setTimeout(() => {
       if (typeof form.requestSubmit === "function") {
         form.requestSubmit();
@@ -5466,10 +7244,10 @@ async function maybeAutoReloadOnDbUpdate(restoredAnalysis) {
         form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       }
     }, 0);
-    return true;
+    return "reloading";
   } catch (error) {
     console.error("Failed to check local DB update state", error);
-    return false;
+    return "unchanged";
   }
 }
 
@@ -5538,19 +7316,55 @@ function hasLocalDbFileChanged(previousFile, currentFile) {
 async function restoreTablePresetSelection() {
   const persisted = await readPersistedValue(TABLE_PRESET_SELECTION_KEY);
   if (!Array.isArray(persisted)) {
-    selectedTablePresetIds = new Set();
+    selectedTableUrls = new Set();
+    rebuildAvailableTableListEntries();
     return false;
   }
 
-  const validPresetIds = new Set(TABLE_PRESETS.map((preset) => preset.id));
-  selectedTablePresetIds = new Set(
-    persisted.map((value) => String(value)).filter((value) => validPresetIds.has(value)),
+  const fallbackById = new Map(DEFAULT_TABLE_LIST_ENTRIES.map((preset) => [preset.id, preset.url]));
+  selectedTableUrls = new Set(
+    dedupeTableUrlsByNormalizedKey(
+      persisted
+        .map((value) => String(value))
+        .map((value) => fallbackById.get(value) || value),
+    ),
   );
+  rebuildAvailableTableListEntries();
   return true;
 }
 
 async function persistTablePresetSelection() {
-  await writePersistedValue(TABLE_PRESET_SELECTION_KEY, [...selectedTablePresetIds]);
+  await writePersistedValue(TABLE_PRESET_SELECTION_KEY, dedupeTableUrlsByNormalizedKey([...selectedTableUrls]));
+}
+
+async function restoreCustomTableListEntries() {
+  const persisted = await readPersistedValue(CUSTOM_TABLE_LIST_KEY);
+  if (!Array.isArray(persisted)) {
+    customTableListEntries = [];
+    rebuildAvailableTableListEntries();
+    return false;
+  }
+
+  const seen = new Set();
+  customTableListEntries = persisted
+    .map((entry) => normalizeCustomTableListEntry(entry))
+    .filter((entry) => {
+      if (!entry) {
+        return false;
+      }
+      const key = normalizeTableUrlForDisplayLookup(entry.url);
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  rebuildAvailableTableListEntries();
+  return true;
+}
+
+async function persistCustomTableListEntries() {
+  await writePersistedValue(CUSTOM_TABLE_LIST_KEY, customTableListEntries);
 }
 
 async function restoreFormState() {
@@ -5567,8 +7381,10 @@ async function restoreFormState() {
   if (rivalFolderPathInput) {
     rivalFolderPathInput.value = persisted.rivalFolderPath ?? "";
   }
-  tableUrlsInput.value = persisted.tableUrlsText ?? "";
-  disabledManualTableUrls = new Set(Array.isArray(persisted.disabledManualTableUrls) ? persisted.disabledManualTableUrls : []);
+  tableUrlsInput.value = manualTableUrlTogglesContainer ? persisted.tableUrlsText ?? "" : "";
+  disabledManualTableUrls = manualTableUrlTogglesContainer
+    ? new Set(Array.isArray(persisted.disabledManualTableUrls) ? persisted.disabledManualTableUrls : [])
+    : new Set();
   renderManualTableUrlToggles();
   levelChartMode = normalizeLevelChartMode(persisted.levelChartMode);
   updateLevelModeToggleButton();
@@ -5579,6 +7395,16 @@ async function restoreFormState() {
   if (includeBpUpdatesInput) {
     includeBpUpdatesInput.checked = includeBpUpdatesInLampUpdates;
   }
+  includeUnlistedChartsInLampUpdates = Boolean(persisted.includeUnlistedChartsInLampUpdates);
+  if (includeUnlistedUpdatesInput) {
+    includeUnlistedUpdatesInput.checked = includeUnlistedChartsInLampUpdates;
+  }
+  scoreDbMode = normalizeScoreDbMode(persisted.scoreDbMode);
+  if (scoreDbModeSelect) {
+    scoreDbModeSelect.value = scoreDbMode;
+  }
+  skillAnalyzerFetchMode = normalizeSkillAnalyzerFetchMode(persisted.skillAnalyzerFetchMode);
+  syncSkillAnalyzerFetchModeControls();
   applyTheme(persisted.themeMode, { persist: false });
   return true;
 }
@@ -5586,13 +7412,13 @@ async function restoreFormState() {
 async function restoreLatestAnalysis() {
   const persisted = await readPersistedValue(LAST_ANALYSIS_KEY);
   if (!persisted) {
-    return false;
+    return null;
   }
 
   latestAnalysis = normalizeAnalysisLampStatuses(persisted);
   renderAnalysis();
   resultsRoot.classList.remove("hidden");
-  return true;
+  return latestAnalysis;
 }
 
 async function persistFormState() {
@@ -5601,13 +7427,16 @@ async function persistFormState() {
     songDbPath: songDbPathInput.value.trim(),
     screenshotDirPath: getScreenshotDirectoryPath(),
     rivalFolderPath: rivalFolderPathInput?.value.trim() ?? "",
-    tableUrlsText: tableUrlsInput.value,
-    disabledManualTableUrls: [...disabledManualTableUrls],
+    tableUrlsText: manualTableUrlTogglesContainer ? tableUrlsInput.value : "",
+    disabledManualTableUrls: manualTableUrlTogglesContainer ? [...disabledManualTableUrls] : [],
     levelChartMode,
     language: selectedLanguage,
     languagePromptSeen: hasStoredLanguagePreference,
     themeMode: selectedThemeMode,
     includeBpUpdatesInLampUpdates,
+    includeUnlistedChartsInLampUpdates,
+    scoreDbMode,
+    skillAnalyzerFetchMode,
   });
 }
 
@@ -5622,13 +7451,38 @@ async function clearPersistedState() {
 }
 
 async function openPersistenceDb() {
+  if (IS_PYWEBVIEW_DESKTOP) {
+    return null;
+  }
+
   if (!("indexedDB" in window)) {
     return null;
   }
 
   if (!persistenceDbPromise) {
-    persistenceDbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(PERSISTENCE_DB_NAME, 1);
+    persistenceDbPromise = new Promise((resolve) => {
+      let settled = false;
+      const finish = (db) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeoutId);
+        resolve(db);
+      };
+      const timeoutId = window.setTimeout(() => {
+        console.warn("IndexedDB open timed out. Falling back to localStorage.");
+        finish(null);
+      }, PERSISTENCE_OPEN_TIMEOUT_MS);
+
+      let request;
+      try {
+        request = indexedDB.open(PERSISTENCE_DB_NAME, 1);
+      } catch (error) {
+        console.warn("IndexedDB open failed. Falling back to localStorage.", error);
+        finish(null);
+        return;
+      }
 
       request.onupgradeneeded = () => {
         if (!request.result.objectStoreNames.contains(PERSISTENCE_STORE_NAME)) {
@@ -5636,8 +7490,15 @@ async function openPersistenceDb() {
         }
       };
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onsuccess = () => finish(request.result);
+      request.onerror = () => {
+        console.warn("IndexedDB open failed. Falling back to localStorage.", request.error);
+        finish(null);
+      };
+      request.onblocked = () => {
+        console.warn("IndexedDB open was blocked. Falling back to localStorage.");
+        finish(null);
+      };
     });
   }
 
@@ -5647,7 +7508,7 @@ async function openPersistenceDb() {
 async function readPersistedValue(key) {
   const db = await openPersistenceDb();
   if (!db) {
-    return null;
+    return readLocalStoragePersistedValue(key);
   }
 
   return new Promise((resolve, reject) => {
@@ -5669,7 +7530,7 @@ async function readPersistedValue(key) {
 async function writePersistedValue(key, value) {
   const db = await openPersistenceDb();
   if (!db) {
-    return false;
+    return writeLocalStoragePersistedValue(key, value);
   }
 
   return new Promise((resolve, reject) => {
@@ -5690,7 +7551,7 @@ async function writePersistedValue(key, value) {
 async function deletePersistedValue(key) {
   const db = await openPersistenceDb();
   if (!db) {
-    return false;
+    return deleteLocalStoragePersistedValue(key);
   }
 
   return new Promise((resolve, reject) => {
@@ -5699,6 +7560,54 @@ async function deletePersistedValue(key) {
     transaction.onerror = () => reject(transaction.error);
     transaction.objectStore(PERSISTENCE_STORE_NAME).delete(key);
   });
+}
+
+function buildLocalStoragePersistenceKey(key) {
+  return `${PERSISTENCE_LOCAL_STORAGE_PREFIX}${key}`;
+}
+
+function readLocalStoragePersistedValue(key) {
+  try {
+    const raw = window.localStorage?.getItem(buildLocalStoragePersistenceKey(key));
+    if (!raw) {
+      return null;
+    }
+    const record = JSON.parse(raw);
+    if (!record || record.version !== PERSISTENCE_SCHEMA_VERSION) {
+      return null;
+    }
+    return record.value ?? null;
+  } catch (error) {
+    console.warn("localStorage read failed", error);
+    return null;
+  }
+}
+
+function writeLocalStoragePersistedValue(key, value) {
+  try {
+    window.localStorage?.setItem(
+      buildLocalStoragePersistenceKey(key),
+      JSON.stringify({
+        version: PERSISTENCE_SCHEMA_VERSION,
+        savedAt: new Date().toISOString(),
+        value,
+      }),
+    );
+    return true;
+  } catch (error) {
+    console.warn("localStorage write failed", error);
+    return false;
+  }
+}
+
+function deleteLocalStoragePersistedValue(key) {
+  try {
+    window.localStorage?.removeItem(buildLocalStoragePersistenceKey(key));
+    return true;
+  } catch (error) {
+    console.warn("localStorage delete failed", error);
+    return false;
+  }
 }
 
 function debounce(callback, delayMs) {

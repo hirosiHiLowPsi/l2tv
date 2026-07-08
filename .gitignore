@@ -6,6 +6,7 @@ node_modules/
 dist/
 out/
 release/
+outputs/
 *.blockmap
 *.exe
 *.msi
@@ -35,3 +36,9 @@ Desktop.ini
 .DS_Store
 .vscode/
 .idea/
+
+# Local prototypes / split-out experiments
+green-number/
+l2tv-tkinter/
+l2tv-webview/
+notes-radar-app/

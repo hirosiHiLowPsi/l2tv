@@ -4,7 +4,8 @@ L2TV User Guide / Safety Notes
 Important Notice: Uninstalling and Using the zip Version
 -------------------------------------------------------
 
-- If you use the zip version, extract L2TV-1.0.4-win-x64.zip into an empty folder before running L2TV.exe.
+- Extracting the zip automatically creates an "L2TV" folder containing all application files. You do not need to create an empty folder first.
+- Launch L2TV.exe inside the extracted "L2TV" folder.
 - The zip version does not need installation. To remove it, do not use the Windows uninstaller. Move the extracted dedicated L2TV folder to the Recycle Bin instead.
 - Only delete the dedicated L2TV folder you extracted. Do not delete parent folders such as Desktop or Downloads.
 - If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
@@ -25,6 +26,7 @@ Basic features:
 - Load an LR2 score.db.
 - Load an LR2 song.db.
 - Load the LR2 Rival folder.
+- Choose the score.db mode: Auto Detect, Legacy LR2IR Compatible, StellaverseIR, or BMS-IR.
 - Show the player name.
 - Show the SP grade.
 - Show st/sl grades.
@@ -38,15 +40,17 @@ Difficulty tables:
 - Insane BMS Table
 - Overjoy
 - Dystopia
-- Manually entered table URLs
+- Tables selected from the table list
 - Show / hide loaded difficulty tables
-- Exclude a URL without deleting it
 - Show loaded tables by table title instead of URL
 
 Player Data:
 
 - Player name
 - ID
+- FORCE RATE and title badge
+- FORCE RATE matches Insane BMS (★1–25) and the second-period Overjoy table (https://lr2.sakura.ne.jp/overjoy.php, ★★0–8) chart constants by MD5, then divides the top-50 chart FORCE total by 50
+- Chart FORCE = chart constant × score coefficient × clear-lamp coefficient (courses are excluded)
 - SP grade
 - Official SP grade name
 - st/sl grades
@@ -159,16 +163,9 @@ If you are unsure, look for LR2files inside your LR2 folder.
 
 zip version:
 
-1. Extract L2TV-1.0.4-win-x64.zip into an empty folder.
-2. Run L2TV.exe inside the extracted folder.
+1. Extract L2TV-1.0.6-win-x64.zip to any location.
+2. Run L2TV.exe inside the automatically created "L2TV" folder.
 3. Installation is not required.
-
-Installer version:
-
-1. Run L2TV-Setup-1.0.4.exe.
-2. Install the app.
-3. Start L2TV.
-
 
 4. First Use
 ------------
@@ -178,9 +175,8 @@ Installer version:
 3. Choose score.db from Browse next to LR2 score.db Path.
 4. Choose song.db from Browse next to song.db Path.
 5. If needed, choose the Rival folder from Browse next to Rival Folder.
-6. If needed, choose difficulty table presets.
-7. If needed, enter table URLs manually.
-8. Press Load Tables and Lamps.
+6. Open the difficulty table list with Open List and check the tables you want to load.
+7. Press Load Tables and Lamps.
 
 Even if no difficulty table is selected, Player Data can still be shown.
 
@@ -194,9 +190,9 @@ Load settings:
 - Set song.db.
 - Set the screenshot save folder.
 - Set the Rival folder.
-- Choose difficulty table presets.
-- Enter difficulty table URLs manually.
-- Show / hide manually entered tables.
+- Open the difficulty table list in a separate window.
+- Select the tables to load from the list.
+- Filter the table list by General / Personal / Self-made Chart Only.
 
 Display settings:
 
@@ -214,14 +210,9 @@ Saved data:
 6. Difficulty Tables
 --------------------
 
-You can choose common difficulty tables from presets.
-If you enter URLs manually, enter one URL per line.
-
-Example:
-  https://stellabms.xyz/sl/table.html
-  https://stellabms.xyz/st/table.html
-
-Manually entered tables can be shown or hidden with checkboxes without deleting the URLs.
+Open the difficulty table list, and checked tables are loaded.
+Use Refresh List to fetch the latest list.
+Use search and the General / Personal / Self-made Chart Only tag filters to find the tables you need.
 After loading, tables are displayed by table title instead of URL.
 
 
@@ -231,6 +222,8 @@ After loading, tables are displayed by table title instead of URL.
 Player Data:
   Shows player name, ID, SP grade, st/sl grades, and related data.
   GENOSIDE2018 grade course passes require NORMAL CLEAR or better; EASY CLEAR is not counted as a pass.
+  Grade passes are determined only from the grade course clear record stored in score.db. Clear lamps for the individual songs in the course are ignored.
+  Grades are estimated offline from score.db and song.db. L2TV does not supplement grade data from IR profile pages.
 
 Lamp Breakdown:
   Shows clear lamp counts for the whole difficulty table.
@@ -268,6 +261,8 @@ Folder Close:
 
 Lamp Updates:
   Shows updates compared with the previous load.
+  Turn on "Include updated charts outside loaded tables" in Menu to include charts outside the currently loaded tables.
+  Unlisted charts are compared against the local score state saved at the previous load.
 
 RIVAL:
   Shows score win/loss against loaded rivals.
@@ -336,7 +331,8 @@ Today's update image:
 
 - Use "Export Today's Updates" in Lamp Updates.
 - Exports lamp updates, BP updates, and score updates.
-- Also shows key hit count and number of updated charts.
+- Also shows key hit count, play time, and number of updated charts.
+- If there are many updated charts, the export is automatically split into multiple PNG files, 250 charts per image.
 
 Difficulty table summary image:
 
@@ -378,9 +374,7 @@ L2TV saves the following information so it can be used immediately next time:
 - song.db path
 - Rival folder path
 - Screenshot save folder
-- Entered difficulty table URLs
-- Show / hide state for manually entered tables
-- Selected difficulty table presets
+- Selected difficulty table URLs
 - Selected display language
 - Selected theme
 - Whether BP updates are included in Lamp Updates
@@ -444,12 +438,12 @@ not for changing or deleting LR2 score data.
 15. Network Access
 ------------------
 
-L2TV may connect to the internet to load difficulty table URLs.
+L2TV may connect to the internet to load the table list and difficulty table data.
 
 Examples:
 
-- Selected difficulty table presets
-- Difficulty table URLs entered by the user
+- Difficulty table list
+- Selected difficulty table URLs
 
 Data that is not sent:
 
@@ -480,13 +474,8 @@ If you are unsure, confirm the distribution source before running it.
 zip version:
 
 1. Close L2TV.
-2. Extract the new L2TV-1.0.4-win-x64.zip.
+2. Extract the new L2TV-1.0.6-win-x64.zip.
 3. Replace the old L2TV folder with the new one.
-
-Installer version:
-
-1. Run the new L2TV-Setup-1.0.4.exe.
-2. Install over the previous version.
 
 Notes:
 
@@ -497,16 +486,9 @@ Notes:
 18. Uninstalling
 ----------------
 
-Installer version:
-
-1. Open Windows Settings.
-2. Find L2TV under Apps.
-3. Uninstall it.
-
-Important:
+Important note for legacy installer versions:
 
 - If you installed version 1.0.1 or earlier directly into a personal folder such as Desktop, do not run the uninstaller.
-- Version 1.0.2 and later include a safety check that prevents deleting anything other than a dedicated L2TV folder.
 
 zip version:
 
@@ -525,7 +507,7 @@ If you also want to delete saved app data:
 -------
 
 Q. Can I use it without an internet connection?
-A. You can view previously saved settings and local DB data. Loading new difficulty table URLs requires an internet connection.
+A. You can view previously saved settings and local DB data. Loading the table list or new difficulty table data requires an internet connection.
 
 Q. Can score.db or song.db be modified?
 A. No. They are handled as read-only.
@@ -549,8 +531,8 @@ A. They are saved to the folder selected in Screenshot Folder. If blank, the def
 Q. Can I post exported images to streams or social media?
 A. Images may include player names, rival names, and updated charts. Check that they do not contain information you do not want to publish.
 
-Q. What happens when I enter a difficulty table URL?
-A. L2TV fetches that table data and matches it against local DB chart information. score.db / song.db are not uploaded.
+Q. What happens when I choose a table from the table list?
+A. L2TV fetches the selected table data and matches it against local DB chart information. score.db / song.db are not uploaded.
 
 Q. What is NS?
 A. NS means NO SONG. It is a chart that exists in the difficulty table but was not found in the loaded song.db.
@@ -571,4 +553,4 @@ A. A compact option display for the open level folder. It can show the sort head
 20. Version
 -----------
 
-L2TV 1.0.4
+L2TV 1.0.6

@@ -45,7 +45,7 @@
         <section class="panel input-panel">
           <div class="panel-heading">
             <h2>読み込み設定</h2>
-            <p>難易度表URLは任意です。1行に1件ずつ入力できます。</p>
+            <p>難易度表一覧から、読み込む表を選択できます。</p>
           </div>
 
           <form id="analyze-form" class="form-grid">
@@ -97,23 +97,34 @@
               </div>
             </label>
 
-            <label class="field textarea-field">
-              <span>難易度表URL</span>
-              <textarea
-                id="table-urls"
-                name="tableUrls"
-                rows="7"
-                placeholder="https://stellabms.xyz/sl/table.html&#10;https://stellabms.xyz/st/table.html"
-              ></textarea>
-              <div id="manual-table-url-toggles" class="manual-table-url-toggles"></div>
-              <p class="helper">URLを残したまま、チェックを外すとその表だけ読み込み対象から外せます。</p>
-            </label>
+            <textarea id="table-urls" name="tableUrls" class="hidden" rows="1" aria-hidden="true"></textarea>
+
+            <div class="field textarea-field table-list-field">
+              <div class="table-list-heading">
+                <span>難易度表管理</span>
+                <button id="open-table-list-button" type="button" class="button-secondary compact-button">
+                  一覧を開く
+                </button>
+              </div>
+              <p id="table-list-status" class="helper">難易度表一覧から選択します。</p>
+              <p id="table-list-selection-summary" class="helper">選択中: 0件</p>
+            </div>
 
             <label class="field">
               <span>表示言語</span>
               <select id="language-select" name="language">
                 <option value="ja">日本語</option>
                 <option value="en">English</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>score.db仕様</span>
+              <select id="score-db-mode-select" name="scoreDbMode">
+                <option value="auto">自動判別</option>
+                <option value="legacy">従来LR2IR互換</option>
+                <option value="stellaverse">StellaverseIR</option>
+                <option value="bms-ir">BMS-IR</option>
               </select>
             </label>
 
@@ -130,11 +141,10 @@
               <span>本日更新にBPが減った譜面も表示する</span>
             </label>
 
-            <div class="field textarea-field">
-              <span>難易度表プリセット</span>
-              <div id="table-presets" class="table-presets"></div>
-              <p class="helper">チェックしたプリセットはURL未入力でも読み込み対象になります。</p>
-            </div>
+            <label class="checkbox-setting textarea-field">
+              <input id="include-unlisted-updates" type="checkbox" name="includeUnlistedUpdates" />
+              <span>表外譜面も更新楽曲として表示する</span>
+            </label>
 
             <div class="form-actions">
               <div class="action-row">
@@ -157,8 +167,8 @@
 
     <div class="app-shell">
       <header class="hero">
-        <p class="eyebrow">LR2 Table Viewer</p>
-        <h1>L2TV</h1>
+        <img class="app-logo app-logo-light" src="/assets/l2tv-logo-light.png" alt="L2TV LR2 Table Viewer">
+        <img class="app-logo app-logo-dark" src="/assets/l2tv-logo-dark.png" alt="L2TV LR2 Table Viewer">
       </header>
 
       <main class="layout">
@@ -171,6 +181,89 @@
       <div class="export-message-card">
         <p id="export-message-text" class="export-message-text"></p>
         <button id="export-message-ok" type="button" class="button-secondary export-message-ok">OK</button>
+      </div>
+    </div>
+
+    <div
+      id="table-list-modal"
+      class="table-list-modal hidden"
+      aria-hidden="true"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="table-list-modal-title"
+    >
+      <div class="table-list-modal-card">
+        <div class="table-list-modal-header">
+          <div>
+            <h2 id="table-list-modal-title">難易度表一覧</h2>
+            <p id="table-list-modal-status" class="helper">チェックした難易度表が読み込み対象になります。</p>
+          </div>
+          <button id="table-list-close-button" type="button" class="button-secondary compact-button">閉じる</button>
+        </div>
+
+        <div class="table-list-modal-toolbar">
+          <div class="table-list-mode-toggle" role="group" aria-label="難易度表追加モード">
+            <button
+              id="table-list-search-mode-button"
+              type="button"
+              class="table-list-mode-button active"
+              aria-pressed="true"
+            >
+              検索
+            </button>
+            <button
+              id="table-list-url-mode-button"
+              type="button"
+              class="table-list-mode-button"
+              aria-pressed="false"
+            >
+              URL指定
+            </button>
+          </div>
+          <input id="table-list-filter" class="table-list-filter" placeholder="表名で検索" />
+          <input id="custom-table-url-input" class="table-list-url-input hidden" placeholder="https://..." />
+          <button id="add-custom-table-url-button" type="button" class="button-secondary compact-button hidden">
+            追加
+          </button>
+          <button id="refresh-table-list-button" type="button" class="button-secondary compact-button">
+            一覧を更新
+          </button>
+        </div>
+
+        <div id="table-list-tag-filters" class="table-list-tag-filters" role="group" aria-label="タグフィルター">
+          <button type="button" class="table-list-tag-filter active" data-table-tag-filter="all" aria-pressed="true">
+            <span>すべて</span>
+            <span class="table-list-tag-count" data-table-tag-count="all">0</span>
+          </button>
+          <button type="button" class="table-list-tag-filter" data-table-tag-filter="general" aria-pressed="false">
+            <span>General</span>
+            <span class="table-list-tag-count" data-table-tag-count="general">0</span>
+          </button>
+          <button type="button" class="table-list-tag-filter" data-table-tag-filter="personal" aria-pressed="false">
+            <span>Personal</span>
+            <span class="table-list-tag-count" data-table-tag-count="personal">0</span>
+          </button>
+          <button
+            type="button"
+            class="table-list-tag-filter"
+            data-table-tag-filter="self-made-chart-only"
+            aria-pressed="false"
+          >
+            <span>Self-made Chart Only</span>
+            <span class="table-list-tag-count" data-table-tag-count="self-made-chart-only">0</span>
+          </button>
+          <button
+            id="table-list-selected-only-toggle"
+            type="button"
+            class="table-list-tag-filter table-list-selected-only-toggle"
+            aria-pressed="false"
+          >
+            <span class="table-list-selected-only-label">追加済み</span>
+            <span id="table-list-selected-only-count" class="table-list-tag-count">0</span>
+          </button>
+        </div>
+
+        <div id="table-presets" class="table-presets table-list-modal-list"></div>
       </div>
     </div>
 

@@ -1,7 +1,8 @@
 {
   "name": "lr2ir-table-lamp-viewer",
-  "version": "1.0.4",
+  "version": "2.0.0",
   "private": true,
+  "license": "MIT",
   "main": "electron-main.js",
   "description": "L2TV (LR2 Table Viewer)",
   "author": "HiLowPsi",
@@ -9,8 +10,14 @@
   "scripts": {
     "start": "node server.js",
     "desktop": "electron .",
-    "dist:win": "electron-builder --win zip",
-    "dist:win:zip": "electron-builder --win zip",
+    "dist:win": "node scripts/build-win-zip.js",
+    "dist:win:zip": "node scripts/build-win-zip.js",
+    "dist:win:7z": "node scripts/build-win-zip.js --format=7z",
+    "dist:win:force-pretest": "node scripts/build-win-zip.js --suffix=force-rate-pretest",
+    "dist:win:force-pretest:7z": "node scripts/build-win-zip.js --suffix=force-rate-pretest --format=7z",
+    "dist:radar": "node notes-radar-app/scripts/build-win-zip.js",
+    "force:constants:score-oriented": "node scripts/apply-score-oriented-force-constants.js",
+    "test:force": "node --test scripts/force-rating.test.js",
     "dist:win:installer": "electron-builder --win nsis"
   },
   "devDependencies": {
@@ -25,7 +32,11 @@
       "electron-main.js",
       "electron-preload.js",
       "server.js",
+      "build/icon.ico",
       "public/**/*",
+      "!public/assets/force-rating-badges.png",
+      "!public/assets/force-rank-badges/rank_badges_sheet.png",
+      "!public/assets/force-rank-badges/rank_badges.json",
       "package.json"
     ],
     "extraFiles": [
@@ -43,6 +54,7 @@
       }
     ],
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "zip"
       ],

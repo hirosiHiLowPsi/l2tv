@@ -1,0 +1,4494 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-23",
+  "source": "https://lr2ir.com/players/{playerId}/tables/{tableId}",
+  "excludedPlayers": [
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 141249,
+      "playerName": "Ta2",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 162280,
+      "playerName": "Chieri-Kata",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "reason": "User-specified exclusion"
+    },
+    {
+      "playerId": 153667,
+      "playerName": "0133",
+      "reason": "CHEATED badge"
+    },
+    {
+      "playerId": 139857,
+      "playerName": "Pazo",
+      "reason": "CHEATED badge"
+    }
+  ],
+  "scores": [
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "0183b55c5829e698fdaff5ba2f2b97f0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "049b99148a855cebae52d2aa5851ea69",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "064970e4288f662f8d7e03fc938b9a85",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "07dbf61f50c4b0e359d553583eaa582c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "093a8d66b89944db9e42aa2321b4f637",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "096087f9fec3c8f065912682314e3496",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "0a8b76ca18155d81d39e2da89194d91c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "0da564826357204acadcab4430eef7f1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "0f3837b9461a613dddf26a31e82f0084",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "10420967a85371e65db57967e6c696cd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "1146b18b7623c60e8e7dda4fbac1568d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "12c06f4353bb52bfe9a859d9765f9664",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "14dd3bf557fdfdd68036749ee134e1bf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "15e44dfea14cb6812f7fcb56a3a0c409",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "160dedeb2107e2a4e1894d5ea82f8077",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "188a99f74ab71804f2e360dcf484545c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "1974b50c217bc9989d88e7c45c3184cf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "1b4566b508cb58387480a0406d87cb1b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "1d22b6675f5aa3ef2e1f872ae1330455",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "1ddf2c56ef0035e58ecdaf9b7d67eb5f",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "25f637af6dd3a5138d347fcabebd7857",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "2a5eb3e8a4a037cc7abd15eb76acee3a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "2c3b8bb52b69ab14aa75d24a3e1d3aba",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "2ce093dffc92f27e00055b5143ceb319",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "2e2c4168d3c350de3136a0c2ad23dce3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "2ff8873d5fd31edf60810296638ae2ad",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3095e46effd1e7b2627880d72aeaef61",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "30a5cc8b0bfdc784f19fa42155917b6c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "34202ac279f5976077ac36212734ce0c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "38f7d300a2ba8c3289af529595566cc3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "39d0732ef7fee9ad0c8b044ccbe8a396",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "39d2d83a18b86d0e0c44df19bae677c8",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3af3b4962bd60e27e9c7f92743a28e07",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3c4e5a90478a6a60b430e9816c942ffd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3c9e6197ca0dbf5bba3cd1b83603643d",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3dc2a8614c4ab1dad9ec9db83a9c9576",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3e29f806aab1ff09de28fd7ae2735394",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "3edcf7695d4a6a958ed42d9a9a6a08de",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "40e62c68ee044e28cbea6805a88bb760",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "4204bb56d82fd5e49bda4ea9d0184e25",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "4b2ef6fdb08c645bf82e5ee1c78737ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "517791cedc3793c7475014dfbbf47a05",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "51802e865232ba2b86b676a6fe3016c5",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "538d3b12c5cc27948c19fca368f6257b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "55252fa3daaeb2dff8cfc3204c647fdf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "59b0d1d9d39b615bb7b3b877d0b093bc",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "5b5b2a56526393ae893e4092068aa1cd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "5beb02468f70abc4a7ffcd8e0736bbe4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "5dc1e3e22e4fc735f010e35f2ae77480",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "5ea7be57a0d2010ff66a8fcddf66b15b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "605e2c5ce2ac8a51e264e7adc9774aa0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "60821574ae129f58e5147524508d8e08",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "641c2e8205a42c3eac61eb230b4cf1d8",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "6460b75af6e2e0f334786456339acffb",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "6938e19733164bb3b5d2bc2890305ac8",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "6df3861b7e01ea32534ccc5ca24b2ec3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "6f4c146c25321ca7ab4c6a4f6a83bf42",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "6fd3ccb271ddb3d18bd8e4800e81ad81",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "73352456741f87d206fde33057d73455",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "75754e069fcbb55e903a89f175dfbbb5",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "75c5c9c650c21efedf28cceee1d1a286",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "799e7598d530456cb394c663dd88f590",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8134e312f232d10c10efa2a1e34387bd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8199967dbf9ec4757b6b666e35ac8d31",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "845a17536dee577f7a0afa067fa53621",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "862925e481caf4fb4c48591f1ce0d932",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "88740b031269d8ea3c77a4e200e3060a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8a88eb827e2c74def79182726034be75",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8b327890a493ead1825472d4c4f7bc79",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8bd56cf7937a7d812d1f8428e40eed13",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8e911db2018621ff53aa7d272124afc1",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "8f4dc7c8237ce74eaf5740808fa89844",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "916f531e1c93e71d396741dee6ae8b39",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "928f2942dcedd1163bce24e4bf894b2d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "96562bfa2c5a75279400ec3d360394f1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "96a1536917e1f7f12a85d3dd7eb64932",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "99ec056cff4c2ba72664e78c87cb0354",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "9a802d829114988fa78264f428a660f4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "9c4bd1df00984d7b3593b5d669cffc26",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "9cbc458fa3247e7d2c035dfe72fe73c0",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "a2bcbceaccf8d9642e8b62723940590e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "a4a9c721a726435eaf37b62b1768b4e1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "a6f79caa5d7a149fc798b7bf55621094",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "a9263a064f908eeb2965984ef5dccd43",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "aacb9d999b72cf1a806593fd242433ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "ac29456828fbd27bb27bd99d52a666c4",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "adec1bcc37806f155cdae08d873c9f77",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "aeb1c4aae23ba92d54e59b7855c5e6f0",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "ba976b164c8d9e397f54191860b3622a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "ba9d6967e0c9d9bbe30f6e8beabfc4f2",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "c20426480da2741a37d2fdf5f70eaf1b",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "c3a22c5b77f1b692b3ec6b5c04c9fe51",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "c569481923194f107186148d48584351",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "c65d0badebb7738e350022a59a1f0637",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "c67ba013af164f2cdec7c8c98c90d8f5",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "cbc08ef2b41334af24e7ddd8e350d7f8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "cbfee23392ad22638ff24b9905c42ffb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "cf41e5c3935f54cbe8e5b70833b73ec9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "cf7b23d82b7464c4e9aec5cf94838e86",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "d063d3666b36cc14b176cd4438487dee",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "d2cdf28edc1ab9c25fbede7902e82c22",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "d785b69456b6c5836e290cd3613d63a6",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "d7d2e57e1de315927ca7d8aea8ecd555",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "d8d3ae6de1aecb5975e60b15041567dc",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "dabc6c70ca4dac9f0060a17a9218a1af",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "dd6a670c77100e514c8d159182cfe587",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "de6240bb00c79b4814efc0d9e283209b",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "e6af04686aeaf0a0fa2698cb0b0111ad",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "e781889d3268495168988a547ac6269e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "ea6bac60d6062a3b2bf160a38b98d6eb",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "eb6edc14dff354ebc7b8280e61c3ab76",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "ec056512be0b6770e4ec0ebc8744ef3a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "f3b5befffd5b4bb1177ba91091e72307",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "f4e281917921e455059a2c17c9d3cfc7",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "f5ba65cc6c12701860ed358419879e12",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "faab1fb9c88fd164a1f4a40150c37b70",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "fad6820e676a64dc7fe16dca0dac95dd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "fb7a747a5115a4a4739397d17ccb26bb",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "fb83ea90d2691cd975c4948ff4abbb07",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "fd3318a7a5389c7698e49399254e212c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 108312,
+      "playerName": "SS Officer",
+      "md5": "fe655986dbb6c75105d768782d00bc0a",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "00e7ce53c72771bae6dc87740b1c1a2b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "07dbf61f50c4b0e359d553583eaa582c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "096087f9fec3c8f065912682314e3496",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "09ed1d6bd689dee2b8ffea8e63aab5f1",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "1826bc834164f08bdf254c1759286a37",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "188a99f74ab71804f2e360dcf484545c",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "1974b50c217bc9989d88e7c45c3184cf",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "1a6b39feb32f5cb69bc07adf4312c837",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "1a89ba0ab527113fc3d00d63870a69a4",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "25f637af6dd3a5138d347fcabebd7857",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "29ffca1c9c4e61ae5b289c2cb6d1f412",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "2e2c4168d3c350de3136a0c2ad23dce3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "3095e46effd1e7b2627880d72aeaef61",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "3544024ea5deff997deb4ce2ce5dbfc2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "365816fd4a3bc8df11fe10823de3fd2e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "39d0732ef7fee9ad0c8b044ccbe8a396",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "3af3b4962bd60e27e9c7f92743a28e07",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "3c4e5a90478a6a60b430e9816c942ffd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "3dc2a8614c4ab1dad9ec9db83a9c9576",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "3e29f806aab1ff09de28fd7ae2735394",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "432cd6b8ba5e96c88865904bb48fa7b3",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "4417ce8ee8ebbfe6f54603633cea42fd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "517791cedc3793c7475014dfbbf47a05",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "538d3b12c5cc27948c19fca368f6257b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "547a2c367b5f96eff38e55a5ad34edb4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "58c5e615e56eb0c35ffe056ce533cc29",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "5a087786a7f91a114d36a2dedc90c99d",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "5beb02468f70abc4a7ffcd8e0736bbe4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "5c02488ed7f347cf9b78398fa8982e69",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "60821574ae129f58e5147524508d8e08",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "60c12f77947e4da438f75ee985bdff2e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "641c2e8205a42c3eac61eb230b4cf1d8",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "6460b75af6e2e0f334786456339acffb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "6e2291bffcb84d1eef743ac10aef5e49",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "727ab7a4bc5995f9d4e53b0273b8e698",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "73352456741f87d206fde33057d73455",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "73d256b2f2f297582249a1509c8b6895",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "75ccb3edea0e977c0b5d3c0f8670db76",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "76294fd563a49f07db199057fba07013",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "7657195910d8b5aa0b95ab15e9169473",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "77d23be22b2370925c573d922276bce0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "799cf85057ae5bf2b93ebfecc322eff7",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "79c79e34e9a95e37521011058b7ec167",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "7b993559a973b29e3ace3a7b7a03e3db",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "7cf9d0ea4b0170884733253f90c12772",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "7df4a2c6ab9a8a112953140ac034c259",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "8415338dd1be9b89e9d2059920dee9eb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "845a17536dee577f7a0afa067fa53621",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "862925e481caf4fb4c48591f1ce0d932",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "8a88eb827e2c74def79182726034be75",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "8ad0e0556389b7fab8883a6fd5e1c042",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "8bd56cf7937a7d812d1f8428e40eed13",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "8e911db2018621ff53aa7d272124afc1",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "8f2a82e4f1f3e299c5d761a4c673b9ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "91cfcd10fed566c44ec125987b20dde2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "96a1536917e1f7f12a85d3dd7eb64932",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "99ec056cff4c2ba72664e78c87cb0354",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "9cbc458fa3247e7d2c035dfe72fe73c0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "9ff70c1c66c9bd9377a799fb87115d82",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "a4a9c721a726435eaf37b62b1768b4e1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "a6145d6a2a5863e2e56e7fb910671166",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "a6643da4f1655244111aafbf99c1d83e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "ac1228ba3c377c984014cf5d6c56f0a7",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "ac29456828fbd27bb27bd99d52a666c4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "adc8062565ea3b203d5953d86c637d1d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "aeb1c4aae23ba92d54e59b7855c5e6f0",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "b3b6c1bbdf05177256cf5e429b1c1fc4",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "b420590bd67864a71eb4c90b0b803993",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "c20426480da2741a37d2fdf5f70eaf1b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "c32eb7d3731941ed98b1d0885b13cb7c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "c3da564eb186728c013a62b66be6e46c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "c65d0badebb7738e350022a59a1f0637",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "cf41e5c3935f54cbe8e5b70833b73ec9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "cfad3baadce9e02c45021963453d7c94",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "d68f92b4205aa2313dcc73245624a1d2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "d7cae692a376eaeaa6355c8d2fa3d73b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "d7ce0931706d3ff45180be79343aa343",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "d8d3ae6de1aecb5975e60b15041567dc",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "d900e30bdfadb80b32cf6dd1b2754bc2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "dbf4b5e2b82eb6162013a30f0252ba22",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "dd6a670c77100e514c8d159182cfe587",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "de6240bb00c79b4814efc0d9e283209b",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "e296f891f7869d64c95dc8f5fd05dc5c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "ec1598e752ce393aa8dced158bf6e39c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "ee67facb8fadc96e9383a1a530f1fe54",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "f1f2531b22f396117bd5bfc05ec6db2e",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "f20bd075359761847491c712c3397a53",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "f5ba65cc6c12701860ed358419879e12",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "f9c0ae20fa204404f4c725c9255eb2a0",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "fb393a2814927adc80fba6fcb75b4718",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "fb7a747a5115a4a4739397d17ccb26bb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 114328,
+      "playerName": "JADONG",
+      "md5": "fb83ea90d2691cd975c4948ff4abbb07",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0108ff92119d48e0ca0e2eae1f3dffbf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0183b55c5829e698fdaff5ba2f2b97f0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "019ac1a99cd2e4e1d971e85089ec474a",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "032b0582871a07c604d8cba171f95797",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "07398cdfa167bdd0ab4c70ad29756247",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "093a8d66b89944db9e42aa2321b4f637",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "09e33fbf26546d9ab4219ae828b03d67",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "09ed1d6bd689dee2b8ffea8e63aab5f1",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0a4a1c8f3573336b246e0fa0827ded8c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0a5f66290ea8306923a9d49ebb113dc9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0ac2ec9da6bad09ef6e3c8c349a7c1d8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0d1128a834e2aeb4dc0b31fa9d2dbbc2",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0d1a3240230a854d05877f0d523a1409",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0da564826357204acadcab4430eef7f1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0e238760056f24d507a3564421a431c9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "0e2b662aa03b4b0669605b3557757c41",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "10420967a85371e65db57967e6c696cd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "120d5dd043fddeb0f787bf808213549e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "12c06f4353bb52bfe9a859d9765f9664",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1313e416eee6c07dfbc4e69d895d5bd1",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "14e242272c33a1774bf12a70571bb94a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "151c0d2bb94ab56dfb753410ae70598e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "15e44dfea14cb6812f7fcb56a3a0c409",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "170f6aa0d03bc4f71af077765ada7a79",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "17102eac11c4f695d5c926142aaf1b64",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "17ee7a35750c8e1b1bdfe3a7ca3a3119",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "188a99f74ab71804f2e360dcf484545c",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "18c6674e6ddf4e341d6ad6e6d9936365",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1917bf8c0d922d003b498f42950e3936",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1974b50c217bc9989d88e7c45c3184cf",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1b4566b508cb58387480a0406d87cb1b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1ba66dd0dffbe081276a59d3bf05de4a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1dcbfb836809f09a0a83ee1271950d1a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1dee7ea1515cbe492784b7c17905781a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1dfc524ea3cbb8ee4f8e40a999718641",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "1feb50f44a553fb7bec345e2667ecd86",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "20298a905f69c2fe692b70be94a4d633",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "204febd6a2f38c3d4f0f2e3278b6a960",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "210d23468812b5f7400bc73616a3a063",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "2338ea893bf8c9c3d3304c862615adc6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "246a443bc377f25424df0bc0c7535405",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "25f637af6dd3a5138d347fcabebd7857",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "26c296c5b9d2f13f6fdc92263572e05c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "283394e367276f2ab2917a904cfa9b32",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "2856659c7533275466b0f93efa3dadf8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "28788156857a8fc75da04b797587c256",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "287d374175465cce156aaa8101a48e87",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "29894cf918d9568d4431b263d241e58c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "2ce093dffc92f27e00055b5143ceb319",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "2e1cc5e6bb96bff8a92f2defce49e70a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "2e2c4168d3c350de3136a0c2ad23dce3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "30a5cc8b0bfdc784f19fa42155917b6c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "30df271387cc808230d9093f03f888c6",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "323e391cb09c023da7fe439d12bc6def",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3284c41bf372f18adcd1da097aa7e342",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3347b6bf84ec962945eb40ebbfcda607",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "34ef021066ca17f8014bd6bc0973453d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3544024ea5deff997deb4ce2ce5dbfc2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3594edfdcfa5202a6bb15c85fa371640",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "37663e91190ce4a0b502def7155df58e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "38f7d300a2ba8c3289af529595566cc3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "39d0732ef7fee9ad0c8b044ccbe8a396",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3a503fb4e6605b82ed3ceafe760b5c85",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3c4e5a90478a6a60b430e9816c942ffd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3e29f806aab1ff09de28fd7ae2735394",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3e46b0da59eeb0fd8eedc269a59f07fd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "3f3bed485c074401ef4bcfb6781786ee",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "40673cc8ea628a9452f6ae9ac74d5817",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "40e62c68ee044e28cbea6805a88bb760",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "425b14fc43db24a16f44380f4a06a3a5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "440268f63730a34510f8356194a9ff95",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "451ed38cdba0323388027129f5929645",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "45446f6c96bdb081a2054b80cd8f7208",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "473171720dc2f14d7414b0ec4769509f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "499edec22a416ce88cc1f7c3a402dff8",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4aba61fa46780f110362e11d076807c1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4b2ef6fdb08c645bf82e5ee1c78737ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4bbdcf1a6299f13a91e99a5475f92c66",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4c229d58ee1a5f27531dbf1dfb20dbff",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4e1d973c0bef2313bde3547c30c93df6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4e71e16bd460e51093dee96df9488a19",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4eaf09a816e357e848d7e7333c465b87",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "4f094b61576d4e1df6d1043097b64693",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5110b92d997eabc3d2322556617632ad",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "538d3b12c5cc27948c19fca368f6257b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "556ed0c159434dd1e7a252086482cfd2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "56bae55b19cbf032b95d5c95a57f233a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "57d10637d8bf9da1240060af6bd38c9d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "593a7ffe30aed80cb793a11ae714716d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "594a6a5bd98f64dff7ac69fc43635a83",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5978fad340afbc123cdd28945bf1e57d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "59b0d1d9d39b615bb7b3b877d0b093bc",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5a087786a7f91a114d36a2dedc90c99d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5b5b2a56526393ae893e4092068aa1cd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5c02488ed7f347cf9b78398fa8982e69",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5c27f600d79853e8196677b0cc637019",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5c9563e50da68ae43d57bffde3daf284",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5cbaf8e1f88b4371ec1e3bae52d7eb95",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5dc1e3e22e4fc735f010e35f2ae77480",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5dfeb1f40d32c9910fa2047288236433",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "5ebddb1371e925549a343ea4d4bf3e30",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "60c12f77947e4da438f75ee985bdff2e",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "60efbab48e249a45525255e1a996ee2e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "621ad2a006a4d39a57749c5f8dcc11b6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "632af00b4c01774bfe0ce5a1340e2add",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "63cad21224b1c23518f1f915bf4bebac",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "641c2e8205a42c3eac61eb230b4cf1d8",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "646aa89bba491e5b832dcbc778e2a91f",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "64fcd7f0c47f0edc6e22a8b712c7f9f2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "655052be72cdca0efda4c89041c056e3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "66541c1cd7bdb9b51c606441e0512c77",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "66e1cf445cd971c7501a613010020a85",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "683340fac1d376bea11c0848531ed6dd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6887c8bf0dc53b30d3696afb15964302",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6907561b925f74064b723122bda63fe5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6aa7a93d4f578ba072151d4110c815fb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6b607db3717c41e13d778c83692ba66d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6cab005fa74faf889a7573c5ba51e4d0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6cacf6e30a4d2542ffd74a64c9e7ff63",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6ceecceda5141525b2963b9dc7a906d1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6dacc90521213fc1c7d5de2112ae1f1e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "6de6909c19156221d729b5e965c5cc2a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "70f45b780cecfe58b725437eda743d47",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "7241b09fbbc77e0e515aa65f245f95ab",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "727ab7a4bc5995f9d4e53b0273b8e698",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "728c45910c9d38dbe9986c56817c9dc1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "7300591ce85f888fbefe6984dc4938c3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "732abafcb87ac588b64a9be39c6deb5c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "73352456741f87d206fde33057d73455",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "751738dea1169c5c39db935adfc9e85f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "75754e069fcbb55e903a89f175dfbbb5",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "75c5c9c650c21efedf28cceee1d1a286",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "75ccb3edea0e977c0b5d3c0f8670db76",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "777a5ba64247c1cceb02555eb268164d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "77d23be22b2370925c573d922276bce0",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "799cf85057ae5bf2b93ebfecc322eff7",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "79dc444b48299814462ff23a2bf3ab79",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "7a8b1a11f82d2d97b45f794812369610",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "7aa9437164b505cd4260955c4ce0624f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "7d8ef1f3f5593e533d4c1a07466209d9",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "7fd8a87559a14d4a8d5867aae06e8864",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "807c26e54c4ed6f2f3f6dc439f159ca5",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8134e312f232d10c10efa2a1e34387bd",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8305cf0bb4e081ef559c512aa5f1c278",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "839e69ec2e4eeefe0b027c87b456fe9e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "845a17536dee577f7a0afa067fa53621",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "854f50a7f410b60623175bee73970018",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8615b9ae85fdbf7e7a6738e8e3e1bd45",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8a88eb827e2c74def79182726034be75",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8ad0e0556389b7fab8883a6fd5e1c042",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8ae06bf384dbe6956b1fc76c071ff86f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8b50e8be86f1c741810610a2e4e619ba",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8b61eb04a5cce3378d07ad13adf67c44",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8bc6a666cf36631b02530c0f06d65a28",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8cc18e4a42b7dc1b7eaa7d15e7ea4570",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8d11a7e457b5a344d03e90f8446d825b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8e911db2018621ff53aa7d272124afc1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8f2a82e4f1f3e299c5d761a4c673b9ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "8f4dc7c8237ce74eaf5740808fa89844",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "9092b66c055e1a5feef481899991095b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "91aee09a11633f1013234cd49304681e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "92892e7a9f81773b4bf25b8db1c98cac",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "94c62c30416de132cb9c1d894a3ce0cf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "956fc170981b450f6f2dace30aa36d01",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "95ca00d705648b926d406e39e87c887d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "960d994d0f433ba8c1806f6cb442b9ea",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "964f90e176afbe94daf736499f052e88",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "96641e3e89ca6c61b1882ebf04ab4ad1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "96a1536917e1f7f12a85d3dd7eb64932",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "97794d0cb7a2d192655a13cc803e1d16",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "98f2a9a05b16db52f1260e3b6812023f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "9926f0c39f96d31f6ff77a40a2737925",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "99ec056cff4c2ba72664e78c87cb0354",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "9a802d829114988fa78264f428a660f4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "9c4bd1df00984d7b3593b5d669cffc26",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "9ca663f162a70b7c8c3819cd1c18708a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "9cbc458fa3247e7d2c035dfe72fe73c0",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a2bcbceaccf8d9642e8b62723940590e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a3013463601c7ef7ee9c90ed911a872a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a45de7c32513ee9a4b3448dee0377064",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a4a9c721a726435eaf37b62b1768b4e1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a69797e5735be285a032d519788f2424",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a8d67366d1e603ff3000af761aef0e53",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a989801931b5e3172a2bd50401c10eec",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "a9afa695e31c0347a44e4b9b7ae0daa6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ab91b5085d9ba78312fd40802ab52534",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ac1228ba3c377c984014cf5d6c56f0a7",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ac29456828fbd27bb27bd99d52a666c4",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ad78b1a00de468de846ee0bf44670f32",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "adc8062565ea3b203d5953d86c637d1d",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "afc2ca303065298c51f43f249e26ebff",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b2ee6941ccdb2bde3cc17f831e8f8114",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b3b6c1bbdf05177256cf5e429b1c1fc4",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b47abfd03ddffcd78a1943d2c400ef1a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b4b53a0f7e1729e2c4c55d7dc97a2a3d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b64501551556f35f11e263f70fe65d05",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b89279d026c9d40d0f5eedde2e25b920",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "b9568bf56e7fded029f02efaca1c019d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ba976b164c8d9e397f54191860b3622a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ba9d6967e0c9d9bbe30f6e8beabfc4f2",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "bb4e7f21c8a4378c987094edd682465e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "bcd078c49adee918e2cc2260f912be19",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "be493bdcc5cf1d67fffd42d58902d933",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c07125de4ed7fbe7cb066cc41e50e51e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c20426480da2741a37d2fdf5f70eaf1b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c3a22c5b77f1b692b3ec6b5c04c9fe51",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c4a29dba4051d0989ca118a5fd44378b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c65d0badebb7738e350022a59a1f0637",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c67ba013af164f2cdec7c8c98c90d8f5",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c6c3021134801b842f588108192e3fd9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "c7042fa76dd68f3761676f917909fd4e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "cb32378ba605aa6439840a222f83688f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "cbc08ef2b41334af24e7ddd8e350d7f8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "cd24fd54b865c744428da2513643dd8d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "cdc252edc57cdb4018dbeb46fda6a3c3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "cfad3baadce9e02c45021963453d7c94",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d063d3666b36cc14b176cd4438487dee",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d1857c880459078f3b7d6523795f40ba",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d23a2e7dcf07ed2742477f09e50e1bf3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d2cdf28edc1ab9c25fbede7902e82c22",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d6fea1389a86fc14eb354fcc5e60e03e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d785b69456b6c5836e290cd3613d63a6",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d7cae692a376eaeaa6355c8d2fa3d73b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d8d3ae6de1aecb5975e60b15041567dc",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "d900e30bdfadb80b32cf6dd1b2754bc2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "dabc6c70ca4dac9f0060a17a9218a1af",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "dae5aafc422dc625e602349b2b9cfa26",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "dbe5b5890e751aefbbee6187797b6e66",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "de6240bb00c79b4814efc0d9e283209b",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "de7652bd9c80b8830265336a725f7a98",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "dea6f20c24aabc0984b4a3f66f997ee3",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "df84cff13642ddc8903fccaeb36c92f9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "e27f3374832a4df86582520183342245",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "e50bf68931ecd7ee278a4fd393ce335f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "e58e3f718d089ec37caa0f2c7149a54b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "e635f2ae6b96e9879e99d0600709f985",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "e6af04686aeaf0a0fa2698cb0b0111ad",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "e6be97eebfbde50085d4d3b8509b63aa",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ea7096cd8a20ad7c12c0802c898188cf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ebc5946c3de24a01048d1c90cbd5c9d6",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ec056512be0b6770e4ec0ebc8744ef3a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ec83546f7399d6230807a7bc66d0ac66",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ede8adc3386ba97ecaed8431192b3dd2",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "eeec3f7659ee455f94e40a1f12645e4e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ef950ae2fefba3c6c4c2055ccf648189",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "efc091e69eab86605c5d2694b113e9f9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f0181f1361959bba0f71fe689d3c0714",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f0feb9654ae044c0e95ebf68e2497c2e",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f312185075e207d52854ec4f5c69620e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f4c17f83cb7ba7ed6872ed001b5336e6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f5ba65cc6c12701860ed358419879e12",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f625a63c71b41860e1ff302f515700cd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f872dd65dd08638b06d80470a3233fb9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "f8dcdfe070630bbb365323c662561a1a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fa9f75006aa50c4aae5d9d2edf3ee0b6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fad6820e676a64dc7fe16dca0dac95dd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fb7a747a5115a4a4739397d17ccb26bb",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fb83ea90d2691cd975c4948ff4abbb07",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fb975909eb0f60a9190c7a1007515d4b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fbe94821f93aefea75dc0ad20c7e9cc6",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "fd3318a7a5389c7698e49399254e212c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ff5d7235ba643bc85b804a3df2778590",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 120831,
+      "playerName": "qwea",
+      "md5": "ff9f25ad005083c6173b565d054405c0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 139857,
+      "playerName": "Pazo",
+      "md5": "2fb07013de463e1b099b77c463b1194d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 141249,
+      "playerName": "Ta2",
+      "md5": "39d0732ef7fee9ad0c8b044ccbe8a396",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 141249,
+      "playerName": "Ta2",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 141249,
+      "playerName": "Ta2",
+      "md5": "fb7a747a5115a4a4739397d17ccb26bb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "00d6368de4e80cdaf004612699ee03df",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "065b4491c016292247d76a9847b72b3e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "07d4bc6e005f54ac44273be6d9ed4db9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "086ded9e6392b06dee9cb33c7fd45b92",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "09bb3f38c7bb3c598ba630564c8489b8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0a4a1c8f3573336b246e0fa0827ded8c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0aab9cad6f7c0a2eb94d48c0c42f54be",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0ac2ec9da6bad09ef6e3c8c349a7c1d8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0c1dac05f554b061e011bb0f8b879418",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0c61170e3248970455f78eaf39fcccad",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0cb096e2750b2954921653726b70dd67",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0d1a3240230a854d05877f0d523a1409",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0da564826357204acadcab4430eef7f1",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0e238760056f24d507a3564421a431c9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "0f6009dd00dd7474f72f311ef4319391",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "108e532b623118c25ddbccc7aa6f4fd3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "10e32182c81f2c4fafbe18946c75b04f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "12bf3eae7d1c2d8fc93854d6b942d828",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1313e416eee6c07dfbc4e69d895d5bd1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "14e6967d1ebe85eb26cadb7fafa1e23e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1619bdb40886cc7726346b6996c9f5a3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "16e3a4a9890414bd2963c9b016c4615a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1728928d4d010b0c1ba0e21130a854a3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "17ee7a35750c8e1b1bdfe3a7ca3a3119",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "18adfdab3665478691bcb38f9413daaf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "19fbf62d711282d81208f97f7135e2a2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1b47012854d7aa623632b0be4fce0871",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1d8fa1b51f572221c9d5524980154ccb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1da468b7747759763183cdc798bc2b2a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1ed817c52973073f8a5045f25a45217f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1f5cf9788ce30603c5ffe261f55d6c3d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "1feb50f44a553fb7bec345e2667ecd86",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "202415f7ea495cb362de1ef45c4a400f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "20298a905f69c2fe692b70be94a4d633",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "204febd6a2f38c3d4f0f2e3278b6a960",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "22e753d47b54f78e2cdd1473276f5d4b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2479d75935c4664238040ec31244da94",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "273965c4669994761c71c0da25a49c6f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "27cf4ed5f8e68af2680c18ff04c8f07d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "27d747cb8db9a924e0addacb5f70e698",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "283394e367276f2ab2917a904cfa9b32",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "29ffca1c9c4e61ae5b289c2cb6d1f412",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2a45cbc3033ad88509070c8fb036b7ec",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2ac598184092702e891cdaa48b92dd76",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2b0fd2e97e6458239a9c66b6031defed",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2cb7ca662fa47655ac21421ed7b8aea3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2ce093dffc92f27e00055b5143ceb319",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "2d4c2770b3a9e63e86bbe978ea968a3f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "30a5cc8b0bfdc784f19fa42155917b6c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "30df271387cc808230d9093f03f888c6",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "3284c41bf372f18adcd1da097aa7e342",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "32f22137537102f89ba8e689fa349de8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "33e3f66447a3639a2bb6b7aa5889fbfd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "34e09ddf69ae8bdca128db1cc39d163a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "34ef021066ca17f8014bd6bc0973453d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "35888c4aeed8af4fd85f7a32d168ee58",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "3791d42c00cdfa135df3779eb0f78505",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "38616b85332037cc12924f2ae2840262",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "389bab124af9fa4fa5ebccf1b99a9ff5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "39d0732ef7fee9ad0c8b044ccbe8a396",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "3a503fb4e6605b82ed3ceafe760b5c85",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "3aa1a582cb253db8ae731ce323782e42",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "3be5d074019ffdc789c9bac9eb6020d1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "3f3bed485c074401ef4bcfb6781786ee",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "40f5a6f06f776aaf5fd21656c31ba289",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "425b14fc43db24a16f44380f4a06a3a5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "440268f63730a34510f8356194a9ff95",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "46db0fa9979c1b726400726ec2d10f37",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "4c4ec305de0dd40bc5d2f709f1bd1497",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "4c74a1b115fcb4554ce78b170b888d4b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "4e95770104639474cb3ef2bbd79aa7cb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "4eaf09a816e357e848d7e7333c465b87",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "4ec61c1d81b50a31f028ba4693e0ddba",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "4f094b61576d4e1df6d1043097b64693",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "50e42dfba8741b1909d7714ee7cf1846",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "51e0a29d5c7fc9cdf5e5e8eee1ad1124",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5239e86c268691b0c82a507adbdcc916",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "529f43fc9b5affb1cf9fd94562ed6dca",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "55c96ddf8ff57268a85709bd917f0159",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "56036e42ce9b47a0cf5c1db0d5711ed5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "567572d8ae089b35a6f38d1d90097a72",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5779e87603853ae56eb37452be6668c7",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "57d10637d8bf9da1240060af6bd38c9d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "594a6a5bd98f64dff7ac69fc43635a83",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5978fad340afbc123cdd28945bf1e57d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5a7973f0731b50ecb82c01c90daaec24",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5b449f55589dfb927ca0cd614b175045",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5dc1e3e22e4fc735f010e35f2ae77480",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5dfeb1f40d32c9910fa2047288236433",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "5ee2810a0e818128c41b9385f09deb64",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "603aae2c3681cc2562b9b53b50408c69",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "606b173bea30e4258c4d465468ea2f91",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "60efbab48e249a45525255e1a996ee2e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "610531ec78ecfcaf6824192c5abe8372",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6262ce9d32676fb72162f99d8b2ce363",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "63cad21224b1c23518f1f915bf4bebac",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "64fcd7f0c47f0edc6e22a8b712c7f9f2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6536ce1fec383b45c83e312b96cf39e2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "655052be72cdca0efda4c89041c056e3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6558c37837065d4703510819959a9fc6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6598afc64d626f7efb90ef6a6d940823",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6907561b925f74064b723122bda63fe5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "695a7b261e23b22cf0b1b8c8f4626635",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6983891ee44a38cd40188ca8a78cc56a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6adf517d2e190d09fcfbc010536087f8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6dacc90521213fc1c7d5de2112ae1f1e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "6de6909c19156221d729b5e965c5cc2a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7016b1dea6ac08bc60783d23d4f099a4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "705005073f72ab83726b19b946905f95",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "727e7bb8906a76963114e9fa0b7521e5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "728c45910c9d38dbe9986c56817c9dc1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "732abafcb87ac588b64a9be39c6deb5c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "751738dea1169c5c39db935adfc9e85f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "75403397d59c78d161429749143aa1f1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "755c4087937b7223c31cd17cedfce788",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "76eb97720c7f088c2155af00064ac9cf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "799baceaff9186227b4e8a8121d14eb0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7a8b1a11f82d2d97b45f794812369610",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7ae4a901d2c8f438bb1673ad4cadc576",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7d377912d100c7209098959f77c33808",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7d8ef1f3f5593e533d4c1a07466209d9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7dadc443b149a5f33d8e595dd94b66ec",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7e6e23e4a5e0642ce9f1fcb6078a3347",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7f4cc6d51435b913729aaf1e44ea8601",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "7fd8a87559a14d4a8d5867aae06e8864",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "80faa68c6b45064cb27d5c018eabd7e5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8134e312f232d10c10efa2a1e34387bd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "81d024c13fed9c35362435f58c9e57d5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "85ed349b8f6807b273eee0aae886d633",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8818c4c2bda9e6f685fb85b78f84c7c4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8b71de41395ff4f802b4e6fa7d92f9c0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8d11a7e457b5a344d03e90f8446d825b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8e20dae62b996364951d3415124e0097",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8f2a82e4f1f3e299c5d761a4c673b9ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "8f5c7c585c944c9b98e0baad01e98519",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "901c5435b3a1a3bee3d078f265ed3d48",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "91aee09a11633f1013234cd49304681e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "92892e7a9f81773b4bf25b8db1c98cac",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "935a9f5c0d161cacc27133d3270397f1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "95123d2e1b32efca74c78d718c044bc7",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "95318da6f5d2ce244a6fb19c8da1588f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "95358b9fd98898732c02f64fb6a76312",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "954f0b59464c3bec1601fa0e1ca6f365",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "95ca00d705648b926d406e39e87c887d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "960d994d0f433ba8c1806f6cb442b9ea",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "96641e3e89ca6c61b1882ebf04ab4ad1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "9672a8604e4072221ed4f100eb5010f6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "96fb7813b3d3d9269adecf9e7d87b1d5",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "975aa8007474cf60bdfc933ccfc3583c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "98f2a9a05b16db52f1260e3b6812023f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "9926f0c39f96d31f6ff77a40a2737925",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "993b15d873cde2232c04b4f35a100e81",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "9a802d829114988fa78264f428a660f4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "9b265e43a7667f024559287c43eda865",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "9efba4a1444973a7725ae17eae73117e",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a0f48e96286e0ce275a33fd8cb851ff0",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a1552410ea80470cf77732bdcb8ab232",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a1a91080d47424493ee301726ef3aaeb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a429465495dd151bf6afc4e4372075f9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a4a9c721a726435eaf37b62b1768b4e1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a5b860b3c6683f79e34c5216f5972f62",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a718de9a2cd2f88deafbd40f5929abb4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a858d25a61e0dd52e1eeffa2de902745",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a8d67366d1e603ff3000af761aef0e53",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a9263a064f908eeb2965984ef5dccd43",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "a989801931b5e3172a2bd50401c10eec",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ad266f295b7788bbd2ef925575e272a2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ad6180fee0369366d933472ad6080ec4",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "aedfc54784966df1aff27da8283b10e1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "afc7ec7e2518f906dc5ae53808312a37",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b0eaa048c119f95e66675ea44c4ba1da",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b16cddd6f8e015e8dcbd39be925fb13d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b22f2d866ff6e8f62b7b95e9b7fa3a9e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b3a1166d2fb545005f81ae0286b65a91",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b4b53a0f7e1729e2c4c55d7dc97a2a3d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b64501551556f35f11e263f70fe65d05",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b71a5bb44c2d1d20fd90a6b318e54d7d",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b80186ff8eca822332ca318073ff373f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "b8c0c37082328a75e9fe4913933765e2",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "bafe9b1adf26cd0c2973061ba48557cf",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "bb4e7f21c8a4378c987094edd682465e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "bb6a50ebfa0edb1f5e07f3330b45be5b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c4ca195acf56e5086bf1f2608af5ac35",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c500fea229c05f0750183554b540dbee",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c6599ae9e57756c33d031b4f622324c8",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c65d0badebb7738e350022a59a1f0637",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c6db5f8d4d492abcafb59c7ed1653dec",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "c73bdb3e4bb30bf452998c1fb76cedac",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "cd24fd54b865c744428da2513643dd8d",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "cd78da88201c01afb934bcba55f955cb",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ce6d09b7c9f542c2730c4bed54042b9b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "cf21e83f888cfbd8d9af560ecd567aba",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d23a2e7dcf07ed2742477f09e50e1bf3",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d26737127ce25f92f6b58b360e9d117b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d2f8edb05e9e8dd19b4106ed68c0a668",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d4e2c4132b93b6bc1048c0cbf29cd318",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d6189186dfd1a1e9029fa5a9e7e16441",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d63e121e8d2dceb08e16bc0a6c13e5ef",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d6fea1389a86fc14eb354fcc5e60e03e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d92214b3e195894dc7b5c6369da20712",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "d9ef7046e967310fbeeaaf4911acc1b7",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "dab5146a185e036cb1514b71edf1032a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "dae5aafc422dc625e602349b2b9cfa26",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "db493fac675dc27067ca3a2631070407",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "dcc8b07ed8a8acd6bb1f0402d99f6764",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "dcf3d946cbc402dec08871b115225c46",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "dd09b41665fc3944098a62a1d7dbfd95",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "de7652bd9c80b8830265336a725f7a98",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "dfda2cdf3527b470e8951ba285d6bc28",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e10f3dbc3b3625b9c65d0c9b7ae61f33",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e243943bdbfe823ae8e073347ce10f5b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e27f3374832a4df86582520183342245",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e2f79e94416c06323a59ef6440e273f7",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e862d41db4532275e322327fed6909cc",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e899a442afc91c738f8c666a91c3ce17",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e8ea57d2a7b17bde5b02db94541d712a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "e9782b309b28e4a450874bfb48672232",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ea27d81ea58cebf75f1651453e88020b",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "eb6edc14dff354ebc7b8280e61c3ab76",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "eb961de5b7703657a08fe2dce340e5d6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ebe7ae691b9cad8ab7b2323e37691f1c",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ec056512be0b6770e4ec0ebc8744ef3a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "edf573c6f779c9b10d667a6639c34b36",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "eee414d4940507fcff251d2cad606adc",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "eeec3f7659ee455f94e40a1f12645e4e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f01c2401b6c6e8e73e9e8a3a6c96e5b9",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f1f3a63e62cb5449bcc88578641d0f8a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f33028fd5bcef05cf5947f416622f46b",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f46bb3084cb8601ec5c72a4314ed4813",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f5ba65cc6c12701860ed358419879e12",
+      "lamp": "FAILED"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f708dc063a6035d46437fb5a7559d683",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f8dcdfe070630bbb365323c662561a1a",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f96cf3af3d9356407bff483d27f4aecc",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "f9e26ca79a88891e801173e3b9a172d1",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fa9d4943655fd0b984d7adf7002d063f",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fa9f75006aa50c4aae5d9d2edf3ee0b6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fad6820e676a64dc7fe16dca0dac95dd",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fad70a1508646c1f5a0288c239b60e63",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fb05cc2e1da34361d75d001590360667",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fb7a747a5115a4a4739397d17ccb26bb",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fbe94821f93aefea75dc0ad20c7e9cc6",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fc33c6c10969eaba828fbe60b22dfc14",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fc97d57fde3693e23d39ff2caaa19392",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "fd08126997e80d59cbc19904da322f3e",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 144372,
+      "playerName": "BMS KING",
+      "md5": "ff9f25ad005083c6173b565d054405c0",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 153667,
+      "playerName": "0133",
+      "md5": "34e09ddf69ae8bdca128db1cc39d163a",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 153667,
+      "playerName": "0133",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "EASY"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "019ac1a99cd2e4e1d971e85089ec474a",
+      "lamp": "NORMAL"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "188a99f74ab71804f2e360dcf484545c",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "39d0732ef7fee9ad0c8b044ccbe8a396",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "727ab7a4bc5995f9d4e53b0273b8e698",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "77d23be22b2370925c573d922276bce0",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "8f2a82e4f1f3e299c5d761a4c673b9ae",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "c46a81cb184f5a804c119930d6eba748",
+      "lamp": "HARD"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "cfad3baadce9e02c45021963453d7c94",
+      "lamp": "FULLCOMBO"
+    },
+    {
+      "playerId": 159674,
+      "playerName": "meumeu7",
+      "md5": "de6240bb00c79b4814efc0d9e283209b",
+      "lamp": "NORMAL"
+    }
+  ]
+}
