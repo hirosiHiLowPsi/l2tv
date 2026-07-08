@@ -3,7 +3,7 @@
 **L2TV (LR2 Table Viewer)** は、Lunatic Rave 2 / OpenLR2 のローカルDBとBMS難易度表を照合し、クリアランプ、スコア、BP、段位、ライバル比較、FORCE RATEなどを確認できるWindows向けElectronアプリです。
 
 開発・制作: **HiLowPsi**  
-最新バージョン: **2.0.0**
+最新バージョン: **2.0.0fix**
 
 > [!IMPORTANT]
 > L2TVはインストール不要のポータブル版として配布します。解凍すると `L2TV` フォルダ内に構成ファイルがまとまります。削除するときはWindowsのアンインストーラーを使わず、解凍して作成された **L2TV専用フォルダだけ** をゴミ箱へ移動してください。
@@ -42,8 +42,7 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 ### FORCE RATE
 
 - ローカルの `score.db` からFORCE RATEと称号バッジを自動計算します。
-- FORCE RATEは、発狂BMS難易度表と第二期Overjoy難易度表の譜面定数をMD5で照合して算出します。
-- 第三期Overjoyのみに存在する譜面は、FORCE RATEのOverjoy対象から除外します。
+- FORCE RATEは、発狂BMS難易度表、初代Overjoy、第二期Overjoyの譜面定数をMD5で照合して算出します。
 - 単曲FORCEは `譜面定数 × スコア係数 × クリアランプ係数` です。
 - 対象譜面はFORCE RATE対象フォルダで確認できます。
 
@@ -106,7 +105,7 @@ Rival:    LR2files\Rival
 
 ## 導入手順
 
-1. Releasesから最新版の `L2TV-2.0.0-win-x64.7z` をダウンロードします。
+1. Releasesから最新版の `L2TV-2.0.0fix-win-x64.7z` をダウンロードします。
 2. 任意の場所へ解凍します。
 3. 解凍して作成された `L2TV` フォルダを開きます。
 4. `L2TV.exe` を起動します。

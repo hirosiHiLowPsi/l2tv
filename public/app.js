@@ -5769,8 +5769,8 @@ function showForceRatingHelp(triggerButton) {
 
   const introduction = document.createElement("p");
   introduction.textContent = isEnglish
-    ? "FORCE RATE is an index from 0.000 to 30.000 calculated by matching score.db charts to Insane BMS and second-period Overjoy chart constants by MD5. Third-period-only Overjoy charts are excluded. Chart constants use LR2IR Archive statistics."
-    : "FORCE RATEは、score.dbの譜面を発狂BMSと第二期Overjoyの譜面定数へMD5で照合し、0.000〜30.000で表す指標です。第三期Overjoyにのみ登録されている譜面は対象外です。譜面定数にはLR2IR Archiveの集計を使用します。";
+    ? "FORCE RATE is an index from 0.000 to 30.000 calculated by matching score.db charts to Insane BMS, first Overjoy, and second-period Overjoy chart constants by MD5. Chart constants use LR2IR Archive statistics."
+    : "FORCE RATEは、score.dbの譜面を発狂BMS、初代Overjoy、第二期Overjoyの譜面定数へMD5で照合し、0.000〜30.000で表す指標です。譜面定数にはLR2IR Archiveの集計を使用します。";
 
   const formula = document.createElement("div");
   formula.className = "force-rating-help-formula";

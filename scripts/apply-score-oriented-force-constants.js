@@ -10,6 +10,7 @@ const irtConstantsPath = path.join(
   "force-irt-pretest-high17-27-20260623",
   "irt-force-constant-pretest-data.json",
 );
+const oldOverjoyMd5Path = path.join(projectRoot, "scripts", "data", "old-overjoy-md5s.json");
 const archiveDbPath = path.resolve(
   process.argv[2] || path.resolve(projectRoot, "..", "lr2ir-archive.db"),
 );
@@ -116,6 +117,80 @@ function loadExcludedPlayerIds(constants) {
   );
 }
 
+function parseOverjoyLevel(level) {
+  const match = String(level ?? "").match(/(\d+)/);
+  if (!match) {
+    return null;
+  }
+  const numeric = Number(match[1]);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function loadOldOverjoyCharts() {
+  if (!fs.existsSync(oldOverjoyMd5Path)) {
+    return { source: "", count: 0, charts: [] };
+  }
+  const payload = readJson(oldOverjoyMd5Path);
+  const charts = [];
+  const seen = new Set();
+  for (const entry of payload.charts || []) {
+    const md5 = md5Of(entry);
+    const level = parseOverjoyLevel(entry.level);
+    if (!md5 || seen.has(md5) || !Number.isFinite(level)) {
+      continue;
+    }
+    seen.add(md5);
+    charts.push({
+      md5,
+      title: normalizeText(entry.title),
+      artist: normalizeText(entry.artist),
+      source: "overjoy",
+      sourceTable: "初代/第二期Overjoy",
+      oldOverjoyChart: true,
+      difficulty: normalizeText(entry.level) || `★★${level}`,
+      level,
+      nominalLevel: 20 + level,
+    });
+  }
+  return {
+    source: normalizeText(payload.source),
+    count: charts.length,
+    charts,
+  };
+}
+
+function mergeOldOverjoyCharts(current, oldOverjoy) {
+  const charts = [...(current.charts || [])];
+  const existingMd5s = new Map(charts.map((chart, index) => [md5Of(chart), index]).filter(([md5]) => Boolean(md5)));
+  const addedCharts = [];
+  for (const chart of oldOverjoy.charts || []) {
+    const existingIndex = existingMd5s.get(chart.md5);
+    if (existingIndex !== undefined) {
+      const existing = charts[existingIndex];
+      charts[existingIndex] = {
+        ...chart,
+        ...existing,
+        title: normalizeText(existing.title) || chart.title,
+        artist: normalizeText(existing.artist) || chart.artist,
+        sourceTable: normalizeText(existing.sourceTable) || chart.sourceTable,
+        difficulty: normalizeText(existing.difficulty) || chart.difficulty,
+        level: Number.isFinite(Number(existing.level)) ? Number(existing.level) : chart.level,
+        nominalLevel: Number.isFinite(Number(existing.nominalLevel))
+          ? Number(existing.nominalLevel)
+          : chart.nominalLevel,
+      };
+      continue;
+    }
+    charts.push(chart);
+    addedCharts.push(chart);
+    existingMd5s.set(chart.md5, charts.length - 1);
+  }
+  return {
+    current: { ...current, charts },
+    addedCharts,
+  };
+}
+
 function assertArchiveDatabase(filePath) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`LR2IR Archive database not found: ${filePath}`);
@@ -191,6 +266,14 @@ function loadChartRows(database, current, irtPayload) {
     }
 
     const metadata = chartStatement.get(md5);
+    const irtConstant = Number(irtChart?.newConstant);
+    const currentConstant = Number(currentChart.chartConstant);
+    const fallbackLampIrtConstant =
+      currentChart.oldOverjoyChart && !Number.isFinite(irtConstant)
+        ? nominalLevel
+        : Number.isFinite(currentConstant)
+          ? currentConstant
+          : nominalLevel;
     rows.push({
       index: rows.length,
       md5,
@@ -198,7 +281,7 @@ function loadChartRows(database, current, irtPayload) {
       sourceTable: normalizeText(
         irtChart?.sourceTable ||
           currentChart.sourceTable ||
-          (currentChart.source === "overjoy" ? "第二期Overjoy" : "発狂BMS難易度表"),
+          (currentChart.source === "overjoy" ? "初代/第二期Overjoy" : "発狂BMS難易度表"),
       ),
       difficulty: resolveDifficulty(currentChart, irtChart, nominalLevel),
       nominalLevel,
@@ -208,9 +291,7 @@ function loadChartRows(database, current, irtPayload) {
       artist: normalizeText(irtChart?.artist || currentChart.artist || metadata?.artist),
       currentChart,
       irtChart,
-      lampIrtConstant: Number.isFinite(Number(irtChart?.newConstant))
-        ? Number(irtChart.newConstant)
-        : Number(currentChart.chartConstant),
+      lampIrtConstant: Number.isFinite(irtConstant) ? irtConstant : fallbackLampIrtConstant,
     });
   }
 
@@ -501,7 +582,11 @@ function buildRuntimePayload(payload) {
     sourceTables: payload.sourceTables,
     overjoySourceScope: payload.overjoySourceScope,
     overjoyAllowlistCharts: payload.overjoyAllowlistCharts,
+    overjoyOldCharts: payload.overjoyOldCharts,
+    overjoyOldAddedCharts: payload.overjoyOldAddedCharts,
+    overjoyDuplicatePolicy: payload.overjoyDuplicatePolicy,
     overjoyAllowlistSource: payload.overjoyAllowlistSource,
+    overjoyOldSource: payload.overjoyOldSource,
     overjoyExcludedByAllowlistCount: payload.overjoyExcludedByAllowlistCount,
     forceRatingTargetCount: payload.forceRatingTargetCount,
     insaneCharts: payload.insaneCharts,
@@ -525,7 +610,10 @@ function buildRuntimePayload(payload) {
 function main() {
   assertArchiveDatabase(archiveDbPath);
 
-  const current = readJson(currentConstantsPath);
+  const baseCurrent = readJson(currentConstantsPath);
+  const oldOverjoy = loadOldOverjoyCharts();
+  const merged = mergeOldOverjoyCharts(baseCurrent, oldOverjoy);
+  const current = merged.current;
   const irtPayload = fs.existsSync(irtConstantsPath)
     ? readJson(irtConstantsPath)
     : { charts: [] };
@@ -557,12 +645,19 @@ function main() {
         "score-oriented threshold distribution using LR2IR Archive valid EX scores, plus weak lamp IRT helper",
       archiveSource: current.archiveSource,
       archiveDatabase: archiveDbPath,
-      sourceTables: current.sourceTables,
-      overjoySourceScope: current.overjoySourceScope,
+      sourceTables: {
+        ...current.sourceTables,
+        overjoyOld: oldOverjoy.source || "https://darksabun.club/table/archive/old-overjoy/",
+      },
+      overjoySourceScope: "old-and-second-period",
       overjoyAllowlistCharts: current.overjoyAllowlistCharts,
+      overjoyOldCharts: oldOverjoy.count,
+      overjoyOldAddedCharts: merged.addedCharts.length,
+      overjoyDuplicatePolicy: "When old Overjoy and second-period Overjoy contain the same MD5, the existing second-period chart is kept and treated as the same chart.",
       overjoyAllowlistSource: current.overjoyAllowlistSource,
+      overjoyOldSource: oldOverjoy.source || "https://darksabun.club/table/archive/old-overjoy/",
       overjoyExcludedByAllowlistCount: current.overjoyExcludedByAllowlistCount,
-      levelConversion: "Second-period Overjoy ★★n = ★(20+n)",
+      levelConversion: "Overjoy ★★n = ★(20+n)",
       scoreOrientedCorrection: {
         finalFormula:
           "nominalLevel >= 28 ? 27.00 : roundTo2(clamp(nominalLevel + scoreDeviation + lampDeviation, 1.00, 27.00))",

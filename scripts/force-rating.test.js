@@ -33,16 +33,20 @@ const tierCases = [
 ];
 
 test("FORCE constants contain the expected unique chart set", () => {
-  assert.equal(constants.charts.length, 1405);
+  assert.equal(constants.charts.length, 1265);
   assert.equal(constants.insaneCharts, 1030);
-  assert.equal(constants.overjoyCharts, 375);
-  assert.equal(constants.overjoyOverlapCount, 38);
+  assert.equal(constants.overjoyCharts, 235);
+  assert.equal(constants.overjoyOverlapCount, 37);
   assert.equal(constants.sourceTables.overjoy, "https://lr2.sakura.ne.jp/overjoy.php");
-  assert.equal(constants.overjoySourceScope, "second-period-only");
-  assert.equal(constants.overjoyAllowlistCharts, 413);
+  assert.equal(constants.sourceTables.overjoyOld, "https://darksabun.club/table/archive/old-overjoy/");
+  assert.equal(constants.overjoySourceScope, "old-and-second-period");
+  assert.equal(constants.overjoyAllowlistCharts, 255);
+  assert.equal(constants.overjoyOldCharts, 250);
   assert.equal(constants.overjoyAllowlistSource, "https://lr2.sakura.ne.jp/overjoy.php");
-  assert.equal(constants.overjoyExcludedByAllowlistCount, 0);
-  assert.equal(constants.archiveCharts, 1405);
+  assert.equal(constants.overjoyOldSource, "https://darksabun.club/table/archive/old-overjoy/");
+  assert.equal(constants.overjoyExcludedByAllowlistCount, 157);
+  assert.match(constants.overjoyDuplicatePolicy, /same MD5/);
+  assert.equal(constants.archiveCharts, 1265);
   assert.equal(constants.archiveMissingCharts, 0);
   assert.deepEqual(constants.archiveMissingMd5s, []);
   assert.equal(constants.excludedPlayerScoreCount, 740);

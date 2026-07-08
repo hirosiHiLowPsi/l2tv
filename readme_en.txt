@@ -163,7 +163,7 @@ If you are unsure, look for LR2files inside your LR2 folder.
 
 7z version:
 
-1. Extract L2TV-2.0.0-win-x64.7z to any location.
+1. Extract L2TV-2.0.0fix-win-x64.7z to any location.
 2. Run L2TV.exe inside the automatically created "L2TV" folder.
 3. Installation is not required.
 
@@ -474,7 +474,7 @@ If you are unsure, confirm the distribution source before running it.
 7z version:
 
 1. Close L2TV.
-2. Extract the new L2TV-2.0.0-win-x64.7z.
+2. Extract the new L2TV-2.0.0fix-win-x64.7z.
 3. Replace the old L2TV folder with the new one.
 
 Notes:

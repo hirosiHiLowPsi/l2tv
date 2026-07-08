@@ -13,7 +13,7 @@ function csvCell(value) {
 
 function tableName(source) {
   if (source === "overjoy") {
-    return "第二期Overjoy";
+    return "初代/第二期Overjoy";
   }
   if (source === "insane") {
     return "発狂BMS難易度表";
