@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
-const { getForceRatingTier } = require("../server");
+const { __test, getForceRatingTier } = require("../server");
 
 const projectRoot = path.resolve(__dirname, "..");
 const archiveDbPath = path.resolve(projectRoot, "..", "lr2ir-archive.db");
@@ -39,13 +39,13 @@ const MANUAL_EXCLUDED_PLAYER_IDS = new Set([
 const FORCE_LAMP_COEFFICIENTS = new Map([
   ["FULLCOMBO", 1],
   ["★FULLCOMBO", 1],
-  ["HARD", 0.98],
-  ["HARD CLEAR", 0.98],
-  ["CLEAR", 0.93],
-  ["NORMAL CLEAR", 0.93],
-  ["EASY", 0.86],
-  ["EASY CLEAR", 0.86],
-  ["FAILED", 0.5],
+  ["HARD", 1],
+  ["HARD CLEAR", 1],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
+  ["EASY", 1],
+  ["EASY CLEAR", 1],
+  ["FAILED", 1],
 ]);
 const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["FULLCOMBO", 1],
@@ -195,7 +195,7 @@ function buildOverjoyRanking(database, charts) {
         continue;
       }
       const scoreRate = Math.min(Math.max(exScore / scoreMax, 0), 1);
-      const scoreCoefficient = round(scoreRate, 3);
+      const scoreCoefficient = __test.calculateForceScoreCoefficient(scoreRate);
       const force = chart.chartConstant * scoreCoefficient * lampCoefficient;
       player.candidates.push({
         candidateType: "chart",
@@ -268,7 +268,7 @@ function buildOverjoyRanking(database, charts) {
     const broadTotal = targets.reduce((sum, target) => sum + target.force, 0);
     const broadAverage = broadTotal / 51;
     const best20Average = targets.slice(0, 20).reduce((sum, target) => sum + target.force, 0) / 20;
-    const forceRate = clamp(broadAverage * 0.2 + best20Average * 0.8, 0, FORCE_RATING_MAX);
+    const forceRate = clamp(broadAverage, 0, FORCE_RATING_MAX);
     const tier = getForceRatingTier(forceRate);
 
     ranking.push({
@@ -299,7 +299,7 @@ function buildOverjoyRanking(database, charts) {
   ranking.sort(
     (left, right) =>
       right.forceRate - left.forceRate ||
-      right.best20Average - left.best20Average ||
+      right.broadAverage - left.broadAverage ||
       left.playerId - right.playerId,
   );
   ranking.forEach((row, index) => {
@@ -331,7 +331,7 @@ try {
     generatedAt: new Date().toISOString(),
     method:
       "Capped deviation constants: nominal level + clamp((IRT constant - nominal level) * 0.75, -3.0, +2.0); ★★n = ★(20+n), ★★8 fixed to 27.00",
-    forceRateFormula: "BEST20 average * 0.8 + 51-target average * 0.2",
+    forceRateFormula: "51-target average",
     sourceData: inputPath,
     chartSources: source.chartSources,
     sampleLimitPerBand: source.sampleLimitPerBand,

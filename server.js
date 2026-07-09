@@ -79,18 +79,22 @@ const songDbCatalogCache = new Map();
 let forceChartConstantsCache = null;
 const FORCE_RATING_MAX = 30;
 const FORCE_LAMP_COEFFICIENTS = new Map([
-  ["MAX", 1.02],
-  ["PERFECT", 1.02],
-  ["FULL COMBO", 1.02],
-  ["EX HARD CLEAR", 0.98],
-  ["HARD CLEAR", 0.98],
-  ["CLEAR", 0.93],
-  ["EASY CLEAR", 0.86],
-  ["FAILED", 0.5],
+  ["MAX", 1],
+  ["PERFECT", 1],
+  ["FULL COMBO", 1],
+  ["EX HARD CLEAR", 1],
+  ["HARD CLEAR", 1],
+  ["CLEAR", 1],
+  ["EASY CLEAR", 1],
+  ["FAILED", 1],
 ]);
+const FORCE_SCORE_AAA_THRESHOLD = 8 / 9;
+const FORCE_SCORE_AAA_BASE = 0.9;
+const FORCE_SCORE_FULL_BONUS_THRESHOLD = 0.9444;
+const FORCE_SCORE_FULL_BONUS_BASE = 0.98;
 const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["HARD CLEAR", 1],
-  ["CLEAR", 0.98],
+  ["CLEAR", 1],
 ]);
 const FORCE_DAN_CONSTANTS = new Map([
   [11, { label: "発狂初段", grade: "★1", courseId: 11110, constant: 1.0 }],
@@ -1734,6 +1738,8 @@ function loadForceChartConstants() {
         md5: normalizeHex(chart?.md5, 32),
         chartConstant: Number(chart?.chartConstant),
         source: normalizeText(chart?.source),
+        sourceTable: normalizeText(chart?.sourceTable),
+        difficulty: normalizeText(chart?.difficulty),
       }))
       .filter((chart) => chart.md5 && Number.isFinite(chart.chartConstant) && chart.chartConstant >= 0);
   } catch (error) {
@@ -1779,7 +1785,7 @@ function buildForceRating(playerMyList) {
     }
 
     const exScoreRatio = Math.min(Math.max(exScore / maxExScore, 0), 1);
-    const scoreCoefficient = Math.round(exScoreRatio * 1000) / 1000;
+    const scoreCoefficient = calculateForceScoreCoefficient(exScoreRatio);
     const force = chart.chartConstant * scoreCoefficient * lampCoefficient;
     if (!Number.isFinite(force)) {
       continue;
@@ -1791,6 +1797,8 @@ function buildForceRating(playerMyList) {
       chartConstant: chart.chartConstant,
       md5: chart.md5,
       source: chart.source,
+      sourceTable: chart.sourceTable,
+      difficulty: chart.difficulty,
       title: normalizeText(score?.title),
       artist: normalizeText(score?.artist),
       lampStatus: score.lampStatus,
@@ -1825,7 +1833,7 @@ function buildForceRating(playerMyList) {
   const best20 = broadCandidates.slice(0, 20);
   const best20Total = best20.reduce((sum, chart) => sum + chart.force, 0);
   const best20Average = best20.length >= 20 ? best20Total / 20 : broadAverage;
-  const rating = clampForceRating(broadAverage * 0.2 + best20Average * 0.8);
+  const rating = clampForceRating(broadAverage);
   const ratingTier = getForceRatingTier(rating);
 
   return {
@@ -1848,6 +1856,25 @@ function buildForceRating(playerMyList) {
       ...chart,
     })),
   };
+}
+
+function calculateForceScoreCoefficient(scoreRatio) {
+  const clampedRatio = Math.min(Math.max(Number(scoreRatio), 0), 1);
+  if (clampedRatio < FORCE_SCORE_AAA_THRESHOLD) {
+    return Math.round(clampedRatio * 1000) / 1000;
+  }
+  if (clampedRatio < FORCE_SCORE_FULL_BONUS_THRESHOLD) {
+    const aaaRange = FORCE_SCORE_FULL_BONUS_THRESHOLD - FORCE_SCORE_AAA_THRESHOLD;
+    const aaaProgress = aaaRange > 0 ? (clampedRatio - FORCE_SCORE_AAA_THRESHOLD) / aaaRange : 1;
+    const coefficient =
+      FORCE_SCORE_AAA_BASE + (FORCE_SCORE_FULL_BONUS_BASE - FORCE_SCORE_AAA_BASE) * aaaProgress;
+    return Math.round(Math.min(Math.max(coefficient, FORCE_SCORE_AAA_BASE), FORCE_SCORE_FULL_BONUS_BASE) * 1000) / 1000;
+  }
+
+  const bonusRange = 1 - FORCE_SCORE_FULL_BONUS_THRESHOLD;
+  const bonusProgress = bonusRange > 0 ? (clampedRatio - FORCE_SCORE_FULL_BONUS_THRESHOLD) / bonusRange : 1;
+  const coefficient = FORCE_SCORE_FULL_BONUS_BASE + (1 - FORCE_SCORE_FULL_BONUS_BASE) * bonusProgress;
+  return Math.round(Math.min(Math.max(coefficient, FORCE_SCORE_FULL_BONUS_BASE), 1) * 1000) / 1000;
 }
 
 function clampForceRating(ratingValue) {
@@ -2871,7 +2898,9 @@ function parseLocalDanGradeTitle(title) {
   }
 
   if (danTitleBody.includes("皆伝")) {
-    return { rank: 21, grade: "★★" };
+    return danTitleBody.includes("発狂") || danTitleBody.includes("★★")
+      ? { rank: 21, grade: "★★" }
+      : null;
   }
 
   const level = parseLocalDanTitleLevel(danTitleBody);
@@ -2879,7 +2908,10 @@ function parseLocalDanGradeTitle(title) {
     return null;
   }
 
-  return { rank: level + 10, grade: `★${level}` };
+  const isInsaneDan = danTitleBody.includes("発狂") || danTitleBody.includes("★");
+  return isInsaneDan
+    ? { rank: level + 10, grade: `★${level}` }
+    : { rank: level, grade: `☆${level}` };
 }
 
 function normalizeGradeTitleKey(title) {
@@ -3635,6 +3667,11 @@ if (require.main === module) {
 }
 
 module.exports = {
+  __test: {
+    buildForceDanCandidateFromGradeInfo,
+    calculateForceScoreCoefficient,
+    parseLocalDanGradeTitle,
+  },
   buildForceRating,
   clampForceRating,
   createAppServer,

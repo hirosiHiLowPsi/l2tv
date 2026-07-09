@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
-const { getForceRatingTier } = require("../server");
+const { __test, getForceRatingTier } = require("../server");
 
 const projectRoot = path.resolve(__dirname, "..");
 const archiveDbPath = path.resolve(projectRoot, "..", "lr2ir-archive.db");
@@ -25,13 +25,13 @@ const MANUAL_EXCLUDED_PLAYER_IDS = new Set([
 const FORCE_LAMP_COEFFICIENTS = new Map([
   ["FULLCOMBO", 1],
   ["★FULLCOMBO", 1],
-  ["HARD", 0.98],
-  ["HARD CLEAR", 0.98],
-  ["CLEAR", 0.93],
-  ["NORMAL CLEAR", 0.93],
-  ["EASY", 0.86],
-  ["EASY CLEAR", 0.86],
-  ["FAILED", 0.5],
+  ["HARD", 1],
+  ["HARD CLEAR", 1],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
+  ["EASY", 1],
+  ["EASY CLEAR", 1],
+  ["FAILED", 1],
 ]);
 const OVERJOY_DAN_CONSTANT = 26.81;
 const OVERJOY_DAN_LAMP_COEFFICIENT = 1;
@@ -183,7 +183,7 @@ function buildOverjoyRanking(database) {
         continue;
       }
       const scoreRate = Math.min(Math.max(exScore / scoreMax, 0), 1);
-      const scoreCoefficient = round(scoreRate, 3);
+      const scoreCoefficient = __test.calculateForceScoreCoefficient(scoreRate);
       const force = Number(chart.chartConstant) * scoreCoefficient * lampCoefficient;
       player.candidates.push({
         candidateType: "chart",
@@ -253,7 +253,7 @@ function buildOverjoyRanking(database) {
     const broadTotal = targets.reduce((sum, target) => sum + target.force, 0);
     const broadAverage = broadTotal / 51;
     const best20Average = targets.slice(0, 20).reduce((sum, target) => sum + target.force, 0) / 20;
-    const forceRate = Math.min(broadAverage * 0.2 + best20Average * 0.8, 30);
+    const forceRate = Math.min(broadAverage, 30);
     const tier = getForceRatingTier(forceRate);
 
     ranking.push({
@@ -284,7 +284,7 @@ function buildOverjoyRanking(database) {
   ranking.sort(
     (left, right) =>
       right.forceRate - left.forceRate ||
-      right.best20Average - left.best20Average ||
+      right.broadAverage - left.broadAverage ||
       left.playerId - right.playerId,
   );
   ranking.forEach((row, index) => {

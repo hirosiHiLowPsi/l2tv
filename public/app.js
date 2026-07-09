@@ -2978,13 +2978,11 @@ function renderForceRatingBest50Folder(forceRating) {
   const cutoffText = Number.isFinite(cutoff) && charts.length ? cutoff.toFixed(3) : "-";
   const broadCount = Math.max(0, Number.parseInt(forceRating.broadCount, 10) || charts.length);
   const broadAverage = Number(forceRating.broadAverage);
-  const best20Average = Number(forceRating.best20Average);
   const broadAverageText = Number.isFinite(broadAverage) ? broadAverage.toFixed(3) : "-";
-  const best20AverageText = Number.isFinite(best20Average) ? best20Average.toFixed(3) : "-";
   summary.textContent =
     selectedLanguage === "en"
-      ? `Targets ${broadCount}/51 · BEST20 avg ${best20AverageText} · Broad avg ${broadAverageText} · Cutoff ${cutoffText}`
-      : `対象 ${broadCount}/51 · BEST20平均 ${best20AverageText} · 全体平均 ${broadAverageText} · 下限 ${cutoffText}`;
+      ? `Targets ${broadCount}/51 · Average ${broadAverageText} · Cutoff ${cutoffText}`
+      : `対象 ${broadCount}/51 · 平均 ${broadAverageText} · 下限 ${cutoffText}`;
   panel.append(summary);
 
   if (charts.length) {
@@ -3115,14 +3113,7 @@ function createForceBest50Table(charts) {
 
       const sourceCell = document.createElement("td");
       sourceCell.className = "force-best50-source";
-      sourceCell.textContent =
-        chart.source === "insane"
-          ? "発狂BMS"
-          : chart.source === "overjoy"
-            ? "Overjoy"
-            : chart.source === "dan"
-              ? selectedLanguage === "en" ? "Dan" : "段位"
-              : "-";
+      sourceCell.textContent = getForceSourceLabel(chart);
 
       row.append(rankCell, titleCell, constantCell, lampCell, scoreCell, forceCell, sourceCell);
       tbody.append(row);
@@ -3134,6 +3125,33 @@ function createForceBest50Table(charts) {
 
   render();
   return wrapper;
+}
+
+function getForceSourceLabel(chart) {
+  const sourceTable = String(chart?.sourceTable || "").trim();
+  if (sourceTable) {
+    if (selectedLanguage === "en") {
+      const englishLabels = {
+        "発狂BMS難易度表": "Insane BMS",
+        "初代Overjoy": "First Overjoy",
+        "第二期Overjoy": "Second-period Overjoy",
+        "初代/第二期Overjoy": "First/Second Overjoy",
+        "段位認定": "Dan",
+      };
+      return englishLabels[sourceTable] || sourceTable;
+    }
+    return sourceTable;
+  }
+  if (chart?.source === "insane") {
+    return selectedLanguage === "en" ? "Insane BMS" : "発狂BMS";
+  }
+  if (chart?.source === "overjoy") {
+    return "Overjoy";
+  }
+  if (chart?.source === "dan") {
+    return selectedLanguage === "en" ? "Dan" : "段位";
+  }
+  return "-";
 }
 
 function sortForceBest50Charts(charts, state) {
@@ -3162,7 +3180,10 @@ function sortForceBest50Charts(charts, state) {
         compared = compareNumericNullable(left.force, right.force, state.sortDirection);
         break;
       case "source":
-        compared = applySortDirection(compareText(left.source, right.source), state.sortDirection);
+        compared = applySortDirection(
+          compareText(getForceSourceLabel(left), getForceSourceLabel(right)),
+          state.sortDirection,
+        );
         break;
       case "rank":
       default:
@@ -5729,8 +5750,8 @@ function createForceRatingCard(forceRating) {
   detail.dataset.i18nSkip = "true";
   detail.textContent =
     selectedLanguage === "en"
-      ? `BEST20/${broadCount} · charts ${top50Count}/50 · ${playedCharts} rated charts`
-      : `BEST20/${broadCount} · 譜面 ${top50Count}/50 · 対象 ${playedCharts}譜面`;
+      ? `avg ${broadCount} targets · charts ${top50Count}/50 · ${playedCharts} rated charts`
+      : `平均 ${broadCount}対象 · 譜面 ${top50Count}/50 · 対象 ${playedCharts}譜面`;
 
   copy.append(label, value, titleElement, detail);
   content.append(badge, copy);
@@ -5769,37 +5790,37 @@ function showForceRatingHelp(triggerButton) {
 
   const introduction = document.createElement("p");
   introduction.textContent = isEnglish
-    ? "FORCE RATE is an index from 0.000 to 30.000 calculated by matching score.db charts to Insane BMS, first Overjoy, and second-period Overjoy chart constants by MD5. Chart constants use LR2IR Archive statistics."
-    : "FORCE RATEは、score.dbの譜面を発狂BMS、初代Overjoy、第二期Overjoyの譜面定数へMD5で照合し、0.000〜30.000で表す指標です。譜面定数にはLR2IR Archiveの集計を使用します。";
+    ? "FORCE RATE is an index from 0.000 to 30.000 calculated by matching score.db charts to Insane BMS, first Overjoy, and second-period Overjoy chart constants by MD5. Chart constants are based mainly on how difficult AAA is among players who have cleared the chart in LR2IR Archive statistics."
+    : "FORCE RATEは、score.dbの譜面を発狂BMS、初代Overjoy、第二期Overjoyの譜面定数へMD5で照合し、0.000〜30.000で表す指標です。譜面定数はLR2IR Archive上で、その譜面をクリアした人のうちAAAを出している割合を主な基準にしています。";
 
   const formula = document.createElement("div");
   formula.className = "force-rating-help-formula";
   formula.textContent = isEnglish
-    ? "FORCE RATE = Broad Average × 0.2 + BEST20 Average × 0.8"
-    : "FORCE RATE = 全体平均 × 0.2 + BEST20平均 × 0.8";
+    ? "FORCE RATE = Average of all targets"
+    : "FORCE RATE = 全対象平均";
 
   const details = document.createElement("ul");
   details.className = "force-rating-help-list";
   const items = isEnglish
       ? [
-        "Chart constants compare all eligible charts on one global scale using LR2IR Archive FC, HC, NC, EC and failed totals. Difficulty-table levels are not used in the comparison.",
-        "The score coefficient is the EX score rate rounded to three decimal places: AAA = 0.889, 90% = 0.900, and 93.53% = 0.935.",
-        "Lamp coefficients: FC 1.02 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50. NP and NS are excluded.",
-        "Chart FORCE = Chart Constant × Score Coefficient × Lamp Coefficient.",
+        "Chart constants compare how hard it is to achieve AAA among cleared players. A chart with a lower AAA share among cleared players becomes harder on the FORCE scale.",
+        "The score coefficient follows the EX score rate below AAA. From AAA to 94.44%, it scales from 0.900 to 0.980; from 94.44% to MAX, it scales from 0.980 to 1.000.",
+        "Lamp coefficients are not used. FC, HC, NC, EC, and FL are all valued by score only. NP and NS are excluded.",
+        "Chart FORCE = Chart Constant × Score Coefficient.",
         "The target set is up to 51 entries: the best 50 chart FORCE values plus the highest passed GENOSIDE2018 SP dan course. If no dan course is found, the target set remains 50 charts.",
         "For the GENOSIDE2018 Overjoy dan course, NC and HC both use a dan coefficient of 1.00.",
-        "FORCE RATE blends the broad target average with the stronger BEST20 average, so the top-end density matters while the 50-chart requirement still remains.",
+        "BEST20 correction is not used. FORCE RATE is the simple average of the full target set.",
         "The displayed maximum is 30.000. Title thresholds are unchanged.",
         "The FORCE RATE BEST50 folder lists the rated charts and each Chart FORCE value.",
       ]
       : [
-        "譜面定数は、LR2IR ArchiveのFC・HC・NC・EC・FAILED総数を使い、全対象譜面を共通尺度で比較します。難易度表のレベル内順位は使いません。",
-        "スコア係数はEXスコア率を小数第3位へ四捨五入します。AAAは0.889、90%は0.900、93.53%は0.935です。",
-        "ランプ係数は FC 1.02 / HC 0.98 / NC 0.93 / EC 0.86 / FL 0.50です。NPとNSは対象外です。",
-        "単曲レート = 譜面定数 × スコア係数 × ランプ係数です。",
+        "譜面定数は、その譜面をクリアした人の中でAAAを出す難しさを主な基準にします。クリア者内のAAA割合が低い譜面ほどFORCE上では難しめになります。",
+        "スコア係数はAAA未満ではEXスコア率をそのまま小数第3位へ四捨五入します。AAA〜94.44%は0.900から0.980へ、94.44%〜MAXは0.980から1.000へ伸びます。",
+        "ランプ係数は使いません。FC、HC、NC、EC、FLはすべてスコアのみで評価します。NPとNSは対象外です。",
+        "単曲レート = 譜面定数 × スコア係数です。",
         "対象は最大51個です。単曲レート上位50譜面に、GENOSIDE2018 SP段位の最高合格段位を1個加えます。段位コースが見つからない場合は50譜面のままです。",
         "GENOSIDE2018 Overjoy段位は、NCとHCの段位係数をどちらも1.00として扱います。",
-        "FORCE RATEは、広さを見る全体平均と上位密度を見るBEST20平均を混ぜて計算します。50譜面を埋める意味は残しつつ、高い単曲レートの厚みも評価します。",
+        "BEST20補正は使いません。FORCE RATEは対象全体の単純平均です。",
         "表示上限は30.000です。称号付与条件は変更していません。",
         "対象譜面と各単曲レートは、FORCE RATE BEST50フォルダで確認できます。",
       ];

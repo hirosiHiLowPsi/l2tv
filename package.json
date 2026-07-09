@@ -49,6 +49,14 @@
         "to": "readme_en.txt"
       },
       {
+        "from": "README.md",
+        "to": "README.md"
+      },
+      {
+        "from": "FORCE_RATE_SPEC.md",
+        "to": "FORCE_RATE_SPEC.md"
+      },
+      {
         "from": "更新履歴.txt",
         "to": "更新履歴.txt"
       }

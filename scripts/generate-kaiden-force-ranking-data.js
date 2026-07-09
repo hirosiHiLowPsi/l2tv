@@ -4,27 +4,24 @@ const { DatabaseSync } = require("node:sqlite");
 const { __test, getForceRatingTier } = require("../server");
 
 const projectRoot = path.resolve(__dirname, "..");
-const archiveDbPath = path.resolve(projectRoot, "..", "lr2ir-archive.db");
+const archiveDbPath = path.resolve(
+  process.argv[2] ||
+    "C:/Users/turug/Downloads/lr2ir-archive-v3.db/lr2ir-archive.db",
+);
 const constantsPath = path.resolve(
-  process.argv[2] || path.join(projectRoot, "public", "data", "force-chart-constants.json"),
+  process.argv[3] || path.join(projectRoot, "public", "data", "force-chart-constants.json"),
 );
 const outputDir = path.resolve(
-  process.argv[3] ||
-    path.join(projectRoot, "outputs", "force-score9444-reports-20260623"),
+  process.argv[4] || path.join(projectRoot, "outputs", "force-kaiden-ranking-20260709"),
 );
 
 const FORCE_RATING_MAX = 30;
-const OVERJOY_COURSE_ID = 11099;
-const OVERJOY_DAN_CONSTANT = 26.81;
-function envNumber(name, fallback) {
-  const value = Number(process.env[name]);
-  return Number.isFinite(value) ? value : fallback;
-}
-const FORCE_FC_COEFFICIENT = envNumber("FORCE_FC_COEFFICIENT", 1);
-const FORCE_HC_COEFFICIENT = envNumber("FORCE_HC_COEFFICIENT", 1);
-const FORCE_NC_COEFFICIENT = envNumber("FORCE_NC_COEFFICIENT", 1);
-const FORCE_EC_COEFFICIENT = envNumber("FORCE_EC_COEFFICIENT", 1);
-const FORCE_FAILED_COEFFICIENT = envNumber("FORCE_FAILED_COEFFICIENT", 1);
+const KAI_DEN_COURSE_ID = 11100;
+const KAI_DEN_CONSTANT = 18.15;
+const TARGET_COUNT = 51;
+const CHART_TARGET_COUNT = 50;
+const BEST_TARGET_COUNT = 20;
+
 const MANUAL_EXCLUDED_PLAYER_IDS = new Set([
   114328,
   108312,
@@ -36,32 +33,50 @@ const MANUAL_EXCLUDED_PLAYER_IDS = new Set([
   153667,
   139857,
 ]);
+
 const FORCE_LAMP_COEFFICIENTS = new Map([
-  ["FULLCOMBO", FORCE_FC_COEFFICIENT],
-  ["★FULLCOMBO", FORCE_FC_COEFFICIENT],
-  ["HARD", FORCE_HC_COEFFICIENT],
-  ["HARD CLEAR", FORCE_HC_COEFFICIENT],
-  ["CLEAR", FORCE_NC_COEFFICIENT],
-  ["NORMAL CLEAR", FORCE_NC_COEFFICIENT],
-  ["EASY", FORCE_EC_COEFFICIENT],
-  ["EASY CLEAR", FORCE_EC_COEFFICIENT],
-  ["FAILED", FORCE_FAILED_COEFFICIENT],
-]);
-const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["FULLCOMBO", 1],
   ["★FULLCOMBO", 1],
+  ["FULL COMBO", 1],
+  ["MAX", 1],
+  ["PERFECT", 1],
+  ["EX HARD CLEAR", 1],
   ["HARD", 1],
   ["HARD CLEAR", 1],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
+  ["EASY", 1],
+  ["EASY CLEAR", 1],
+  ["FAILED", 1],
+]);
+
+const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
+  ["HARD", 1],
+  ["HARD CLEAR", 1],
+  ["FULL COMBO", 1],
+  ["FULLCOMBO", 1],
+  ["★FULLCOMBO", 1],
   ["CLEAR", 1],
   ["NORMAL CLEAR", 1],
 ]);
 
 function normalizeText(value) {
-  return String(value ?? "").normalize("NFKC").replace(/\s+/g, " ").trim();
+  return String(value ?? "").trim();
 }
 
-function normalizeLamp(value) {
-  return normalizeText(value).toUpperCase();
+function normalizeLamp(clearType) {
+  const value = normalizeText(clearType).toUpperCase();
+  if (value.includes("FULL")) return "FULL COMBO";
+  if (value.includes("EX HARD")) return "EX HARD CLEAR";
+  if (value.includes("HARD")) return "HARD CLEAR";
+  if (value.includes("EASY")) return "EASY CLEAR";
+  if (value.includes("CLEAR") || value === "NC") return "CLEAR";
+  if (value.includes("FAILED") || value === "FAIL") return "FAILED";
+  return value || "NO PLAY";
+}
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function round(value, digits = 3) {
@@ -69,58 +84,34 @@ function round(value, digits = 3) {
   return Math.round(value * scale) / scale;
 }
 
-function clamp(value, minimum, maximum) {
-  return Math.min(Math.max(value, minimum), maximum);
-}
-
 function loadConstants() {
   const payload = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
   const charts = (payload.charts || [])
     .map((chart) => ({
       md5: normalizeText(chart.md5).toLowerCase(),
-      title: normalizeText(chart.title),
+      chartConstant: Number(chart.chartConstant),
+      source: normalizeText(chart.source),
       sourceTable: normalizeText(chart.sourceTable),
       difficulty: normalizeText(chart.difficulty),
-      nominalLevel: Number(chart.nominalLevel),
-      irtConstant: Number(chart.irtConstant),
-      cappedDeviationConstant: Number(chart.cappedDeviationConstant),
-      score9444ClearPlayers: Number(chart.score9444ClearPlayers),
-      score9444Players: Number(chart.score9444Players),
-      score9444Rate: Number(chart.score9444Rate),
-      score9444Bonus: Number(chart.score9444Bonus),
-      chartConstant: Number(chart.chartConstant),
     }))
-    .filter(
-      (chart) =>
-        /^[0-9a-f]{32}$/.test(chart.md5) && Number.isFinite(chart.chartConstant),
-    );
-  const constantRows = charts
-    .map((chart) => ({
-      sourceTable: chart.sourceTable,
-      difficulty: chart.difficulty,
-      title: chart.title,
-      chartConstant: chart.chartConstant,
-      nominalLevel: chart.nominalLevel,
-      irtConstant: chart.irtConstant,
-      cappedDeviationConstant: chart.cappedDeviationConstant,
-      score9444ClearPlayers: chart.score9444ClearPlayers,
-      score9444Players: chart.score9444Players,
-      score9444Rate: chart.score9444Rate,
-      score9444Bonus: chart.score9444Bonus,
-    }))
-    .sort(
-      (left, right) =>
-        right.chartConstant - left.chartConstant ||
-        right.nominalLevel - left.nominalLevel ||
-        left.sourceTable.localeCompare(right.sourceTable, "ja") ||
-        left.difficulty.localeCompare(right.difficulty, "ja", { numeric: true }) ||
-        left.title.localeCompare(right.title, "ja"),
-    )
-    .map((row, index) => ({ rank: index + 1, ...row }));
-  return { payload, charts, constantRows };
+    .filter((chart) => chart.md5 && Number.isFinite(chart.chartConstant));
+  return { payload, charts };
 }
 
-function loadOverjoyPassers(database) {
+function loadChartTitles(database, charts) {
+  const byMd5 = new Map();
+  const statement = database.prepare("SELECT title, artist FROM chart WHERE md5 = ?");
+  for (const chart of charts) {
+    const row = statement.get(chart.md5);
+    byMd5.set(chart.md5, {
+      title: normalizeText(row?.title),
+      artist: normalizeText(row?.artist),
+    });
+  }
+  return byMd5;
+}
+
+function loadKaidenPassers(database) {
   const rows = database
     .prepare(
       `SELECT
@@ -143,12 +134,13 @@ function loadOverjoyPassers(database) {
          AND u.songs_played >= 50
        ORDER BY cr.rank`,
     )
-    .all(OVERJOY_COURSE_ID);
+    .all(KAI_DEN_COURSE_ID);
   return rows.filter((row) => !MANUAL_EXCLUDED_PLAYER_IDS.has(Number(row.player_id)));
 }
 
-function buildOverjoyRanking(database, charts) {
-  const passers = loadOverjoyPassers(database);
+function buildKaidenRanking(database, charts) {
+  const titleByMd5 = loadChartTitles(database, charts);
+  const passers = loadKaidenPassers(database);
   const passersById = new Map(
     passers.map((passer) => [
       Number(passer.player_id),
@@ -162,6 +154,7 @@ function buildOverjoyRanking(database, charts) {
   if (!playerIds.length) {
     return { ranking: [], details: [], excluded: [] };
   }
+
   const placeholders = playerIds.map(() => "?").join(",");
   const scoreStatement = database.prepare(
     `SELECT
@@ -179,6 +172,7 @@ function buildOverjoyRanking(database, charts) {
 
   for (const chart of charts) {
     const scoreRows = scoreStatement.all(chart.md5, ...playerIds);
+    const titleInfo = titleByMd5.get(chart.md5) || {};
     for (const score of scoreRows) {
       const player = passersById.get(Number(score.player_id));
       const lamp = normalizeLamp(score.clear_type);
@@ -199,7 +193,8 @@ function buildOverjoyRanking(database, charts) {
       player.candidates.push({
         candidateType: "chart",
         md5: chart.md5,
-        title: chart.title,
+        title: titleInfo.title || chart.md5,
+        artist: titleInfo.artist || "",
         sourceTable: chart.sourceTable,
         difficulty: chart.difficulty,
         lamp,
@@ -225,10 +220,10 @@ function buildOverjoyRanking(database, charts) {
         right.chartConstant - left.chartConstant ||
         left.md5.localeCompare(right.md5),
     );
-    if (player.candidates.length < 50) {
+    if (player.candidates.length < CHART_TARGET_COUNT) {
       excluded.push({
         playerId: Number(player.player_id),
-        playerName: player.player_name,
+        playerName: normalizeText(player.player_name),
         playedForceCharts: player.candidates.length,
         reason: "FORCE対象譜面のプレイ数が50未満",
       });
@@ -237,15 +232,16 @@ function buildOverjoyRanking(database, charts) {
 
     const courseLamp = normalizeLamp(player.course_lamp);
     const danLampCoefficient = FORCE_DAN_LAMP_COEFFICIENTS.get(courseLamp) || 1;
-    const best50 = player.candidates.slice(0, 50);
+    const best50 = player.candidates.slice(0, CHART_TARGET_COUNT);
     const targets = [
       ...best50,
       {
         candidateType: "dan",
         md5: "",
-        title: "GENOSIDE2018 Overjoy",
+        title: "GENOSIDE2018 発狂皆伝",
+        artist: "",
         sourceTable: "段位認定",
-        difficulty: "(^^)",
+        difficulty: "★★",
         lamp: courseLamp,
         letterRank: normalizeText(player.course_letter_rank),
         score: Number(player.course_score),
@@ -253,8 +249,8 @@ function buildOverjoyRanking(database, charts) {
         scoreRate: null,
         scoreCoefficient: null,
         lampCoefficient: danLampCoefficient,
-        chartConstant: OVERJOY_DAN_CONSTANT,
-        force: OVERJOY_DAN_CONSTANT * danLampCoefficient,
+        chartConstant: KAI_DEN_CONSTANT,
+        force: KAI_DEN_CONSTANT * danLampCoefficient,
       },
     ].sort(
       (left, right) =>
@@ -262,9 +258,10 @@ function buildOverjoyRanking(database, charts) {
         right.chartConstant - left.chartConstant ||
         left.md5.localeCompare(right.md5),
     );
-    const broadAverage = targets.reduce((sum, target) => sum + target.force, 0) / 51;
+    const broadAverage = targets.reduce((sum, target) => sum + target.force, 0) / TARGET_COUNT;
     const best20Average =
-      targets.slice(0, 20).reduce((sum, target) => sum + target.force, 0) / 20;
+      targets.slice(0, BEST_TARGET_COUNT).reduce((sum, target) => sum + target.force, 0) /
+      BEST_TARGET_COUNT;
     const forceRate = clamp(broadAverage, 0, FORCE_RATING_MAX);
     const tier = getForceRatingTier(forceRate);
 
@@ -308,7 +305,7 @@ function buildOverjoyRanking(database, charts) {
       left.targetRank - right.targetRank,
   );
 
-  return { ranking, details, excluded };
+  return { ranking: ranking.slice(0, 50), details: details.filter((row) => (rankByPlayerId.get(row.playerId) || 999) <= 50), excluded };
 }
 
 if (!fs.existsSync(archiveDbPath)) {
@@ -319,43 +316,52 @@ if (!fs.existsSync(constantsPath)) {
 }
 
 fs.mkdirSync(outputDir, { recursive: true });
-const { payload, charts, constantRows } = loadConstants();
+const { payload, charts } = loadConstants();
 const database = new DatabaseSync(archiveDbPath, { readonly: true });
 try {
-  const overjoy = buildOverjoyRanking(database, charts);
+  const kaiden = buildKaidenRanking(database, charts);
   const report = {
     generatedAt: new Date().toISOString(),
+    archiveDbPath,
     constantsPath,
+    constantsVersion: payload.version,
     chartConstantMethod: payload.chartConstantMethod,
-    score9444Correction: payload.score9444Correction,
-    forceFormula: payload.formula,
-    lampCoefficients: {
-      fullCombo: FORCE_FC_COEFFICIENT,
-      hardClear: FORCE_HC_COEFFICIENT,
-      normalClear: FORCE_NC_COEFFICIENT,
-      easyClear: FORCE_EC_COEFFICIENT,
-      failed: FORCE_FAILED_COEFFICIENT,
+    forceFormula: {
+      chartForce: "chartConstant * scoreCoefficient",
+      forceRate: "51-target average",
+      scoreCoefficient:
+        "below AAA: rounded EX score rate; AAA to 94.44%: linearly maps 0.900 to 0.980; 94.44% to MAX: linearly maps 0.980 to 1.000",
+      lampCoefficient: "not used; played clear lamps are valued by score only",
     },
-    forceRateFormula: "51-target average",
-    overjoyDanConstant: OVERJOY_DAN_CONSTANT,
+    targetCourse: {
+      courseId: KAI_DEN_COURSE_ID,
+      title: "GENOSIDE2018 発狂皆伝",
+      chartConstant: KAI_DEN_CONSTANT,
+    },
     sourceTables: payload.sourceTables,
-    constantRows,
-    overjoy,
+    summary: {
+      forceCharts: charts.length,
+      passers: loadKaidenPassers(database).length,
+      rankedPlayers: kaiden.ranking.length,
+      detailRows: kaiden.details.length,
+      excludedPlayers: kaiden.excluded.length,
+    },
+    kaiden,
   };
-  fs.writeFileSync(
-    path.join(outputDir, "report-data.json"),
-    `${JSON.stringify(report, null, 2)}\n`,
-    "utf8",
-  );
+  const outputPath = path.join(outputDir, "GENOSIDE2018_Hakkyou_Kaiden_FORCE_RATE_TOP50.json");
+  fs.writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
   console.log(
     JSON.stringify(
       {
-        outputDir,
-        constants: constantRows.length,
-        overjoyPlayers: overjoy.ranking.length,
-        overjoyDetails: overjoy.details.length,
-        excluded: overjoy.excluded.length,
-        top5: overjoy.ranking.slice(0, 5),
+        outputPath,
+        ...report.summary,
+        top5: kaiden.ranking.slice(0, 5).map((row) => ({
+          rank: row.ratingRank,
+          playerName: row.playerName,
+          playerId: row.playerId,
+          forceRate: round(row.forceRate, 3),
+          title: row.title,
+        })),
       },
       null,
       2,

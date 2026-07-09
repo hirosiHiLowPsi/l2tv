@@ -49,7 +49,10 @@ Player Data:
 - Player name
 - ID
 - FORCE RATE and title badge
-- FORCE RATE matches Insane BMS (★1–25) and the second-period Overjoy table (https://lr2.sakura.ne.jp/overjoy.php, ★★0–8) chart constants by MD5, then divides the top-50 chart FORCE total by 50
+- FORCE RATE matches chart constants from Insane BMS, first Overjoy, and second-period Overjoy by MD5
+- Chart constants are score-focused and mainly based on the AAA achiever share among cleared players in LR2IR Archive
+- Chart FORCE = Chart Constant × Score Coefficient
+- Lamp coefficients and BEST20 correction are not used; FORCE RATE is the simple average of up to 51 targets: top 50 chart FORCE values plus the highest passed GENOSIDE2018 SP dan course
 - Chart FORCE = chart constant × score coefficient × clear-lamp coefficient (courses are excluded)
 - SP grade
 - Official SP grade name

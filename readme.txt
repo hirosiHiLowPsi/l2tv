@@ -50,8 +50,10 @@ Player Data:
 - プレイヤー名
 - ID
 - FORCE RATE と称号バッジ
-- FORCE RATE は発狂BMS（★1〜25）と第二期Overjoy難易度表（https://lr2.sakura.ne.jp/overjoy.php、★★0〜8）の譜面定数をMD5で照合し、単曲FORCE上位50譜面の合計を50で割って算出
-- 単曲FORCE = 譜面定数 × スコア係数 × クリアランプ係数（段位認定は対象外）
+- FORCE RATE は発狂BMS難易度表、初代Overjoy、第二期Overjoyの譜面定数をMD5で照合して算出
+- 譜面定数はLR2IR Archive上の「クリア人数に対するAAA到達人数の割合」を主軸にしたスコア力重視の定数
+- 単曲FORCE = 譜面定数 × スコア係数
+- クリアランプ係数とBEST20補正は使用せず、単曲FORCE上位50譜面と最高合格GENOSIDE2018 SP段位1件を合わせた最大51対象の単純平均で算出
 - SP段位
 - SP段位の正式名称
 - st段位 / sl段位

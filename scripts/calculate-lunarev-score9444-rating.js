@@ -1,7 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
-const { getForceRatingTier } = require("../server");
+const { __test, getForceRatingTier } = require("../server");
 
 const projectRoot = path.resolve(__dirname, "..");
 const archiveDbPath = path.resolve(projectRoot, "..", "lr2ir-archive.db");
@@ -29,15 +29,15 @@ const OVERJOY_COURSE_ID = 11099;
 const OVERJOY_DAN_CONSTANT = 26.81;
 const FORCE_RATING_MAX = 30;
 const FORCE_LAMP_COEFFICIENTS = new Map([
-  ["FULLCOMBO", 1.02],
-  ["★FULLCOMBO", 1.02],
-  ["HARD", 0.98],
-  ["HARD CLEAR", 0.98],
-  ["CLEAR", 0.93],
-  ["NORMAL CLEAR", 0.93],
-  ["EASY", 0.86],
-  ["EASY CLEAR", 0.86],
-  ["FAILED", 0.5],
+  ["FULLCOMBO", 1],
+  ["★FULLCOMBO", 1],
+  ["HARD", 1],
+  ["HARD CLEAR", 1],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
+  ["EASY", 1],
+  ["EASY CLEAR", 1],
+  ["FAILED", 1],
 ]);
 const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["FULLCOMBO", 1],
@@ -180,7 +180,7 @@ function buildPlayerCandidates(database, charts, targetPlayerId) {
         continue;
       }
       const scoreRate = clamp(exScore / scoreMax, 0, 1);
-      const scoreCoefficient = round(scoreRate, 3);
+      const scoreCoefficient = __test.calculateForceScoreCoefficient(scoreRate);
       const force = chart.chartConstant * scoreCoefficient * lampCoefficient;
       candidates.push({
         candidateType: "chart",
@@ -265,7 +265,7 @@ function buildForceRating(candidates, danCandidate) {
   const broadAverage = targets.reduce((sum, chart) => sum + chart.force, 0) / targets.length;
   const best20 = targets.slice(0, 20);
   const best20Average = best20.reduce((sum, chart) => sum + chart.force, 0) / 20;
-  const rating = clamp(broadAverage * 0.2 + best20Average * 0.8, 0, FORCE_RATING_MAX);
+  const rating = clamp(broadAverage, 0, FORCE_RATING_MAX);
   const tier = getForceRatingTier(rating);
   return {
     rating,

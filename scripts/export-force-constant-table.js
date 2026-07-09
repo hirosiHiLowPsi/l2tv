@@ -11,14 +11,18 @@ function csvCell(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-function tableName(source) {
-  if (source === "overjoy") {
-    return "初代/第二期Overjoy";
+function tableName(chart) {
+  const sourceTable = String(chart?.sourceTable || "").trim();
+  if (sourceTable) {
+    return sourceTable;
   }
-  if (source === "insane") {
+  if (chart?.source === "insane") {
     return "発狂BMS難易度表";
   }
-  return source || "";
+  if (chart?.source === "overjoy") {
+    return "Overjoy";
+  }
+  return chart?.source || "";
 }
 
 const payload = JSON.parse(fs.readFileSync(inputPath, "utf8"));
@@ -44,8 +48,8 @@ const headers = [
 const rows = charts.map((chart, index) => [
   index + 1,
   Number(chart.chartConstant).toFixed(2),
-  tableName(chart.source),
-  chart.level ?? "",
+  tableName(chart),
+  chart.difficulty ?? chart.level ?? "",
   chart.md5,
   chart.archivePlayers ?? "",
   chart.archiveFullCombo ?? "",

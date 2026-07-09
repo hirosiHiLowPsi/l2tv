@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const constants = require("../public/data/force-chart-constants.json");
-const { buildForceRating, clampForceRating, getForceRatingTier } = require("../server");
+const { __test, buildForceRating, clampForceRating, getForceRatingTier } = require("../server");
 const {
   applyExcludedPlayerScores,
   buildEntries,
@@ -36,6 +36,25 @@ test("FORCE constants contain the expected unique chart set", () => {
   assert.equal(constants.charts.length, 1265);
   assert.equal(constants.insaneCharts, 1030);
   assert.equal(constants.overjoyCharts, 235);
+  assert.equal(constants.overjoyOldOnlyCharts, 17);
+  assert.equal(constants.overjoySecondOnlyCharts, 24);
+  assert.equal(constants.overjoyOldAndSecondCharts, 194);
+  assert.deepEqual(
+    Object.fromEntries(
+      [...new Set(constants.charts.map((chart) => chart.sourceTable))]
+        .sort()
+        .map((sourceTable) => [
+          sourceTable,
+          constants.charts.filter((chart) => chart.sourceTable === sourceTable).length,
+        ]),
+    ),
+    {
+      "初代/第二期Overjoy": 194,
+      "初代Overjoy": 17,
+      "第二期Overjoy": 24,
+      "発狂BMS難易度表": 1030,
+    },
+  );
   assert.equal(constants.overjoyOverlapCount, 37);
   assert.equal(constants.sourceTables.overjoy, "https://lr2.sakura.ne.jp/overjoy.php");
   assert.equal(constants.sourceTables.overjoyOld, "https://darksabun.club/table/archive/old-overjoy/");
@@ -57,6 +76,50 @@ test("FORCE constants contain the expected unique chart set", () => {
   assert.equal(constants.excludedPlayerUnmatchedScores.length, 0);
   assert.equal(constants.charts.every((chart) => !chart.archiveDataMissing), true);
   assert.equal(new Set(constants.charts.map((chart) => chart.md5)).size, constants.charts.length);
+});
+
+test("GENOSIDE2018 normal dan and insane dan titles are not conflated", () => {
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOSIDE2018 段位認定 五段"), {
+    rank: 5,
+    grade: "☆5",
+  });
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOSIDE2018 段位認定 発狂五段"), {
+    rank: 15,
+    grade: "★5",
+  });
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOSIDE2018 段位認定 10段"), {
+    rank: 10,
+    grade: "☆10",
+  });
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOSIDE2018 段位認定 発狂10段"), {
+    rank: 20,
+    grade: "★10",
+  });
+});
+
+test("normal GENOSIDE2018 dan courses are not added as FORCE dan targets", () => {
+  assert.equal(
+    __test.buildForceDanCandidateFromGradeInfo({
+      rank: 5,
+      grade: "☆5",
+      lampStatus: "CLEAR",
+      courseHash: "normal-dan",
+    }),
+    null,
+  );
+  const insaneCandidate = __test.buildForceDanCandidateFromGradeInfo({
+    rank: 15,
+    grade: "★5",
+    lampStatus: "CLEAR",
+    courseHash: "insane-dan",
+  });
+  assert.equal(insaneCandidate?.label, "発狂五段");
+});
+
+test("specific Overjoy chart remains available in FORCE constants", () => {
+  const chart = constants.charts.find((entry) => entry.md5 === "8f2a82e4f1f3e299c5d761a4c673b9ae");
+  assert.equal(chart?.difficulty, "★★5");
+  assert.equal(Number.isFinite(chart?.chartConstant), true);
 });
 
 test("Overjoy entries can be restricted to the second-period allowlist", () => {
@@ -209,7 +272,7 @@ test("FORCE RATE is capped at 30 without changing values below the cap", () => {
   assert.equal(clampForceRating(31.25), 30);
 });
 
-test("a single chart uses its EX score rate as the score coefficient and still divides by 50", () => {
+test("a single chart uses the FORCE score coefficient and still divides by 50", () => {
   const chart = constants.charts[0];
   const maxExScore = 1800;
   const exScore = 1782;
@@ -227,8 +290,8 @@ test("a single chart uses its EX score rate as the score coefficient and still d
       ],
     ]),
   });
-  const expectedScoreCoefficient = 0.99;
-  const expectedForce = chart.chartConstant * expectedScoreCoefficient * 0.98;
+  const expectedScoreCoefficient = __test.calculateForceScoreCoefficient(exScore / maxExScore);
+  const expectedForce = chart.chartConstant * expectedScoreCoefficient;
 
   assert.equal(result.available, true);
   assert.equal(result.top50Count, 1);
@@ -259,7 +322,7 @@ test("the score coefficient is capped between zero and one", () => {
   assert.equal(result.topCharts.find((chart) => chart.md5 === negativeChart.md5)?.scoreCoefficient, 0);
 });
 
-test("FULL COMBO uses the 1.02 lamp coefficient", () => {
+test("played lamps use a neutral FORCE lamp coefficient", () => {
   const chart = constants.charts[0];
   const result = buildForceRating({
     byHash: new Map([
@@ -267,42 +330,51 @@ test("FULL COMBO uses the 1.02 lamp coefficient", () => {
     ]),
   });
 
-  assert.equal(result.topCharts[0]?.lampCoefficient, 1.02);
-  assert.ok(Math.abs(result.topCharts[0]?.force - chart.chartConstant * 1.02) < 1e-12);
+  assert.equal(result.topCharts[0]?.lampCoefficient, 1);
+  assert.ok(Math.abs(result.topCharts[0]?.force - chart.chartConstant) < 1e-12);
 });
 
-test("beatoraja extended lamps use the expected FORCE coefficients", () => {
-  const [maxChart, perfectChart, exHardChart] = constants.charts;
+test("beatoraja extended lamps also use the neutral FORCE coefficient", () => {
+  const [maxChart, perfectChart, exHardChart, failedChart] = constants.charts;
   const result = buildForceRating({
     byHash: new Map([
       [maxChart.md5, { lampStatus: "MAX", exScore: 1800, maxExScore: 1800 }],
       [perfectChart.md5, { lampStatus: "PERFECT", exScore: 1800, maxExScore: 1800 }],
       [exHardChart.md5, { lampStatus: "EX HARD CLEAR", exScore: 1800, maxExScore: 1800 }],
+      [failedChart.md5, { lampStatus: "FAILED", exScore: 1800, maxExScore: 1800 }],
     ]),
   });
   const byMd5 = new Map(result.topCharts.map((chart) => [chart.md5, chart]));
 
-  assert.equal(byMd5.get(maxChart.md5)?.lampCoefficient, 1.02);
-  assert.equal(byMd5.get(perfectChart.md5)?.lampCoefficient, 1.02);
-  assert.equal(byMd5.get(exHardChart.md5)?.lampCoefficient, 0.98);
+  assert.equal(byMd5.get(maxChart.md5)?.lampCoefficient, 1);
+  assert.equal(byMd5.get(perfectChart.md5)?.lampCoefficient, 1);
+  assert.equal(byMd5.get(exHardChart.md5)?.lampCoefficient, 1);
+  assert.equal(byMd5.get(failedChart.md5)?.lampCoefficient, 1);
 });
 
-test("the score coefficient rounds the EX score rate to three decimal places", () => {
-  const [aaaChart, ninetyChart, ninetyOneChart, fractionalChart] = constants.charts;
+test("the score coefficient follows EX rate below AAA and scales AAA to MAX", () => {
+  const [belowAaaChart, aaaChart, ninetyChart, thresholdChart, highChart, maxChart, fractionalChart] =
+    constants.charts;
   const result = buildForceRating({
     byHash: new Map([
+      [belowAaaChart.md5, { lampStatus: "FULL COMBO", exScore: 1584, maxExScore: 1800 }],
       [aaaChart.md5, { lampStatus: "FULL COMBO", exScore: 1600, maxExScore: 1800 }],
       [ninetyChart.md5, { lampStatus: "FULL COMBO", exScore: 9000, maxExScore: 10000 }],
-      [ninetyOneChart.md5, { lampStatus: "FULL COMBO", exScore: 9100, maxExScore: 10000 }],
+      [thresholdChart.md5, { lampStatus: "FULL COMBO", exScore: 9444, maxExScore: 10000 }],
+      [highChart.md5, { lampStatus: "FULL COMBO", exScore: 9900, maxExScore: 10000 }],
+      [maxChart.md5, { lampStatus: "FULL COMBO", exScore: 10000, maxExScore: 10000 }],
       [fractionalChart.md5, { lampStatus: "FULL COMBO", exScore: 9353, maxExScore: 10000 }],
     ]),
   });
   const byMd5 = new Map(result.topCharts.map((chart) => [chart.md5, chart]));
 
-  assert.equal(byMd5.get(aaaChart.md5)?.scoreCoefficient, 0.889);
-  assert.equal(byMd5.get(ninetyChart.md5)?.scoreCoefficient, 0.9);
-  assert.equal(byMd5.get(ninetyOneChart.md5)?.scoreCoefficient, 0.91);
-  assert.equal(byMd5.get(fractionalChart.md5)?.scoreCoefficient, 0.935);
+  assert.equal(byMd5.get(belowAaaChart.md5)?.scoreCoefficient, 0.88);
+  assert.equal(byMd5.get(aaaChart.md5)?.scoreCoefficient, 0.9);
+  assert.equal(byMd5.get(ninetyChart.md5)?.scoreCoefficient, 0.916);
+  assert.equal(byMd5.get(thresholdChart.md5)?.scoreCoefficient, 0.98);
+  assert.equal(byMd5.get(highChart.md5)?.scoreCoefficient, 0.996);
+  assert.equal(byMd5.get(maxChart.md5)?.scoreCoefficient, 1);
+  assert.equal(byMd5.get(fractionalChart.md5)?.scoreCoefficient, 0.967);
   assert.equal(byMd5.get(fractionalChart.md5)?.scoreRate, 93.53);
 });
 
@@ -335,12 +407,12 @@ test("only the strongest 50 chart FORCE values are used", () => {
   });
   const expectedTotal = selected
     .slice(0, 50)
-    .reduce((sum, chart) => sum + chart.chartConstant * 1.02, 0);
+    .reduce((sum, chart) => sum + chart.chartConstant, 0);
   const expectedBest20Average = selected
     .slice(0, 20)
-    .reduce((sum, chart) => sum + chart.chartConstant * 1.02, 0) / 20;
+    .reduce((sum, chart) => sum + chart.chartConstant, 0) / 20;
   const expectedBest50Average = expectedTotal / 50;
-  const expectedRating = expectedBest50Average * 0.2 + expectedBest20Average * 0.8;
+  const expectedRating = expectedBest50Average;
 
   assert.equal(result.playedCharts, 60);
   assert.equal(result.top50Count, 50);
@@ -376,11 +448,11 @@ test("the highest passed dan candidate is added after the strongest 50 charts", 
       forceDanCandidate: danCandidate,
     },
   });
-  const best50ChartForces = selected.slice(0, 50).map((chart) => chart.chartConstant * 1.02);
+  const best50ChartForces = selected.slice(0, 50).map((chart) => chart.chartConstant);
   const broadForces = [...best50ChartForces, danCandidate.force].sort((left, right) => right - left);
   const expectedBroadAverage = broadForces.reduce((sum, force) => sum + force, 0) / 51;
   const expectedBest20Average = broadForces.slice(0, 20).reduce((sum, force) => sum + force, 0) / 20;
-  const expectedRating = expectedBroadAverage * 0.2 + expectedBest20Average * 0.8;
+  const expectedRating = expectedBroadAverage;
 
   assert.equal(result.playedCharts, 60);
   assert.equal(result.top50Count, 50);

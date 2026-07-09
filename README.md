@@ -43,8 +43,13 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 
 - ローカルの `score.db` からFORCE RATEと称号バッジを自動計算します。
 - FORCE RATEは、発狂BMS難易度表、初代Overjoy、第二期Overjoyの譜面定数をMD5で照合して算出します。
-- 単曲FORCEは `譜面定数 × スコア係数 × クリアランプ係数` です。
+- 譜面定数はLR2IR Archive上の「クリア人数に対するAAA到達人数の割合」を主軸にした、スコア力重視の定数です。
+- 単曲FORCEは `譜面定数 × スコア係数` です。クリアランプ係数は使用しません。
+- スコア係数はAAAを `0.900`、94.44%を `0.980`、MAXを `1.000` として段階的に伸びます。
+- FORCE RATEは、単曲FORCE上位50譜面と最高合格GENOSIDE2018 SP段位1件を合わせた、最大51対象の単純平均です。
+- BEST20補正は使用しません。
 - 対象譜面はFORCE RATE対象フォルダで確認できます。
+- 詳細仕様は [FORCE_RATE_SPEC.md](FORCE_RATE_SPEC.md) を参照してください。
 
 ### ランプ・スコア集計
 

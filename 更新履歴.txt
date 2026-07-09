@@ -9,6 +9,8 @@ FORCE RATE:
 - LR2IR Archive v3を参照して譜面定数を再計算しました。
 - 対象表を発狂BMS難易度表、初代Overjoy、第二期Overjoyとして扱います。
 - 初代Overjoyと第二期Overjoyに同じMD5の譜面がある場合は、第二期Overjoy側を優先して同一譜面として扱います。
+- レート計算をスコア重視に整理し、クリアランプ係数とBEST20補正を使用しない方式に変更しました。
+- FORCE RATEは、単曲FORCE上位50譜面と最高合格GENOSIDE2018 SP段位1件を合わせた最大51対象の単純平均で算出します。
 - 公開用の譜面定数表とFORCE RATE説明画像を更新しました。
 
 配布形式:

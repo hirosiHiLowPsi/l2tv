@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
+const { __test } = require("../server");
 
 const projectRoot = path.resolve(__dirname, "..");
 const constantsPath = path.resolve(
@@ -18,16 +19,16 @@ const archiveDbPath = path.resolve(projectRoot, "..", "lr2ir-archive.db");
 
 const FORCE_RATING_MAX = 30;
 const FORCE_LAMP_COEFFICIENTS = new Map([
-  ["FULL COMBO", 1.02],
-  ["FULLCOMBO", 1.02],
-  ["★FULLCOMBO", 1.02],
-  ["HARD", 0.98],
-  ["HARD CLEAR", 0.98],
-  ["CLEAR", 0.93],
-  ["NORMAL CLEAR", 0.93],
-  ["EASY", 0.86],
-  ["EASY CLEAR", 0.86],
-  ["FAILED", 0.5],
+  ["FULL COMBO", 1],
+  ["FULLCOMBO", 1],
+  ["★FULLCOMBO", 1],
+  ["HARD", 1],
+  ["HARD CLEAR", 1],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
+  ["EASY", 1],
+  ["EASY CLEAR", 1],
+  ["FAILED", 1],
 ]);
 const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["HARD", 1],
@@ -35,8 +36,8 @@ const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["FULL COMBO", 1],
   ["FULLCOMBO", 1],
   ["★FULLCOMBO", 1],
-  ["CLEAR", 0.98],
-  ["NORMAL CLEAR", 0.98],
+  ["CLEAR", 1],
+  ["NORMAL CLEAR", 1],
 ]);
 const FORCE_DAN_CONSTANTS = new Map([
   [11, { label: "Hakkyou 1st Dan", grade: "★1", courseId: 11110, constant: 1.0 }],
@@ -127,13 +128,18 @@ function parseLocalDanGradeTitle(title) {
     return null;
   }
   if (body.includes("皆伝")) {
-    return { rank: 21, grade: "★★" };
+    return body.includes("発狂") || body.includes("★★")
+      ? { rank: 21, grade: "★★" }
+      : null;
   }
   const level = parseLocalDanTitleLevel(body);
   if (!Number.isFinite(level) || level < 1 || level > 10) {
     return null;
   }
-  return { rank: level + 10, grade: `★${level}` };
+  const isInsaneDan = body.includes("発狂") || body.includes("★");
+  return isInsaneDan
+    ? { rank: level + 10, grade: `★${level}` }
+    : { rank: level, grade: `☆${level}` };
 }
 
 function lampByLocalClear(clear, playCount = 0) {
@@ -215,7 +221,7 @@ function buildForceRating(candidates, danCandidate = null) {
   const best20Average = best20.length >= 20
     ? best20.reduce((sum, chart) => sum + chart.force, 0) / 20
     : broadAverage;
-  const rating = Math.max(0, Math.min(broadAverage * 0.2 + best20Average * 0.8, FORCE_RATING_MAX));
+  const rating = Math.max(0, Math.min(broadAverage, FORCE_RATING_MAX));
   const tier = getForceRatingTier(rating);
   return {
     rating,
@@ -270,7 +276,7 @@ function buildLocalCandidates(constants, scoreDbPath) {
       continue;
     }
     const scoreRatio = Math.min(Math.max(exScore / maxExScore, 0), 1);
-    const scoreCoefficient = Math.round(scoreRatio * 1000) / 1000;
+    const scoreCoefficient = __test.calculateForceScoreCoefficient(scoreRatio);
     candidates.push({
       candidateType: "chart",
       md5: chart.md5,
@@ -394,7 +400,7 @@ function calculateArchive(constants, playerId) {
           continue;
         }
         const scoreRatio = Math.min(Math.max(exScore / maxExScore, 0), 1);
-        const scoreCoefficient = Math.round(scoreRatio * 1000) / 1000;
+        const scoreCoefficient = __test.calculateForceScoreCoefficient(scoreRatio);
         candidates.push({
           candidateType: "chart",
           md5: chart.md5,

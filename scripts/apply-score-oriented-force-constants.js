@@ -11,6 +11,12 @@ const irtConstantsPath = path.join(
   "irt-force-constant-pretest-data.json",
 );
 const oldOverjoyMd5Path = path.join(projectRoot, "scripts", "data", "old-overjoy-md5s.json");
+const secondOverjoyMd5Path = path.join(
+  projectRoot,
+  "scripts",
+  "data",
+  "overjoy-second-period-md5s.json",
+);
 const archiveDbPath = path.resolve(
   process.argv[2] || path.resolve(projectRoot, "..", "lr2ir-archive.db"),
 );
@@ -20,16 +26,12 @@ const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, "");
 const outputDir = path.join(projectRoot, "outputs", `force-score-oriented-constants-${dateStamp}`);
 const auditPath = path.join(outputDir, "force-chart-constants-score-oriented-audit.json");
 
-const CONSTANT_VERSION = "score-oriented-v2";
+const CONSTANT_VERSION = "aaa-score-clear-ratio-rare-aaa-v1";
 const CONSTANT_MIN = 1;
 const CONSTANT_MAX = 27;
 const SAMPLE_LIMIT_PER_BAND = 2000;
 const MIN_COVERAGE_RATE = 0.5;
-const SCORE_DEVIATION_MIN = -1;
-const SCORE_DEVIATION_MAX = 3;
-const LAMP_DEVIATION_WEIGHT = 0.35;
-const LAMP_DEVIATION_MIN = -1;
-const LAMP_DEVIATION_MAX = 1;
+const LAMP_DEVIATION_WEIGHT = 0;
 
 const BANDS = Object.freeze([
   { id: "low", label: "低難度", min: 1, max: 8, seed: 0x1f123bb5 },
@@ -43,39 +45,21 @@ const SCORE_THRESHOLDS = Object.freeze([
     id: "aaa",
     label: "AAA",
     threshold: 0.8889,
-    baselineRate: 0.45,
-    coefficient: 0.18,
-    minCorrection: -0.3,
-    maxCorrection: 0.45,
-  },
-  {
-    id: "score9444",
-    label: "94.44%",
-    threshold: 0.9444,
-    baselineRate: 0.2,
-    coefficient: 0.35,
-    minCorrection: -0.5,
-    maxCorrection: 1.2,
-  },
-  {
-    id: "score9700",
-    label: "97.00%",
-    threshold: 0.97,
-    baselineRate: 0.08,
-    coefficient: 0.45,
-    minCorrection: -0.4,
-    maxCorrection: 1.4,
-  },
-  {
-    id: "score9900",
-    label: "99.00%",
-    threshold: 0.99,
-    baselineRate: 0.02,
-    coefficient: 0.55,
-    minCorrection: -0.3,
-    maxCorrection: 1.6,
+    baselineRate: 0.35,
+    coefficient: 0.95,
   },
 ]);
+const CLEAR_TYPES_SQL = [
+  "FULLCOMBO",
+  "★FULLCOMBO",
+  "FULL COMBO",
+  "HARD",
+  "HARD CLEAR",
+  "CLEAR",
+  "NORMAL CLEAR",
+  "EASY",
+  "EASY CLEAR",
+];
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -145,7 +129,7 @@ function loadOldOverjoyCharts() {
       title: normalizeText(entry.title),
       artist: normalizeText(entry.artist),
       source: "overjoy",
-      sourceTable: "初代/第二期Overjoy",
+      sourceTable: "初代Overjoy",
       oldOverjoyChart: true,
       difficulty: normalizeText(entry.level) || `★★${level}`,
       level,
@@ -159,8 +143,65 @@ function loadOldOverjoyCharts() {
   };
 }
 
-function mergeOldOverjoyCharts(current, oldOverjoy) {
+function loadSecondOverjoyMd5s() {
+  if (!fs.existsSync(secondOverjoyMd5Path)) {
+    return new Set();
+  }
+  const payload = readJson(secondOverjoyMd5Path);
+  return new Set((payload.md5s || []).map((md5) => normalizeText(md5).toLowerCase()).filter(Boolean));
+}
+
+function resolveOverjoySourceTable(md5, oldOverjoyMd5s, secondOverjoyMd5s) {
+  const normalizedMd5 = normalizeText(md5).toLowerCase();
+  const inOld = oldOverjoyMd5s.has(normalizedMd5);
+  const inSecond = secondOverjoyMd5s.has(normalizedMd5);
+  if (inOld && inSecond) {
+    return "初代/第二期Overjoy";
+  }
+  if (inOld) {
+    return "初代Overjoy";
+  }
+  if (inSecond) {
+    return "第二期Overjoy";
+  }
+  return "Overjoy";
+}
+
+function classifyOverjoySourceTables(charts, oldOverjoyMd5s, secondOverjoyMd5s) {
+  return charts.map((chart) => {
+    if (normalizeText(chart.source) !== "overjoy") {
+      return chart;
+    }
+    return {
+      ...chart,
+      sourceTable: resolveOverjoySourceTable(md5Of(chart), oldOverjoyMd5s, secondOverjoyMd5s),
+    };
+  });
+}
+
+function countOverjoyMembership(charts, oldOverjoyMd5s, secondOverjoyMd5s) {
+  const counts = { oldOnly: 0, secondOnly: 0, oldAndSecond: 0 };
+  for (const chart of charts || []) {
+    if (normalizeText(chart.source) !== "overjoy") {
+      continue;
+    }
+    const md5 = md5Of(chart);
+    const inOld = oldOverjoyMd5s.has(md5);
+    const inSecond = secondOverjoyMd5s.has(md5);
+    if (inOld && inSecond) {
+      counts.oldAndSecond += 1;
+    } else if (inOld) {
+      counts.oldOnly += 1;
+    } else if (inSecond) {
+      counts.secondOnly += 1;
+    }
+  }
+  return counts;
+}
+
+function mergeOldOverjoyCharts(current, oldOverjoy, secondOverjoyMd5s) {
   const charts = [...(current.charts || [])];
+  const oldOverjoyMd5s = new Set((oldOverjoy.charts || []).map((chart) => chart.md5));
   const existingMd5s = new Map(charts.map((chart, index) => [md5Of(chart), index]).filter(([md5]) => Boolean(md5)));
   const addedCharts = [];
   for (const chart of oldOverjoy.charts || []) {
@@ -172,7 +213,6 @@ function mergeOldOverjoyCharts(current, oldOverjoy) {
         ...existing,
         title: normalizeText(existing.title) || chart.title,
         artist: normalizeText(existing.artist) || chart.artist,
-        sourceTable: normalizeText(existing.sourceTable) || chart.sourceTable,
         difficulty: normalizeText(existing.difficulty) || chart.difficulty,
         level: Number.isFinite(Number(existing.level)) ? Number(existing.level) : chart.level,
         nominalLevel: Number.isFinite(Number(existing.nominalLevel))
@@ -186,8 +226,9 @@ function mergeOldOverjoyCharts(current, oldOverjoy) {
     existingMd5s.set(chart.md5, charts.length - 1);
   }
   return {
-    current: { ...current, charts },
+    current: { ...current, charts: classifyOverjoySourceTables(charts, oldOverjoyMd5s, secondOverjoyMd5s) },
     addedCharts,
+    membershipCounts: countOverjoyMembership(charts, oldOverjoyMd5s, secondOverjoyMd5s),
   };
 }
 
@@ -274,15 +315,15 @@ function loadChartRows(database, current, irtPayload) {
         : Number.isFinite(currentConstant)
           ? currentConstant
           : nominalLevel;
+    const sourceTable =
+      currentChart.source === "overjoy"
+        ? currentChart.sourceTable || irtChart?.sourceTable || "Overjoy"
+        : irtChart?.sourceTable || currentChart.sourceTable || "発狂BMS難易度表";
     rows.push({
       index: rows.length,
       md5,
       source: normalizeText(currentChart.source),
-      sourceTable: normalizeText(
-        irtChart?.sourceTable ||
-          currentChart.sourceTable ||
-          (currentChart.source === "overjoy" ? "初代/第二期Overjoy" : "発狂BMS難易度表"),
-      ),
+      sourceTable: normalizeText(sourceTable),
       difficulty: resolveDifficulty(currentChart, irtChart, nominalLevel),
       nominalLevel,
       bandId: band.id,
@@ -392,11 +433,17 @@ function createSampleTable(database, bandSamples) {
 }
 
 function loadScoreStats(database, chartRows) {
+  const clearTypeList = CLEAR_TYPES_SQL.map((clearType) => `'${clearType.replace(/'/g, "''")}'`).join(", ");
   const statement = database.prepare(
     `SELECT
        COUNT(DISTINCT score.player_id) AS valid_score_players,
        COUNT(DISTINCT CASE
-         WHEN CAST(score.score AS REAL) / NULLIF(score.score_max, 0) >= ?
+         WHEN score.clear_type IN (${clearTypeList})
+         THEN score.player_id
+       END) AS clear_players,
+       COUNT(DISTINCT CASE
+         WHEN score.clear_type IN (${clearTypeList})
+          AND CAST(score.score AS REAL) / NULLIF(score.score_max, 0) >= ?
          THEN score.player_id
        END) AS achieved_players
        FROM sampled_player sample
@@ -415,29 +462,26 @@ function loadScoreStats(database, chartRows) {
     for (const threshold of SCORE_THRESHOLDS) {
       const row = statement.get(threshold.threshold, chart.md5, chart.bandId);
       const validScorePlayers = Number(row?.valid_score_players || 0);
+      const clearPlayers = Number(row?.clear_players || 0);
       const achievedPlayers = Number(row?.achieved_players || 0);
-      const achievedRate = (achievedPlayers + 1) / (validScorePlayers + 2);
+      const achievedRate = (achievedPlayers + 1) / (clearPlayers + 2);
       const rawCorrection =
-        achievedPlayers < 10
+        clearPlayers <= 0
           ? 0
-          : clamp(
-              Math.log2(threshold.baselineRate / achievedRate) * threshold.coefficient,
-              threshold.minCorrection,
-              threshold.maxCorrection,
-            );
-      const confidence =
-        achievedPlayers < 10 ? 0 : clamp(validScorePlayers / 100, 0, 1);
+          : Math.log2(threshold.baselineRate / achievedRate) * threshold.coefficient;
+      const confidence = clamp(clearPlayers / 100, 0, 1);
       thresholds[threshold.id] = {
         label: threshold.label,
         threshold: threshold.threshold,
         baselineRate: threshold.baselineRate,
         validScorePlayers,
+        clearPlayers,
         achievedPlayers,
         achievedRate: round(achievedRate, 6),
         rawCorrection: round(rawCorrection, 6),
         confidence: round(confidence, 6),
         correction: round(rawCorrection * confidence, 6),
-        correctionApplied: achievedPlayers >= 10,
+        correctionApplied: clearPlayers > 0,
       };
     }
     result.set(chart.md5, thresholds);
@@ -447,25 +491,18 @@ function loadScoreStats(database, chartRows) {
 
 function buildUpdatedChart(chart, scoreStats) {
   const thresholdStats = scoreStats.get(chart.md5) || {};
-  const scoreDeviation = clamp(
-    SCORE_THRESHOLDS.reduce(
-      (sum, threshold) => sum + Number(thresholdStats[threshold.id]?.correction || 0),
-      0,
-    ),
-    SCORE_DEVIATION_MIN,
-    SCORE_DEVIATION_MAX,
+  const scoreDeviation = SCORE_THRESHOLDS.reduce(
+    (sum, threshold) => sum + Number(thresholdStats[threshold.id]?.correction || 0),
+    0,
   );
-  const lampDeviation = clamp(
-    (Number(chart.lampIrtConstant) - chart.nominalLevel) * LAMP_DEVIATION_WEIGHT,
-    LAMP_DEVIATION_MIN,
-    LAMP_DEVIATION_MAX,
-  );
+  const lampDeviation = (Number(chart.lampIrtConstant) - chart.nominalLevel) * LAMP_DEVIATION_WEIGHT;
+  const rawChartConstant = chart.nominalLevel + scoreDeviation + lampDeviation;
   const chartConstant =
     chart.nominalLevel >= 28
       ? CONSTANT_MAX
       : round(
           clamp(
-            chart.nominalLevel + scoreDeviation + lampDeviation,
+            rawChartConstant,
             CONSTANT_MIN,
             CONSTANT_MAX,
           ),
@@ -481,6 +518,7 @@ function buildUpdatedChart(chart, scoreStats) {
     difficulty: chart.difficulty,
     nominalLevel: chart.nominalLevel,
     constantVersion: CONSTANT_VERSION,
+    rawChartConstant: round(rawChartConstant, 6),
     lampIrtConstant: round(Number(chart.lampIrtConstant), 2),
     scoreDeviation: round(scoreDeviation, 6),
     lampDeviation: round(lampDeviation, 6),
@@ -584,6 +622,9 @@ function buildRuntimePayload(payload) {
     overjoyAllowlistCharts: payload.overjoyAllowlistCharts,
     overjoyOldCharts: payload.overjoyOldCharts,
     overjoyOldAddedCharts: payload.overjoyOldAddedCharts,
+    overjoyOldOnlyCharts: payload.overjoyOldOnlyCharts,
+    overjoySecondOnlyCharts: payload.overjoySecondOnlyCharts,
+    overjoyOldAndSecondCharts: payload.overjoyOldAndSecondCharts,
     overjoyDuplicatePolicy: payload.overjoyDuplicatePolicy,
     overjoyAllowlistSource: payload.overjoyAllowlistSource,
     overjoyOldSource: payload.overjoyOldSource,
@@ -603,6 +644,8 @@ function buildRuntimePayload(payload) {
       md5: chart.md5,
       chartConstant: chart.chartConstant,
       source: chart.source,
+      sourceTable: chart.sourceTable,
+      difficulty: chart.difficulty,
     })),
   };
 }
@@ -612,7 +655,8 @@ function main() {
 
   const baseCurrent = readJson(currentConstantsPath);
   const oldOverjoy = loadOldOverjoyCharts();
-  const merged = mergeOldOverjoyCharts(baseCurrent, oldOverjoy);
+  const secondOverjoyMd5s = loadSecondOverjoyMd5s();
+  const merged = mergeOldOverjoyCharts(baseCurrent, oldOverjoy, secondOverjoyMd5s);
   const current = merged.current;
   const irtPayload = fs.existsSync(irtConstantsPath)
     ? readJson(irtConstantsPath)
@@ -642,7 +686,7 @@ function main() {
       formula: current.formula,
       constantVersion: CONSTANT_VERSION,
       chartConstantMethod:
-        "score-oriented threshold distribution using LR2IR Archive valid EX scores, plus weak lamp IRT helper",
+        "AAA achievement difficulty using AAA achievers divided by cleared players in LR2IR Archive",
       archiveSource: current.archiveSource,
       archiveDatabase: archiveDbPath,
       sourceTables: {
@@ -653,22 +697,27 @@ function main() {
       overjoyAllowlistCharts: current.overjoyAllowlistCharts,
       overjoyOldCharts: oldOverjoy.count,
       overjoyOldAddedCharts: merged.addedCharts.length,
-      overjoyDuplicatePolicy: "When old Overjoy and second-period Overjoy contain the same MD5, the existing second-period chart is kept and treated as the same chart.",
+      overjoyOldOnlyCharts: merged.membershipCounts.oldOnly,
+      overjoySecondOnlyCharts: merged.membershipCounts.secondOnly,
+      overjoyOldAndSecondCharts: merged.membershipCounts.oldAndSecond,
+      overjoyDuplicatePolicy: "When old Overjoy and second-period Overjoy contain the same MD5, the chart is labeled 初代/第二期Overjoy and treated as the same chart.",
       overjoyAllowlistSource: current.overjoyAllowlistSource,
       overjoyOldSource: oldOverjoy.source || "https://darksabun.club/table/archive/old-overjoy/",
       overjoyExcludedByAllowlistCount: current.overjoyExcludedByAllowlistCount,
       levelConversion: "Overjoy ★★n = ★(20+n)",
       scoreOrientedCorrection: {
         finalFormula:
-          "nominalLevel >= 28 ? 27.00 : roundTo2(clamp(nominalLevel + scoreDeviation + lampDeviation, 1.00, 27.00))",
-        scoreDeviation: "clamp(sum(thresholdCorrections), -1.00, +3.00)",
+          "nominalLevel >= 28 ? 27.00 : roundTo2(clamp(nominalLevel + aaaDeviation, 1.00, 27.00))",
+        scoreDeviation: "aaaCorrection without deviation cap",
         lampDeviation:
-          "clamp((lampIrtConstant - nominalLevel) * 0.35, -1.00, +1.00)",
+          "not used for aaa-score-v1; lamp IRT is retained only for audit comparison",
         validScorePlayers:
           "sampled band players with a valid EX score for the chart; FAILED is included when score exists",
+        clearPlayers:
+          "sampled band players whose LR2IR Archive clear_type is FC, HC, NC, or EC for the chart",
         minimumAchievers: 10,
         thresholdCorrection:
-          "if achievedPlayers < 10 then 0 else clamp(log2(baselineRate / achievedRate) * coefficient, min, max) * clamp(validScorePlayers / 100, 0, 1)",
+          "if cleared players <= 0 then 0 else log2(AAA baselineRate / smoothed AAA share among cleared players) * coefficient * clamp(clearPlayers / 100, 0, 1)",
         thresholds: SCORE_THRESHOLDS,
       },
       sampling: {
