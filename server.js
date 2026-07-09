@@ -12,6 +12,7 @@ const HOST = process.env.HOST ?? "127.0.0.1";
 const PORT = Number.parseInt(process.env.PORT ?? "4173", 10);
 const PUBLIC_DIR = path.join(__dirname, "public");
 const FORCE_RATING_CONSTANTS_PATH = path.join(PUBLIC_DIR, "data", "force-chart-constants.json");
+const LOCAL_COURSE_HASHES_PATH = path.join(PUBLIC_DIR, "data", "local-course-hashes.json");
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) L2TV/0.1 Safari/537.36";
@@ -140,7 +141,8 @@ for (let index = 1; index <= 10; index += 1) {
 LOCAL_DAN_STAR_MAP.set(21, "★★");
 LOCAL_DAN_STAR_MAP.set(22, "(^^)");
 
-const LOCAL_GRADE_PASS_CLEAR_MIN = 3;
+// LR2 stores some grade-course normal clears as clear=2 even though dan courses do not use EASY gauge.
+const LOCAL_GRADE_PASS_CLEAR_MIN = 2;
 const LOCAL_SKILL_ANALYZER_PASS_CLEAR_MIN = 2;
 
 const LOCAL_DAN_TEXT_LEVELS = new Map([
@@ -164,6 +166,53 @@ const HISTORICAL_OVERJOY_TITLE_KEYS = new Set([
   "段位認定overjoy",
   GENOSIDE2018_OVERJOY_TITLE_KEY,
 ]);
+const BUNDLED_LOCAL_COURSE_HASHES = loadBundledLocalCourseHashes();
+
+function loadBundledLocalCourseHashes() {
+  try {
+    const payload = JSON.parse(fs.readFileSync(LOCAL_COURSE_HASHES_PATH, "utf8"));
+    return {
+      genoside2018Sp: normalizeBundledCourseRows(payload?.genoside2018Sp),
+      stellaSkillSimulator4th: normalizeBundledCourseRows(payload?.stellaSkillSimulator4th),
+      satelliteSkillAnalyzer2nd: normalizeBundledCourseRows(payload?.satelliteSkillAnalyzer2nd),
+    };
+  } catch {
+    return {
+      genoside2018Sp: [],
+      stellaSkillSimulator4th: [],
+      satelliteSkillAnalyzer2nd: [],
+    };
+  }
+}
+
+function normalizeBundledCourseRows(rows) {
+  return (Array.isArray(rows) ? rows : [])
+    .map((row) => ({
+      title: normalizeText(row?.title),
+      hash: normalizeText(row?.hash).toLowerCase(),
+      source: "bundled-lr2crs",
+    }))
+    .filter((row) => row.title && /^[0-9a-f]{32,}$/i.test(row.hash));
+}
+
+function getBundledGenoside2018SpGradeRows() {
+  return BUNDLED_LOCAL_COURSE_HASHES.genoside2018Sp.map((row) => ({
+    title: row.title,
+    hash: row.hash,
+    source: row.source,
+  }));
+}
+
+function getBundledSkillAnalyzerGradeRows() {
+  return [
+    ...BUNDLED_LOCAL_COURSE_HASHES.stellaSkillSimulator4th,
+    ...BUNDLED_LOCAL_COURSE_HASHES.satelliteSkillAnalyzer2nd,
+  ].map((row) => ({
+    title: row.title,
+    hash: row.hash,
+    source: row.source,
+  }));
+}
 
 function createAppServer() {
   return http.createServer(async (req, res) => {
@@ -2639,15 +2688,6 @@ function buildRivalScoreInfo(row) {
 
 async function loadLocalSkillAnalyzerProgress(songDbPath, scoreRows) {
   const resolvedPath = normalizeLocalPath(songDbPath);
-  if (!resolvedPath) {
-    return null;
-  }
-
-  const stat = await fsp.stat(resolvedPath).catch(() => null);
-  if (!stat?.isFile()) {
-    return null;
-  }
-
   const scoreByHash = new Map();
   for (const row of Array.isArray(scoreRows) ? scoreRows : []) {
     for (const hash of getLocalScoreLookupHashes(row)) {
@@ -2657,62 +2697,85 @@ async function loadLocalSkillAnalyzerProgress(songDbPath, scoreRows) {
     }
   }
 
+  const gradeRows = [...getBundledSkillAnalyzerGradeRows()];
   let songDatabase;
   try {
-    songDatabase = new DatabaseSync(resolvedPath, { readonly: true });
-    const gradeRows = songDatabase.prepare("SELECT title, hash FROM grade").all();
-    const aggregates = {
-      st: { totalCount: 0, playedCount: 0, clearedCount: 0, highestCleared: null },
-      sl: { totalCount: 0, playedCount: 0, clearedCount: 0, highestCleared: null },
-    };
-
-    for (const row of gradeRows) {
-      const parsed = parseSkillAnalyzerLevel(row?.title);
-      if (!parsed) {
-        continue;
-      }
-
-      const aggregate = aggregates[parsed.kind];
-      if (!aggregate) {
-        continue;
-      }
-
-      aggregate.totalCount += 1;
-      const hash = normalizeText(row?.hash).toLowerCase();
-      if (!hash) {
-        continue;
-      }
-
-      const courseState = getLocalCourseScoreState(scoreByHash, hash, LOCAL_SKILL_ANALYZER_PASS_CLEAR_MIN);
-      if (!courseState.played) {
-        continue;
-      }
-
-      aggregate.playedCount += 1;
-
-      if (courseState.passed) {
-        aggregate.clearedCount += 1;
-        if (aggregate.highestCleared == null || parsed.level > aggregate.highestCleared) {
-          aggregate.highestCleared = parsed.level;
-        }
-      }
+    const stat = resolvedPath ? await fsp.stat(resolvedPath).catch(() => null) : null;
+    if (stat?.isFile()) {
+      songDatabase = new DatabaseSync(resolvedPath, { readonly: true });
+      gradeRows.unshift(...songDatabase.prepare("SELECT title, hash FROM grade").all());
     }
-
-    const st = buildSkillAnalyzerSummaryEntry(aggregates.st, "st", "Stella Skill Simulator 4th");
-    const sl = buildSkillAnalyzerSummaryEntry(aggregates.sl, "sl", "Satellite Skill Analyzer 2nd");
-    if (!st && !sl) {
-      return null;
-    }
-
-    return {
-      st,
-      sl,
-    };
   } catch {
-    return null;
+    // The bundled lr2crs hashes are still usable when song.db grade lookup fails.
   } finally {
     songDatabase?.close();
   }
+
+  const courseGroups = new Map();
+  for (const row of gradeRows) {
+    const parsed = parseSkillAnalyzerLevel(row?.title);
+    if (!parsed) {
+      continue;
+    }
+
+    const key = `${parsed.kind}:${parsed.level}`;
+    if (!courseGroups.has(key)) {
+      courseGroups.set(key, { ...parsed, hashes: new Set() });
+    }
+    const hash = normalizeText(row?.hash).toLowerCase();
+    if (hash) {
+      courseGroups.get(key).hashes.add(hash);
+    }
+  }
+
+  if (!courseGroups.size) {
+    return null;
+  }
+
+  const aggregates = {
+    st: { totalCount: 0, playedCount: 0, clearedCount: 0, highestCleared: null },
+    sl: { totalCount: 0, playedCount: 0, clearedCount: 0, highestCleared: null },
+  };
+
+  for (const group of courseGroups.values()) {
+    const aggregate = aggregates[group.kind];
+    if (!aggregate) {
+      continue;
+    }
+
+    aggregate.totalCount += 1;
+    let played = false;
+    let passed = false;
+    for (const hash of group.hashes) {
+      const courseState = getLocalCourseScoreState(scoreByHash, hash, LOCAL_SKILL_ANALYZER_PASS_CLEAR_MIN);
+      played ||= courseState.played;
+      passed ||= courseState.passed;
+      if (passed) {
+        break;
+      }
+    }
+
+    if (played) {
+      aggregate.playedCount += 1;
+    }
+    if (passed) {
+      aggregate.clearedCount += 1;
+      if (aggregate.highestCleared == null || group.level > aggregate.highestCleared) {
+        aggregate.highestCleared = group.level;
+      }
+    }
+  }
+
+  const st = buildSkillAnalyzerSummaryEntry(aggregates.st, "st", "Stella Skill Simulator 4th");
+  const sl = buildSkillAnalyzerSummaryEntry(aggregates.sl, "sl", "Satellite Skill Analyzer 2nd");
+  if (!st && !sl) {
+    return null;
+  }
+
+  return {
+    st,
+    sl,
+  };
 }
 
 async function inferLocalGradeFromSongDbGrades(songDbPath, scoreRows) {
@@ -2722,15 +2785,6 @@ async function inferLocalGradeFromSongDbGrades(songDbPath, scoreRows) {
 
 async function inferLocalGradeInfoFromSongDbGrades(songDbPath, scoreRows) {
   const resolvedPath = normalizeLocalPath(songDbPath);
-  if (!resolvedPath) {
-    return null;
-  }
-
-  const stat = await fsp.stat(resolvedPath).catch(() => null);
-  if (!stat?.isFile()) {
-    return null;
-  }
-
   const scoreByHash = new Map();
   for (const row of Array.isArray(scoreRows) ? scoreRows : []) {
     for (const hash of getLocalScoreLookupHashes(row)) {
@@ -2741,40 +2795,44 @@ async function inferLocalGradeInfoFromSongDbGrades(songDbPath, scoreRows) {
   }
 
   let bestGrade = null;
+  const gradeRows = [...getBundledGenoside2018SpGradeRows()];
   let songDatabase;
   try {
-    songDatabase = new DatabaseSync(resolvedPath, { readonly: true });
-    const gradeRows = songDatabase.prepare("SELECT title, hash FROM grade").all();
-
-    for (const row of gradeRows) {
-      const parsed = parseLocalDanGradeTitle(row?.title);
-      if (!parsed) {
-        continue;
-      }
-
-      const courseHash = normalizeText(row?.hash).toLowerCase();
-      const courseState = getLocalCourseScoreState(scoreByHash, courseHash);
-      if (!courseState.passed) {
-        continue;
-      }
-
-      if (!bestGrade || parsed.rank > bestGrade.rank) {
-        bestGrade = {
-          ...parsed,
-          courseHash,
-          clear: courseState.clear,
-          lampStatus: courseState.lampStatus,
-          exScore: courseState.exScore,
-          maxExScore: courseState.maxExScore,
-          scoreRate: courseState.scoreRate,
-          title: normalizeText(row?.title),
-        };
-      }
+    const stat = resolvedPath ? await fsp.stat(resolvedPath).catch(() => null) : null;
+    if (stat?.isFile()) {
+      songDatabase = new DatabaseSync(resolvedPath, { readonly: true });
+      gradeRows.unshift(...songDatabase.prepare("SELECT title, hash FROM grade").all());
     }
   } catch {
-    return null;
+    // The bundled lr2crs hashes are still usable when song.db grade lookup fails.
   } finally {
     songDatabase?.close();
+  }
+
+  for (const row of gradeRows) {
+    const parsed = parseLocalDanGradeTitle(row?.title);
+    if (!parsed) {
+      continue;
+    }
+
+    const courseHash = normalizeText(row?.hash).toLowerCase();
+    const courseState = getLocalCourseScoreState(scoreByHash, courseHash);
+    if (!courseState.passed) {
+      continue;
+    }
+
+    if (!bestGrade || parsed.rank > bestGrade.rank) {
+      bestGrade = {
+        ...parsed,
+        courseHash,
+        clear: courseState.clear,
+        lampStatus: courseState.lampStatus,
+        exScore: courseState.exScore,
+        maxExScore: courseState.maxExScore,
+        scoreRate: courseState.scoreRate,
+        title: normalizeText(row?.title),
+      };
+    }
   }
 
   return bestGrade;
@@ -2942,7 +3000,8 @@ function normalizeGradeTitleKey(title) {
     .replace(/[！-～]/g, (character) => String.fromCharCode(character.charCodeAt(0) - 0xfee0))
     .replace(/　/g, " ")
     .replace(/\s+/g, "")
-    .toLowerCase();
+    .toLowerCase()
+    .replace(/^genocide2018段位認定/, GENOSIDE2018_DAN_TITLE_PREFIX);
 }
 
 function isGenoside2018DanGradeTitleKey(titleKey) {
@@ -3416,18 +3475,23 @@ function parseSkillAnalyzerLevel(title) {
     return null;
   }
 
-  const stMatch = text.match(/^Stella Skill Simulator 4th\b[\s\S]*?\bst\s*0*(\d{1,2})\b/i);
+  const compact = text.replace(/\s+/g, "").toLowerCase();
+  const stMatch =
+    text.match(/(?:^|[\s\[\](:：_-])st\s*0*(\d{1,2})(?=$|[\s\]\)）:：_-])/i) ??
+    compact.match(/stellaskillsimulator4th[\s\S]*?st0*(\d{1,2})(?!\d)/i);
   if (stMatch) {
     const level = Number.parseInt(stMatch[1], 10);
-    if (Number.isFinite(level)) {
+    if (Number.isFinite(level) && /stellaskillsimulator4th/i.test(compact)) {
       return { kind: "st", level };
     }
   }
 
-  const slMatch = text.match(/^Satellite Skill Analyzer 2nd\b[\s\S]*?\bsl\s*0*(\d{1,2})\b/i);
+  const slMatch =
+    text.match(/(?:^|[\s\[\](:：_-])sl\s*0*(\d{1,2})(?=$|[\s\]\)）:：_-])/i) ??
+    compact.match(/satelliteskillanalyzer2nd[\s\S]*?sl0*(\d{1,2})(?!\d)/i);
   if (slMatch) {
     const level = Number.parseInt(slMatch[1], 10);
-    if (Number.isFinite(level)) {
+    if (Number.isFinite(level) && /satelliteskillanalyzer2nd/i.test(compact)) {
       return { kind: "sl", level };
     }
   }
@@ -3717,6 +3781,7 @@ module.exports = {
     calculateForceDanScoreCoefficient,
     calculateForceScoreCoefficient,
     parseLocalDanGradeTitle,
+    parseSkillAnalyzerLevel,
   },
   buildForceRating,
   clampForceRating,

@@ -235,7 +235,9 @@ score.db仕様:
 
 Player Data:
   プレイヤー名、ID、SP段位、st/sl段位などが表示されます。
-  GENOSIDE2018段位コースの合格判定は、EASY CLEAR を含めず NORMAL CLEAR 以上を合格として扱います。
+  GENOSIDE2018段位コースの合格判定は NORMAL CLEAR 以上を合格として扱います。
+  LR2の段位コースで score.db の clear=2 として保存されるノーマル合格も、段位の NORMAL CLEAR 相当として扱います。
+  GENOSIDE2018 SP段位、Stella Skill Simulator 4th、Satellite Skill Analyzer 2nd は、同梱した lr2crs 由来のコースhashも照合に使用します。
   段位合格は score.db に保存された段位認定コース自体のクリア記録だけで判定し、構成する単曲のクリアランプは参照しません。
   段位情報はDBとsong.dbからオフラインで推定します。IRサイトから段位を補完取得しません。
 

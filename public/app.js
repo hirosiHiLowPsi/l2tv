@@ -7185,9 +7185,10 @@ function mergePlayerProfileFields(primary, fallback) {
   const right = fallback && typeof fallback === "object" ? fallback : {};
   const leftSkillAnalyzer = left.skillAnalyzer && typeof left.skillAnalyzer === "object" ? left.skillAnalyzer : null;
   const rightSkillAnalyzer = right.skillAnalyzer && typeof right.skillAnalyzer === "object" ? right.skillAnalyzer : null;
-  const mergedSkillAnalyzer = leftSkillAnalyzer || rightSkillAnalyzer || null;
+  const mergedSkillAnalyzer = mergeSkillAnalyzerProfiles(leftSkillAnalyzer, rightSkillAnalyzer);
   const leftStella = left.stellaSkill4th && typeof left.stellaSkill4th === "object" ? left.stellaSkill4th : null;
   const rightStella = right.stellaSkill4th && typeof right.stellaSkill4th === "object" ? right.stellaSkill4th : null;
+  const mergedStella = mergeSkillAnalyzerEntries(leftStella, rightStella, "st") || mergedSkillAnalyzer?.st || null;
   return {
     ...right,
     ...left,
@@ -7198,9 +7199,47 @@ function mergePlayerProfileFields(primary, fallback) {
     gradeSp: String(left.gradeSp ?? "").trim() || String(right.gradeSp ?? "").trim(),
     gradeDp: String(left.gradeDp ?? "").trim() || String(right.gradeDp ?? "").trim(),
     skillAnalyzer: mergedSkillAnalyzer,
-    stellaSkill4th: leftStella || rightStella || mergedSkillAnalyzer?.st || null,
+    stellaSkill4th: mergedStella,
     overjoyTripleCrown: Boolean(left.overjoyTripleCrown) || Boolean(right.overjoyTripleCrown),
   };
+}
+
+function mergeSkillAnalyzerProfiles(primary, fallback) {
+  const st = mergeSkillAnalyzerEntries(primary?.st, fallback?.st, "st");
+  const sl = mergeSkillAnalyzerEntries(primary?.sl, fallback?.sl, "sl");
+  if (!st && !sl) {
+    return null;
+  }
+  return { st, sl };
+}
+
+function mergeSkillAnalyzerEntries(primary, fallback, expectedPrefix) {
+  const left = normalizeSkillAnalyzerEntry(primary);
+  const right = normalizeSkillAnalyzerEntry(fallback);
+  if (!left) {
+    return right;
+  }
+  if (!right) {
+    return left;
+  }
+
+  const leftGrade = normalizeSkillGradeText(left.grade, expectedPrefix);
+  const rightGrade = normalizeSkillGradeText(right.grade, expectedPrefix);
+  const leftLevel = getSkillGradeLevel(leftGrade);
+  const rightLevel = getSkillGradeLevel(rightGrade);
+  if (rightLevel > leftLevel) {
+    return { ...left, ...right, grade: rightGrade || right.grade };
+  }
+  return { ...right, ...left, grade: leftGrade || left.grade };
+}
+
+function getSkillGradeLevel(gradeText) {
+  const match = normalizeSkillGradeText(gradeText).match(/^(?:st|sl)(\d{1,2})$/);
+  if (!match) {
+    return -1;
+  }
+  const level = Number.parseInt(match[1], 10);
+  return Number.isFinite(level) ? level : -1;
 }
 
 function normalizePlayerCacheId(value) {

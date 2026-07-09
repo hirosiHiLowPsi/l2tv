@@ -95,6 +95,33 @@ test("GENOSIDE2018 normal dan and insane dan titles are not conflated", () => {
     rank: 20,
     grade: "★10",
   });
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOSIDE2018 段位認定 発狂皆伝"), {
+    rank: 21,
+    grade: "★★",
+  });
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOCIDE2018 段位認定 発狂皆伝"), {
+    rank: 21,
+    grade: "★★",
+  });
+  assert.deepEqual(__test.parseLocalDanGradeTitle("GENOSIDE 2018 段位認定 発狂皆伝"), {
+    rank: 21,
+    grade: "★★",
+  });
+});
+
+test("local st/sl analyzer titles are parsed with common spacing variants", () => {
+  assert.deepEqual(__test.parseSkillAnalyzerLevel("Stella Skill Simulator 4th st9"), {
+    kind: "st",
+    level: 9,
+  });
+  assert.deepEqual(__test.parseSkillAnalyzerLevel("Stella Skill Simulator 4th [st09]"), {
+    kind: "st",
+    level: 9,
+  });
+  assert.deepEqual(__test.parseSkillAnalyzerLevel("Satellite Skill Analyzer 2nd sl10"), {
+    kind: "sl",
+    level: 10,
+  });
 });
 
 test("normal GENOSIDE2018 dan courses are not added as FORCE dan targets", () => {
@@ -115,6 +142,15 @@ test("normal GENOSIDE2018 dan courses are not added as FORCE dan targets", () =>
   });
   assert.equal(insaneCandidate?.label, "発狂五段");
   assert.equal(insaneCandidate?.chartConstant, 12.4);
+
+  const normalClearStoredAsTwo = __test.buildForceDanCandidateFromGradeInfo({
+    rank: 21,
+    grade: "★★",
+    clear: 2,
+    courseHash: "hakkyou-kaiden",
+  });
+  assert.equal(normalClearStoredAsTwo?.label, "発狂皆伝");
+  assert.equal(normalClearStoredAsTwo?.lampStatus, "CLEAR");
 });
 
 test("hakkyou dan courses use score coefficient but GENOSIDE Overjoy keeps full credit", () => {

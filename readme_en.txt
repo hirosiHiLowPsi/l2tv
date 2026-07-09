@@ -225,7 +225,9 @@ After loading, tables are displayed by table title instead of URL.
 
 Player Data:
   Shows player name, ID, SP grade, st/sl grades, and related data.
-  GENOSIDE2018 grade course passes require NORMAL CLEAR or better; EASY CLEAR is not counted as a pass.
+  GENOSIDE2018 grade course passes require NORMAL CLEAR or better.
+  If LR2 stores a grade-course normal clear as clear=2 in score.db, L2TV treats it as a dan-course NORMAL CLEAR.
+  GENOSIDE2018 SP dan, Stella Skill Simulator 4th, and Satellite Skill Analyzer 2nd also use bundled course hashes extracted from lr2crs files as fallback match data.
   Grade passes are determined only from the grade course clear record stored in score.db. Clear lamps for the individual songs in the course are ignored.
   Grades are estimated offline from score.db and song.db. L2TV does not supplement grade data from IR profile pages.
 

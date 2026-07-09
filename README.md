@@ -36,7 +36,8 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 - `score.db` の仕様を「自動判別」「従来LR2IR互換」「StellaverseIR」「BMS-IR」から選択できます。
 - StellaverseIR選択時は、`score.db` 内のIDを使ってStellaverse IRのプレイヤー名取得を試みます。
 - 段位認定コース自体のクリア記録を参照し、構成する単曲のクリアランプは合格判定に使用しません。
-- GENOSIDE2018段位認定は `NORMAL CLEAR` 以上を合格として扱います。
+- GENOSIDE2018段位認定は `NORMAL CLEAR` 以上を合格として扱います。LR2の段位コースで `score.db` の `clear=2` として保存されるノーマル合格も、段位の `NORMAL CLEAR` 相当として扱います。
+- GENOSIDE2018 SP段位、Stella Skill Simulator 4th、Satellite Skill Analyzer 2nd は、同梱した `.lr2crs` 由来のコースhashも照合に使用します。
 - 2018 / 2012 / 2009のOverjoyをすべて合格している場合は専用表示になります。
 
 ### FORCE RATE
