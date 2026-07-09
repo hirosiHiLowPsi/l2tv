@@ -114,6 +114,34 @@ test("normal GENOSIDE2018 dan courses are not added as FORCE dan targets", () =>
     courseHash: "insane-dan",
   });
   assert.equal(insaneCandidate?.label, "発狂五段");
+  assert.equal(insaneCandidate?.chartConstant, 12.4);
+});
+
+test("hakkyou dan courses use score coefficient but GENOSIDE Overjoy keeps full credit", () => {
+  const hakkyouKaiden = __test.buildForceDanCandidateFromGradeInfo({
+    rank: 21,
+    grade: "★★",
+    lampStatus: "CLEAR",
+    courseHash: "hakkyou-kaiden",
+    exScore: 1800,
+    maxExScore: 2000,
+  });
+  assert.equal(hakkyouKaiden?.label, "発狂皆伝");
+  assert.equal(hakkyouKaiden?.chartConstant, 24.44);
+  assert.equal(hakkyouKaiden?.scoreCoefficient, __test.calculateForceScoreCoefficient(0.9));
+  assert.ok(Math.abs(hakkyouKaiden.force - hakkyouKaiden.chartConstant * hakkyouKaiden.scoreCoefficient) < 1e-12);
+
+  const overjoy = __test.buildForceDanCandidateFromGradeInfo({
+    rank: 22,
+    grade: "(^^)",
+    lampStatus: "CLEAR",
+    courseHash: "genoside-overjoy",
+    exScore: 1200,
+    maxExScore: 2000,
+  });
+  assert.equal(overjoy?.label, "Overjoy");
+  assert.equal(overjoy?.scoreCoefficient, 1);
+  assert.equal(overjoy?.force, overjoy?.chartConstant);
 });
 
 test("specific Overjoy chart remains available in FORCE constants", () => {

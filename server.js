@@ -97,17 +97,17 @@ const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["CLEAR", 1],
 ]);
 const FORCE_DAN_CONSTANTS = new Map([
-  [11, { label: "発狂初段", grade: "★1", courseId: 11110, constant: 1.0 }],
-  [12, { label: "発狂二段", grade: "★2", courseId: 11109, constant: 1.0 }],
-  [13, { label: "発狂三段", grade: "★3", courseId: 11108, constant: 1.0 }],
-  [14, { label: "発狂四段", grade: "★4", courseId: 11107, constant: 1.0 }],
-  [15, { label: "発狂五段", grade: "★5", courseId: 11106, constant: 1.0 }],
-  [16, { label: "発狂六段", grade: "★6", courseId: 11105, constant: 1.39 }],
-  [17, { label: "発狂七段", grade: "★7", courseId: 11104, constant: 1.76 }],
-  [18, { label: "発狂八段", grade: "★8", courseId: 11103, constant: 2.94 }],
-  [19, { label: "発狂九段", grade: "★9", courseId: 11102, constant: 7.09 }],
-  [20, { label: "発狂十段", grade: "★10", courseId: 11101, constant: 12.2 }],
-  [21, { label: "発狂皆伝", grade: "★★", courseId: 11100, constant: 18.15 }],
+  [11, { label: "発狂初段", grade: "★1", courseId: 11110, constant: 4.29 }],
+  [12, { label: "発狂二段", grade: "★2", courseId: 11109, constant: 6.24 }],
+  [13, { label: "発狂三段", grade: "★3", courseId: 11108, constant: 8.32 }],
+  [14, { label: "発狂四段", grade: "★4", courseId: 11107, constant: 9.72 }],
+  [15, { label: "発狂五段", grade: "★5", courseId: 11106, constant: 12.4 }],
+  [16, { label: "発狂六段", grade: "★6", courseId: 11105, constant: 14.22 }],
+  [17, { label: "発狂七段", grade: "★7", courseId: 11104, constant: 17.28 }],
+  [18, { label: "発狂八段", grade: "★8", courseId: 11103, constant: 18.68 }],
+  [19, { label: "発狂九段", grade: "★9", courseId: 11102, constant: 21.35 }],
+  [20, { label: "発狂十段", grade: "★10", courseId: 11101, constant: 23.41 }],
+  [21, { label: "発狂皆伝", grade: "★★", courseId: 11100, constant: 24.44 }],
   [22, { label: "Overjoy", grade: "(^^)", courseId: 11099, constant: 26.81 }],
 ]);
 
@@ -119,6 +119,16 @@ function getForceDanLampCoefficient(lampStatus, danConstant) {
     return lampStatus === "HARD CLEAR" || lampStatus === "CLEAR" ? 1 : null;
   }
   return FORCE_DAN_LAMP_COEFFICIENTS.get(lampStatus) ?? null;
+}
+
+function calculateForceDanScoreCoefficient(exScoreRatio, danConstant) {
+  if (Number(danConstant?.courseId) === 11099) {
+    return 1;
+  }
+  if (!Number.isFinite(exScoreRatio)) {
+    return 1;
+  }
+  return calculateForceScoreCoefficient(exScoreRatio);
 }
 
 const LOCAL_DAN_STAR_MAP = new Map(
@@ -2754,6 +2764,9 @@ async function inferLocalGradeInfoFromSongDbGrades(songDbPath, scoreRows) {
           courseHash,
           clear: courseState.clear,
           lampStatus: courseState.lampStatus,
+          exScore: courseState.exScore,
+          maxExScore: courseState.maxExScore,
+          scoreRate: courseState.scoreRate,
           title: normalizeText(row?.title),
         };
       }
@@ -2783,7 +2796,14 @@ function buildForceDanCandidateFromGradeInfo(gradeInfo) {
     return null;
   }
 
-  const force = danConstant.constant * lampCoefficient;
+  const exScore = Number(gradeInfo.exScore);
+  const maxExScore = Number(gradeInfo.maxExScore);
+  const exScoreRatio =
+    Number.isFinite(exScore) && Number.isFinite(maxExScore) && maxExScore > 0
+      ? Math.min(Math.max(exScore / maxExScore, 0), 1)
+      : null;
+  const scoreCoefficient = calculateForceDanScoreCoefficient(exScoreRatio, danConstant);
+  const force = danConstant.constant * lampCoefficient * scoreCoefficient;
   return {
     candidateType: "dan",
     force,
@@ -2797,7 +2817,10 @@ function buildForceDanCandidateFromGradeInfo(gradeInfo) {
     md5: normalizeText(gradeInfo.courseHash).toLowerCase(),
     source: "dan",
     lampStatus,
-    scoreCoefficient: null,
+    exScore: Number.isFinite(exScore) ? exScore : null,
+    maxExScore: Number.isFinite(maxExScore) ? maxExScore : null,
+    scoreRate: exScoreRatio == null ? null : exScoreRatio * 100,
+    scoreCoefficient,
     lampCoefficient,
   };
 }
@@ -2967,19 +2990,41 @@ function getLocalCourseScoreState(scoreByHash, courseHash, passClearMin = LOCAL_
 
   const playCount = toNonNegativeInteger(directScoreRow?.playcount) ?? 0;
   const clear = Number.parseInt(directScoreRow?.clear, 10);
+  const scoreInfo = buildLocalScoreInfo(directScoreRow);
   return {
     played: playCount > 0 || directScoreRow?.clear != null,
     passed: isPassedLocalGradeCourse(directScoreRow, passClearMin),
     clear: Number.isFinite(clear) ? clear : null,
     lampStatus: normalizeLocalScoreLamp(directScoreRow?.clear, directScoreRow?.playcount),
+    exScore: scoreInfo.exScore,
+    maxExScore: scoreInfo.maxExScore,
+    scoreRate: scoreInfo.scoreRate,
   };
 }
 
 function readScoreRowsForLocalGrade(database) {
   try {
-    return database.prepare("SELECT hash, scorehash, clear, playcount FROM score").all();
+    return database
+      .prepare("SELECT hash, scorehash, clear, playcount, perfect, great, totalnotes, bad, poor, minbp FROM score")
+      .all();
   } catch {
-    return database.prepare("SELECT hash, clear, playcount FROM score").all();
+    try {
+      return database
+        .prepare("SELECT hash, scorehash, clear, playcount, perfect, great, totalnotes, bad, poor FROM score")
+        .all();
+    } catch {
+      try {
+        return database
+          .prepare("SELECT hash, scorehash, clear, playcount, perfect, great, totalnotes FROM score")
+          .all();
+      } catch {
+        try {
+          return database.prepare("SELECT hash, scorehash, clear, playcount FROM score").all();
+        } catch {
+          return database.prepare("SELECT hash, clear, playcount FROM score").all();
+        }
+      }
+    }
   }
 }
 
@@ -3669,6 +3714,7 @@ if (require.main === module) {
 module.exports = {
   __test: {
     buildForceDanCandidateFromGradeInfo,
+    calculateForceDanScoreCoefficient,
     calculateForceScoreCoefficient,
     parseLocalDanGradeTitle,
   },

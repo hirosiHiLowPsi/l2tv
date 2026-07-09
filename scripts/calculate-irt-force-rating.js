@@ -40,17 +40,17 @@ const FORCE_DAN_LAMP_COEFFICIENTS = new Map([
   ["NORMAL CLEAR", 1],
 ]);
 const FORCE_DAN_CONSTANTS = new Map([
-  [11, { label: "Hakkyou 1st Dan", grade: "★1", courseId: 11110, constant: 1.0 }],
-  [12, { label: "Hakkyou 2nd Dan", grade: "★2", courseId: 11109, constant: 1.0 }],
-  [13, { label: "Hakkyou 3rd Dan", grade: "★3", courseId: 11108, constant: 1.0 }],
-  [14, { label: "Hakkyou 4th Dan", grade: "★4", courseId: 11107, constant: 1.0 }],
-  [15, { label: "Hakkyou 5th Dan", grade: "★5", courseId: 11106, constant: 1.0 }],
-  [16, { label: "Hakkyou 6th Dan", grade: "★6", courseId: 11105, constant: 1.39 }],
-  [17, { label: "Hakkyou 7th Dan", grade: "★7", courseId: 11104, constant: 1.76 }],
-  [18, { label: "Hakkyou 8th Dan", grade: "★8", courseId: 11103, constant: 2.94 }],
-  [19, { label: "Hakkyou 9th Dan", grade: "★9", courseId: 11102, constant: 7.09 }],
-  [20, { label: "Hakkyou 10th Dan", grade: "★10", courseId: 11101, constant: 12.2 }],
-  [21, { label: "Hakkyou Kaiden", grade: "★★", courseId: 11100, constant: 18.15 }],
+  [11, { label: "Hakkyou 1st Dan", grade: "★1", courseId: 11110, constant: 4.29 }],
+  [12, { label: "Hakkyou 2nd Dan", grade: "★2", courseId: 11109, constant: 6.24 }],
+  [13, { label: "Hakkyou 3rd Dan", grade: "★3", courseId: 11108, constant: 8.32 }],
+  [14, { label: "Hakkyou 4th Dan", grade: "★4", courseId: 11107, constant: 9.72 }],
+  [15, { label: "Hakkyou 5th Dan", grade: "★5", courseId: 11106, constant: 12.4 }],
+  [16, { label: "Hakkyou 6th Dan", grade: "★6", courseId: 11105, constant: 14.22 }],
+  [17, { label: "Hakkyou 7th Dan", grade: "★7", courseId: 11104, constant: 17.28 }],
+  [18, { label: "Hakkyou 8th Dan", grade: "★8", courseId: 11103, constant: 18.68 }],
+  [19, { label: "Hakkyou 9th Dan", grade: "★9", courseId: 11102, constant: 21.35 }],
+  [20, { label: "Hakkyou 10th Dan", grade: "★10", courseId: 11101, constant: 23.41 }],
+  [21, { label: "Hakkyou Kaiden", grade: "★★", courseId: 11100, constant: 24.44 }],
   [22, { label: "Overjoy", grade: "(^^)", courseId: 11099, constant: 26.81 }],
 ]);
 
@@ -62,6 +62,16 @@ function getForceDanLampCoefficient(lampStatus, danConstant) {
     return lampStatus === "HARD CLEAR" || lampStatus === "CLEAR" ? 1 : null;
   }
   return FORCE_DAN_LAMP_COEFFICIENTS.get(lampStatus) ?? null;
+}
+
+function calculateForceDanScoreCoefficient(scoreRatio, danConstant) {
+  if (Number(danConstant?.courseId) === 11099) {
+    return 1;
+  }
+  if (!Number.isFinite(scoreRatio)) {
+    return 1;
+  }
+  return __test.calculateForceScoreCoefficient(scoreRatio);
 }
 
 const LOCAL_DAN_TEXT_LEVELS = new Map([
@@ -318,25 +328,36 @@ function buildLocalDanCandidate(songDbPath, scoreByHash) {
         continue;
       }
       if (!bestGrade || parsed.rank > bestGrade.rank) {
+        const exScore = Number(score.perfect) * 2 + Number(score.great);
+        const maxExScore = Number(score.totalnotes) * 2;
         bestGrade = {
           ...parsed,
           courseHash: normalizeHash(row.hash),
           title: normalizeText(row.title),
           clear,
           lampStatus: lampByLocalClear(score.clear, score.playcount),
+          exScore: Number.isFinite(exScore) ? exScore : null,
+          maxExScore: Number.isFinite(maxExScore) && maxExScore > 0 ? maxExScore : null,
         };
       }
     }
     if (!bestGrade) {
       return null;
     }
-    return buildDanCandidate(bestGrade.rank, bestGrade.lampStatus, bestGrade.courseHash, bestGrade.title);
+    return buildDanCandidate(
+      bestGrade.rank,
+      bestGrade.lampStatus,
+      bestGrade.courseHash,
+      bestGrade.title,
+      bestGrade.exScore,
+      bestGrade.maxExScore,
+    );
   } finally {
     database.close();
   }
 }
 
-function buildDanCandidate(rankValue, lampStatus, md5 = "", title = "") {
+function buildDanCandidate(rankValue, lampStatus, md5 = "", title = "", exScore = null, maxExScore = null) {
   const dan = FORCE_DAN_CONSTANTS.get(Number(rankValue));
   if (!dan) {
     return null;
@@ -346,6 +367,13 @@ function buildDanCandidate(rankValue, lampStatus, md5 = "", title = "") {
   if (!lampCoefficient) {
     return null;
   }
+  const score = Number(exScore);
+  const scoreMax = Number(maxExScore);
+  const scoreRatio =
+    Number.isFinite(score) && Number.isFinite(scoreMax) && scoreMax > 0
+      ? Math.min(Math.max(score / scoreMax, 0), 1)
+      : null;
+  const scoreCoefficient = calculateForceDanScoreCoefficient(scoreRatio, dan);
   return {
     candidateType: "dan",
     md5,
@@ -353,11 +381,14 @@ function buildDanCandidate(rankValue, lampStatus, md5 = "", title = "") {
     sourceTable: "Dan",
     difficulty: dan.grade,
     lampStatus: normalizedLamp,
-    scoreCoefficient: null,
+    exScore: Number.isFinite(score) ? score : null,
+    maxExScore: Number.isFinite(scoreMax) ? scoreMax : null,
+    scoreRate: scoreRatio == null ? null : scoreRatio * 100,
+    scoreCoefficient,
     lampCoefficient,
     chartConstant: dan.constant,
     danConstant: dan.constant,
-    force: dan.constant * lampCoefficient,
+    force: dan.constant * lampCoefficient * scoreCoefficient,
   };
 }
 
@@ -421,7 +452,7 @@ function calculateArchive(constants, playerId) {
 
     const danRows = database
       .prepare(
-        `SELECT course_id, clear_type
+        `SELECT course_id, clear_type, score, score_max
          FROM course_ranking
          WHERE player_id = ?
            AND is_cheated = 0`,
@@ -434,7 +465,7 @@ function calculateArchive(constants, playerId) {
         continue;
       }
       const [rankValue] = danEntry;
-      const candidate = buildDanCandidate(rankValue, row.clear_type);
+      const candidate = buildDanCandidate(rankValue, row.clear_type, "", "", row.score, row.score_max);
       if (!candidate) {
         continue;
       }

@@ -17,7 +17,7 @@ const outputDir = path.resolve(
 
 const FORCE_RATING_MAX = 30;
 const KAI_DEN_COURSE_ID = 11100;
-const KAI_DEN_CONSTANT = 18.15;
+const KAI_DEN_CONSTANT = 24.44;
 const TARGET_COUNT = 51;
 const CHART_TARGET_COUNT = 50;
 const BEST_TARGET_COUNT = 20;
@@ -232,6 +232,16 @@ function buildKaidenRanking(database, charts) {
 
     const courseLamp = normalizeLamp(player.course_lamp);
     const danLampCoefficient = FORCE_DAN_LAMP_COEFFICIENTS.get(courseLamp) || 1;
+    const courseScore = Number(player.course_score);
+    const courseScoreMax = Number(player.course_score_max);
+    const courseScoreRate =
+      Number.isFinite(courseScore) && Number.isFinite(courseScoreMax) && courseScoreMax > 0
+        ? clamp(courseScore / courseScoreMax, 0, 1)
+        : null;
+    const danScoreCoefficient =
+      courseScoreRate == null
+        ? 1
+        : __test.calculateForceDanScoreCoefficient(courseScoreRate, { courseId: KAI_DEN_COURSE_ID });
     const best50 = player.candidates.slice(0, CHART_TARGET_COUNT);
     const targets = [
       ...best50,
@@ -244,13 +254,13 @@ function buildKaidenRanking(database, charts) {
         difficulty: "★★",
         lamp: courseLamp,
         letterRank: normalizeText(player.course_letter_rank),
-        score: Number(player.course_score),
-        scoreMax: Number(player.course_score_max),
-        scoreRate: null,
-        scoreCoefficient: null,
+        score: courseScore,
+        scoreMax: courseScoreMax,
+        scoreRate: courseScoreRate,
+        scoreCoefficient: danScoreCoefficient,
         lampCoefficient: danLampCoefficient,
         chartConstant: KAI_DEN_CONSTANT,
-        force: KAI_DEN_CONSTANT * danLampCoefficient,
+        force: KAI_DEN_CONSTANT * danLampCoefficient * danScoreCoefficient,
       },
     ].sort(
       (left, right) =>

@@ -53,7 +53,8 @@ Player Data:
 - Chart constants are score-focused and mainly based on the AAA achiever share among cleared players in LR2IR Archive
 - Chart FORCE = Chart Constant × Score Coefficient
 - Lamp coefficients and BEST20 correction are not used; FORCE RATE is the simple average of up to 51 targets: top 50 chart FORCE values plus the highest passed GENOSIDE2018 SP dan course
-- Chart FORCE = chart constant × score coefficient × clear-lamp coefficient (courses are excluded)
+- Hakkyou dan constants are based on the share of players who both passed the course and reached AAA among all players who played that course in LR2IR Archive
+- Hakkyou dan courses also use a score coefficient when course EX score is available. GENOSIDE2018 Overjoy keeps full dan credit once passed.
 - SP grade
 - Official SP grade name
 - st/sl grades
@@ -166,7 +167,7 @@ If you are unsure, look for LR2files inside your LR2 folder.
 
 7z version:
 
-1. Extract L2TV-2.0.0fix-win-x64.7z to any location.
+1. Extract L2TV-2.0.1-win-x64.7z to any location.
 2. Run L2TV.exe inside the automatically created "L2TV" folder.
 3. Installation is not required.
 
@@ -477,7 +478,7 @@ If you are unsure, confirm the distribution source before running it.
 7z version:
 
 1. Close L2TV.
-2. Extract the new L2TV-2.0.0fix-win-x64.7z.
+2. Extract the new L2TV-2.0.1-win-x64.7z.
 3. Replace the old L2TV folder with the new one.
 
 Notes:
