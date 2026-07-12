@@ -53,6 +53,9 @@ Player Data:
 - Chart constants are score-focused and mainly based on the AAA achiever share among cleared players in LR2IR Archive
 - Chart FORCE = Chart Constant × Score Coefficient
 - Lamp coefficients and BEST20 correction are not used; FORCE RATE is the simple average of up to 51 targets: top 50 chart FORCE values plus the highest passed GENOSIDE2018 SP dan course
+- Export the 51 FORCE RATE targets as a PNG image.
+- The FORCE target image includes the current rating, title badge, previous-load change, and target IN/OUT lists.
+- Show the FORCE RATE change since the previous load and charts entering (IN) or leaving (OUT) the target set.
 - Hakkyou dan constants are based on the share of players who both passed the course and reached AAA among all players who played that course in LR2IR Archive
 - Hakkyou dan courses also use a score coefficient when course EX score is available. GENOSIDE2018 Overjoy keeps full dan credit once passed.
 - SP grade
@@ -78,8 +81,12 @@ Lamp summary:
 Chart list:
 
 - Show chart lists by level
-- Show Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / Rival
+- Show Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / IR Rank / Rival
 - Show Rank such as AAA / AA / A as a colored badge
+- In Stellaverse IR mode, show IR rank and top percentage for ★, ★★, st, and sl charts.
+- Each table shows counts for 1st, 2nd, 3rd, total Top 3, and 4th–10th placements.
+- IR rank, IR status, and Stellaverse Rival currently support Stellaverse IR only. BMS-IR is supported only as a score.db format.
+- IR rank and IR status can be toggled independently. When both are off, L2TV skips fetching the player's IR rankings.
 - Lv is shown as a heading only
 - Sort by Title, Artist, and other columns
 - Center-align columns other than Title and Artist
@@ -107,6 +114,9 @@ Lamp Updates:
 RIVAL:
 
 - Load the LR2 Rival folder.
+- Fetch public scores by Stellaverse Rival ID without a Rival DB.
+- Compare Stellaverse IR rivals and local Rival DB players together.
+- Show the Stellaverse rival's SP grade, FORCE RATE, title, and badge.
 - Compare clear lamps by rival.
 - Compare score win/loss by rival.
 - Show opponent score / rate / lamp in the Rival column of the chart list.
@@ -117,11 +127,13 @@ RIVAL:
 - Select All / Clear All.
 - Switch win/loss scope between all charts and each difficulty table.
 - Sort rivals by win rate, loss rate, or name.
+- When IR is rarely used, hide chart-list IR ranks and table IR status independently from the menu.
 
 Image export:
 
 - Export today's updates.
 - Export difficulty table summaries.
+- Export FORCE RATE target lists.
 - Export CLEAR LAMP / SCORE LAMP graphs.
 - Choose any screenshot save folder.
 - Show "Screenshot saved!" when saving is complete.
@@ -167,7 +179,7 @@ If you are unsure, look for LR2files inside your LR2 folder.
 
 7z version:
 
-1. Extract L2TV-2.0.1-win-x64.7z to any location.
+1. Extract L2TV-2.1.0-win-x64.7z to any location.
 2. Run L2TV.exe inside the automatically created "L2TV" folder.
 3. Installation is not required.
 
@@ -345,6 +357,11 @@ Difficulty table summary image:
 - Export from each difficulty table summary.
 - Exports Lamp Breakdown, Score Breakdown, and CLEAR LAMP / SCORE LAMP graphs.
 
+FORCE RATE target list image:
+
+- Export from "Export FORCE Targets" in FORCE RATE TARGETS.
+- Exports up to 51 targets as one PNG using the current sort order.
+
 Save folder:
 
 - You can choose it from Screenshot Folder in Menu.
@@ -361,6 +378,9 @@ File names:
 
 - Difficulty table summary
   L2TV_Table_TableSymbol_yyyymmddhhmmss.png
+
+- FORCE RATE target list
+  L2TV_FORCE_Targets_yyyymmddhhmmss.png
 
 If a file with the same name already exists:
 
@@ -480,7 +500,7 @@ If you are unsure, confirm the distribution source before running it.
 7z version:
 
 1. Close L2TV.
-2. Extract the new L2TV-2.0.1-win-x64.7z.
+2. Extract the new L2TV-2.1.0-win-x64.7z.
 3. Replace the old L2TV folder with the new one.
 
 Notes:
