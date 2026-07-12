@@ -7,29 +7,43 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <button id="level-mode-toggle-button" type="button" class="level-mode-toggle-button button-secondary">
-      CLEAR LAMP
-    </button>
+    <div class="app-shell">
+      <div class="app-toolbar">
+        <button id="level-mode-toggle-button" type="button" class="level-mode-toggle-button button-secondary" title="表示をCLEAR LAMPとSCOREで切り替えます">
+          CLEAR LAMP
+        </button>
+        <div class="app-toolbar-actions">
+          <button
+            id="rival-toggle-button"
+            type="button"
+            class="rival-toggle-button button-secondary hidden"
+            aria-controls="rival-panel"
+            aria-expanded="false"
+          >
+            RIVAL
+          </button>
+          <button
+            id="menu-toggle-button"
+            type="button"
+            class="menu-toggle-button button-secondary"
+            aria-controls="control-drawer"
+            aria-expanded="false"
+          >
+            メニュー
+          </button>
+        </div>
+      </div>
 
-    <button
-      id="menu-toggle-button"
-      type="button"
-      class="menu-toggle-button button-secondary"
-      aria-controls="control-drawer"
-      aria-expanded="false"
-    >
-      メニュー
-    </button>
+      <header class="hero">
+        <img class="app-logo app-logo-light" src="/assets/l2tv-logo-light.png" alt="L2TV LR2 Table Viewer">
+        <img class="app-logo app-logo-dark" src="/assets/l2tv-logo-dark.png" alt="L2TV LR2 Table Viewer">
+      </header>
 
-    <button
-      id="rival-toggle-button"
-      type="button"
-      class="rival-toggle-button button-secondary hidden"
-      aria-controls="rival-panel"
-      aria-expanded="false"
-    >
-      RIVAL
-    </button>
+      <main class="layout">
+        <div id="main-feedback" class="main-feedback hidden" aria-live="polite"></div>
+        <section id="results-root" class="results-root hidden"></section>
+      </main>
+    </div>
 
     <div id="rival-panel" class="rival-panel hidden" aria-hidden="true"></div>
 
@@ -42,13 +56,13 @@
       </div>
 
       <div class="control-drawer-content">
-        <section class="panel input-panel">
-          <div class="panel-heading">
-            <h2>読み込み設定</h2>
-            <p>難易度表一覧から、読み込む表を選択できます。</p>
-          </div>
-
-          <form id="analyze-form" class="form-grid">
+        <form id="analyze-form" class="settings-form">
+          <details class="settings-group" open>
+            <summary>
+              <span>読み込み</span>
+              <small>score.db と song.db</small>
+            </summary>
+            <div class="settings-group-body">
             <label class="field">
               <span>LR2 score.db パス</span>
               <div class="path-picker">
@@ -74,29 +88,29 @@
             </label>
 
             <label class="field">
-              <span>スクショ保存先</span>
-              <div class="path-picker">
-                <input
-                  id="screenshot-dir-path"
-                  name="screenshotDirPath"
-                  placeholder="空欄の場合は既定のscreenshotフォルダに保存"
-                />
-                <button id="browse-screenshot-dir" type="button" class="button-secondary path-picker-button">参照</button>
-              </div>
+              <span>score.db仕様</span>
+              <select id="score-db-mode-select" name="scoreDbMode">
+                <option value="auto">自動判別</option>
+                <option value="legacy">従来LR2IR互換</option>
+                <option value="stellaverse">StellaverseIR</option>
+                <option value="bms-ir">BMS-IR</option>
+              </select>
             </label>
 
-            <label class="field">
-              <span>ライバルフォルダ</span>
-              <div class="path-picker">
-                <input
-                  id="rival-folder-path"
-                  name="rivalFolderPath"
-                  placeholder="例: D:\LR2\LR2files\Rival"
-                />
-                <button id="browse-rival-folder" type="button" class="button-secondary path-picker-button">参照</button>
+            <div class="form-actions">
+              <div class="action-row">
+                <button id="analyze-button" type="submit">表とランプを読み込む</button>
               </div>
-            </label>
+            </div>
+            </div>
+          </details>
 
+          <details class="settings-group" open>
+            <summary>
+              <span>難易度表</span>
+              <small>読み込む表を選択</small>
+            </summary>
+            <div class="settings-group-body">
             <textarea id="table-urls" name="tableUrls" class="hidden" rows="1" aria-hidden="true"></textarea>
 
             <div class="field textarea-field table-list-field">
@@ -109,22 +123,20 @@
               <p id="table-list-status" class="helper">難易度表一覧から選択します。</p>
               <p id="table-list-selection-summary" class="helper">選択中: 0件</p>
             </div>
+            </div>
+          </details>
 
+          <details class="settings-group">
+            <summary>
+              <span>表示</span>
+              <small>言語・テーマ・IR</small>
+            </summary>
+            <div class="settings-group-body">
             <label class="field">
               <span>表示言語</span>
               <select id="language-select" name="language">
                 <option value="ja">日本語</option>
                 <option value="en">English</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span>score.db仕様</span>
-              <select id="score-db-mode-select" name="scoreDbMode">
-                <option value="auto">自動判別</option>
-                <option value="legacy">従来LR2IR互換</option>
-                <option value="stellaverse">StellaverseIR</option>
-                <option value="bms-ir">BMS-IR</option>
               </select>
             </label>
 
@@ -136,46 +148,76 @@
               </select>
             </label>
 
-            <label class="checkbox-setting textarea-field">
-              <input id="include-bp-updates" type="checkbox" name="includeBpUpdates" />
-              <span>本日更新にBPが減った譜面も表示する</span>
-            </label>
+            <div class="display-settings" aria-label="IR表示設定">
+              <span class="display-settings-title">IR表示</span>
+              <label class="checkbox-setting">
+                <input id="show-ir-rank" type="checkbox" name="showIrRank" checked />
+                <span>譜面一覧にIR順位を表示する</span>
+              </label>
+              <label class="checkbox-setting">
+                <input id="show-ir-status" type="checkbox" name="showIrStatus" checked />
+                <span>難易度表にIR状況を表示する</span>
+              </label>
+            </div>
+            </div>
+          </details>
 
-            <label class="checkbox-setting textarea-field">
-              <input id="include-unlisted-updates" type="checkbox" name="includeUnlistedUpdates" />
-              <span>表外譜面も更新楽曲として表示する</span>
-            </label>
+          <details class="settings-group">
+            <summary>
+              <span>その他</span>
+              <small>更新・保存先・データ</small>
+            </summary>
+            <div class="settings-group-body">
+              <label class="field">
+                <span>スクショ保存先</span>
+                <div class="path-picker">
+                  <input
+                    id="screenshot-dir-path"
+                    name="screenshotDirPath"
+                    placeholder="空欄の場合は既定のscreenshotフォルダに保存"
+                  />
+                  <button id="browse-screenshot-dir" type="button" class="button-secondary path-picker-button">参照</button>
+                </div>
+              </label>
 
-            <div class="form-actions">
-              <div class="action-row">
-                <button id="analyze-button" type="submit">表とランプを読み込む</button>
+              <label class="field">
+                <span>ライバルフォルダ</span>
+                <div class="path-picker">
+                  <input
+                    id="rival-folder-path"
+                    name="rivalFolderPath"
+                    placeholder="例: D:\LR2\LR2files\Rival"
+                  />
+                  <button id="browse-rival-folder" type="button" class="button-secondary path-picker-button">参照</button>
+                </div>
+              </label>
+
+              <label class="checkbox-setting">
+                <input id="include-bp-updates" type="checkbox" name="includeBpUpdates" />
+                <span>本日更新にBPが減った譜面も表示する</span>
+              </label>
+
+              <label class="checkbox-setting">
+                <input id="include-unlisted-updates" type="checkbox" name="includeUnlistedUpdates" />
+                <span>表外譜面も更新楽曲として表示する</span>
+              </label>
+
+              <div class="form-actions form-actions-secondary">
                 <button id="clear-saved-button" type="button" class="button-secondary">保存データを消す</button>
               </div>
             </div>
-          </form>
-        </section>
+          </details>
+        </form>
 
-        <section class="panel status-panel">
-          <div class="panel-heading">
+        <section class="menu-status-section">
+          <div class="menu-status-heading">
             <h2>進行状況</h2>
-            <p>バックエンドが難易度表またはプレイヤーデータを読み込みます。</p>
+            <p>読み込み結果とエラーを確認できます。</p>
           </div>
           <div id="status-box" class="status-box">待機中です。</div>
         </section>
       </div>
     </aside>
-
-    <div class="app-shell">
-      <header class="hero">
-        <img class="app-logo app-logo-light" src="/assets/l2tv-logo-light.png" alt="L2TV LR2 Table Viewer">
-        <img class="app-logo app-logo-dark" src="/assets/l2tv-logo-dark.png" alt="L2TV LR2 Table Viewer">
-      </header>
-
-      <main class="layout">
-        <div id="main-feedback" class="main-feedback hidden" aria-live="polite"></div>
-        <section id="results-root" class="results-root hidden"></section>
-      </main>
-    </div>
 
     <div id="export-message-modal" class="export-message-modal hidden" aria-hidden="true" role="dialog" aria-modal="true">
       <div class="export-message-card">
@@ -289,6 +331,8 @@
               <div class="lamp-summary"></div>
               <h3 class="score-summary-heading">スコア内訳</h3>
               <div class="score-summary"></div>
+              <h3 class="ir-summary-heading">IR状況</h3>
+              <div class="ir-summary"></div>
             </div>
             <div class="summary-card">
               <h3 class="level-summary-title">CLEAR LAMP</h3>

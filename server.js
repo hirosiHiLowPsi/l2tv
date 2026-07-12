@@ -3784,6 +3784,7 @@ module.exports = {
     parseSkillAnalyzerLevel,
   },
   buildForceRating,
+  calculateForceScoreCoefficient,
   clampForceRating,
   createAppServer,
   getForceRatingTier,

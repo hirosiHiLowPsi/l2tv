@@ -14,6 +14,8 @@ const scoreDbModeSelect = document.getElementById("score-db-mode-select");
 const themeSelect = document.getElementById("theme-select");
 const includeBpUpdatesInput = document.getElementById("include-bp-updates");
 const includeUnlistedUpdatesInput = document.getElementById("include-unlisted-updates");
+const showIrRankInput = document.getElementById("show-ir-rank");
+const showIrStatusInput = document.getElementById("show-ir-status");
 const skillFetchStOnlyInput = document.getElementById("skill-fetch-st-only");
 const skillFetchSlOnlyInput = document.getElementById("skill-fetch-sl-only");
 const openTableListButton = document.getElementById("open-table-list-button");
@@ -125,6 +127,7 @@ const chartSortColumns = [
   { key: "scoreRate", label: "EX/Rate" },
   { key: "missCount", label: "BP" },
   { key: "playCount", label: "Play Count" },
+  { key: "irRank", label: "IR順位" },
   { key: "rival", label: "Rival" },
 ];
 
@@ -201,6 +204,7 @@ const FORM_STATE_KEY = "form-state";
 const LAST_ANALYSIS_KEY = "last-analysis";
 const TABLE_PRESET_SELECTION_KEY = "table-preset-selection";
 const CUSTOM_TABLE_LIST_KEY = "custom-table-list-entries";
+const STELLAVERSE_RIVAL_IDS_KEY = "stellaverse-rival-ids";
 const LAMP_UPDATES_SNAPSHOT_MAX_ITEMS_PER_IMAGE = 250;
 
 let latestAnalysis = null;
@@ -211,6 +215,8 @@ let selectedLanguage = DEFAULT_LANGUAGE;
 let hasStoredLanguagePreference = false;
 let includeBpUpdatesInLampUpdates = false;
 let includeUnlistedChartsInLampUpdates = false;
+let showIrRankInChartList = true;
+let showIrStatusInTableSummary = true;
 let skillAnalyzerFetchMode = "both";
 let scoreDbMode = "auto";
 let disabledManualTableUrls = new Set();
@@ -230,6 +236,9 @@ let knownRivalIds = new Set();
 let rivalSelectionInitialized = false;
 let selectedRivalStatsScope = "all";
 let selectedRivalSortKey = "win";
+let stellaverseRivalIds = new Set();
+let stellaverseRivalFetchStatus = "";
+let stellaverseRivalFetchBusy = false;
 const tableInfoPanelOpenState = new Map();
 const chartDetailsOpenState = new Map();
 const chartListOpenLevelsState = new Map();
@@ -250,6 +259,7 @@ let latestComparisonBaseAnalysis = null;
 let hasComparedLampImprovements = false;
 let latestKeyHitCountDelta = null;
 let latestPlayTimeDeltaSeconds = null;
+let latestForceRatingChanges = null;
 let mainFeedbackTimeoutId = null;
 let apiTokenPromise = null;
 const persistFormStateDebounced = debounce(() => {
@@ -262,11 +272,37 @@ const I18N_TEXT = {
   "メニュー": "Menu",
   "閉じる": "Close",
   "読み込み設定": "Load Settings",
+  "読み込み": "Load",
+  "難易度表": "Difficulty Tables",
+  "表示": "Display",
+  "その他": "Other",
+  "score.db と song.db": "score.db and song.db",
+  "読み込む表を選択": "Select tables to load",
+  "言語・テーマ・IR": "Language, theme, and IR",
+  "更新・保存先・データ": "Updates, folders, and data",
   "難易度表一覧から、読み込む表を選択できます。": "Choose tables to load from the table list.",
   "LR2 score.db パス": "LR2 score.db Path",
   "song.db パス": "song.db Path",
   "スクショ保存先": "Screenshot Folder",
   "ライバルフォルダ": "Rival Folder",
+  "Stellaverse Rival ID": "Stellaverse Rival ID",
+  "取得": "Fetch",
+  "取得中…": "Fetching...",
+  "Stellaverse IRからライバルスコアを取得しています。": "Fetching rival scores from Stellaverse IR.",
+  "Stellaverse IRからランキングを取得しています。": "Fetching rankings from Stellaverse IR.",
+  "IDを入力してStellaverse IRの公開スコアを比較できます。": "Enter an ID to compare public scores from Stellaverse IR.",
+  "表とランプを読み込んだ後、Stellaverse Rival IDを追加できます。": "Load tables and lamps before adding a Stellaverse Rival ID.",
+  "Stellaverse IRからライバルスコアを取得しました。": "Fetched rival scores from Stellaverse IR.",
+  "Stellaverse IRからスコアを取得できませんでした。": "Could not fetch scores from Stellaverse IR.",
+  "Stellaverse RivalはElectron版で利用できます。": "Stellaverse Rival is available in the Electron app.",
+  "Stellaverse Rival IDは10桁以内の数字で入力してください。": "Enter a numeric Stellaverse Rival ID up to 10 digits.",
+  "Stellaverse IRで比較できる難易度表が読み込まれていません。": "No loaded table can be compared through Stellaverse IR.",
+  "削除": "Remove",
+  "段位": "Grade",
+  "IR順位": "IR Rank",
+  "IR表示": "IR Display",
+  "譜面一覧にIR順位を表示する": "Show IR ranks in chart lists",
+  "難易度表にIR状況を表示する": "Show IR status in difficulty tables",
   "難易度表一覧": "Table List",
   "難易度表管理": "Table Management",
   "一覧を開く": "Open List",
@@ -309,10 +345,12 @@ const I18N_TEXT = {
   "表とランプを読み込む": "Load Tables and Lamps",
   "保存データを消す": "Clear Saved Data",
   "進行状況": "Status",
+  "読み込み結果とエラーを確認できます。": "Review loading results and errors.",
   "バックエンドが難易度表またはプレイヤーデータを読み込みます。": "The backend loads table or player data.",
   "待機中です。": "Waiting.",
   "ランプ内訳": "Lamp Breakdown",
   "スコア内訳": "Score Breakdown",
+  "IR状況": "IR Status",
   "譜面一覧を開く": "Open Chart List",
   "譜面一覧を閉じる": "Close Chart List",
   "参照": "Browse",
@@ -336,6 +374,7 @@ const I18N_TEXT = {
   "今回の打鍵回数": "Key Hits This Run",
   "プレイ時間": "Play Time",
   "今日の更新を画像出力": "Export Today's Updates",
+  "FORCE対象を画像出力": "Export FORCE Targets",
   "出力中…": "Exporting...",
   "スクショ保存完了！": "Screenshot saved!",
   "新規 FC": "New FC",
@@ -394,6 +433,7 @@ const I18N_TEXT = {
   "プレイ更新を反映しています。": "Applying play updates.",
   "プレイ更新を検知しました。反映する場合は読み込みボタンを押してください。": "Play updates were detected. Press the load button when you want to apply them.",
   "画像出力が完了しました。": "Image export finished.",
+  "FORCE RATE対象画像を保存しました。": "Saved FORCE RATE targets image.",
   "画像を分割して保存しました。": "Saved split images.",
   "画像を分割してダウンロードしました。": "Downloaded split images.",
   "画像出力データの作成に失敗しました。": "Failed to create image export data.",
@@ -670,7 +710,51 @@ function initializeThemeSelector() {
     });
   }
 
+  initializeIrDisplayControls();
+
   initializeSkillAnalyzerFetchModeControls();
+}
+
+function initializeIrDisplayControls() {
+  const syncControlValues = () => {
+    if (showIrRankInput) {
+      showIrRankInput.checked = showIrRankInChartList;
+    }
+    if (showIrStatusInput) {
+      showIrStatusInput.checked = showIrStatusInTableSummary;
+    }
+  };
+
+  const handleChange = async () => {
+    const wasEnabled = shouldFetchOwnStellaverseRankings();
+    showIrRankInChartList = showIrRankInput?.checked ?? true;
+    showIrStatusInTableSummary = showIrStatusInput?.checked ?? true;
+    syncControlValues();
+    persistFormStateDebounced();
+
+    if (!latestAnalysis) {
+      return;
+    }
+
+    if (!wasEnabled && shouldFetchOwnStellaverseRankings()) {
+      await refreshOwnStellaverseRankings(latestAnalysis);
+      void persistLatestAnalysis(latestAnalysis).catch((error) => console.error("Failed to persist analysis", error));
+      setStatus(buildStatusMessage(latestAnalysis));
+    }
+    renderAnalysis();
+  };
+
+  syncControlValues();
+  showIrRankInput?.addEventListener("change", () => {
+    void handleChange();
+  });
+  showIrStatusInput?.addEventListener("change", () => {
+    void handleChange();
+  });
+}
+
+function shouldFetchOwnStellaverseRankings() {
+  return showIrRankInChartList || showIrStatusInTableSummary;
 }
 
 function initializeScoreDbModeSelector() {
@@ -2203,6 +2287,7 @@ form.addEventListener("submit", async (event) => {
   hasComparedLampImprovements = false;
   latestKeyHitCountDelta = null;
   latestPlayTimeDeltaSeconds = null;
+  latestForceRatingChanges = null;
   resultsRoot.classList.add("hidden");
   analyzeButton.disabled = true;
 
@@ -2230,6 +2315,13 @@ form.addEventListener("submit", async (event) => {
     });
 
     latestAnalysis = normalizeAnalysisLampStatuses(payload);
+    if (stellaverseRivalIds.size > 0) {
+      setStatus("Stellaverse IRからライバルスコアを取得しています。");
+      await refreshSavedStellaverseRivals();
+    }
+    if (shouldFetchOwnStellaverseRankings()) {
+      await refreshOwnStellaverseRankings(latestAnalysis);
+    }
     syncSelectedRivalsWithAnalysis(latestAnalysis);
     latestLampImprovements = collectLampImprovements(previousAnalysis, latestAnalysis, {
       includeBpUpdates: includeBpUpdatesInLampUpdates,
@@ -2237,6 +2329,8 @@ form.addEventListener("submit", async (event) => {
     hasComparedLampImprovements = Boolean(previousAnalysis && Array.isArray(previousAnalysis.tables));
     latestKeyHitCountDelta = collectKeyHitCountDelta(previousAnalysis, latestAnalysis);
     latestPlayTimeDeltaSeconds = collectPlayTimeDeltaSeconds(previousAnalysis, latestAnalysis);
+    latestForceRatingChanges = collectForceRatingChanges(previousAnalysis, latestAnalysis);
+    latestAnalysis.forceRatingChanges = latestForceRatingChanges;
     setStatus(buildStatusMessage(latestAnalysis));
     renderAnalysis();
     resultsRoot.classList.remove("hidden");
@@ -2413,11 +2507,14 @@ clearSavedButton.addEventListener("click", async () => {
   latestComparisonBaseAnalysis = null;
   selectedRivalIds.clear();
   knownRivalIds.clear();
+  stellaverseRivalIds.clear();
+  stellaverseRivalFetchStatus = "";
   rivalSelectionInitialized = false;
   renderRivalPanel();
   hasComparedLampImprovements = false;
   latestKeyHitCountDelta = null;
   latestPlayTimeDeltaSeconds = null;
+  latestForceRatingChanges = null;
   tableInfoPanelOpenState.clear();
   chartDetailsOpenState.clear();
   chartListOpenLevelsState.clear();
@@ -2446,6 +2543,14 @@ clearSavedButton.addEventListener("click", async () => {
   includeUnlistedChartsInLampUpdates = false;
   if (includeUnlistedUpdatesInput) {
     includeUnlistedUpdatesInput.checked = false;
+  }
+  showIrRankInChartList = true;
+  showIrStatusInTableSummary = true;
+  if (showIrRankInput) {
+    showIrRankInput.checked = true;
+  }
+  if (showIrStatusInput) {
+    showIrStatusInput.checked = true;
   }
   skillAnalyzerFetchMode = "both";
   scoreDbMode = "auto";
@@ -2477,7 +2582,10 @@ function renderAnalysis() {
   if (lampImprovementPanel) {
     resultsRoot.append(lampImprovementPanel);
   }
-  const forceBest50Folder = renderForceRatingBest50Folder(latestAnalysis.player?.forceRating);
+  const forceBest50Folder = renderForceRatingBest50Folder(
+    latestAnalysis.player?.forceRating,
+    latestForceRatingChanges,
+  );
   if (forceBest50Folder) {
     resultsRoot.append(forceBest50Folder);
   }
@@ -2593,12 +2701,7 @@ function renderRivalPanel() {
   }
 
   const rivals = Array.isArray(latestAnalysis?.rivals?.players) ? latestAnalysis.rivals.players : [];
-  rivalToggleButton.classList.toggle("hidden", rivals.length === 0);
-  if (!rivals.length) {
-    setRivalPanelOpen(false);
-    rivalPanel.innerHTML = "";
-    return;
-  }
+  rivalToggleButton.classList.remove("hidden");
 
   rivalPanel.innerHTML = "";
   const header = document.createElement("div");
@@ -2616,6 +2719,13 @@ function renderRivalPanel() {
 
   header.append(title, closeButton);
   rivalPanel.append(header);
+
+  rivalPanel.append(createStellaverseRivalImportControl());
+
+  if (!rivals.length) {
+    translateApp(rivalPanel);
+    return;
+  }
 
   const summary = document.createElement("div");
   summary.className = "rival-panel-summary";
@@ -2760,21 +2870,360 @@ function renderRivalPanel() {
     name.style.setProperty("--rival-win-percent", `${winPercent}%`);
 
     const nameText = document.createElement("strong");
-    nameText.textContent = rival?.name || rivalId;
+    nameText.textContent = getRivalDisplayName(rival);
+
+    const profileMeta = createRivalProfileMeta(rival);
 
     const record = document.createElement("span");
     record.className = "rival-panel-record";
     record.textContent = `WIN ${formatInteger(stats.wins)} / LOSE ${formatInteger(stats.losses)}`;
 
-    name.append(nameText, record);
+    name.append(nameText);
+    if (profileMeta) {
+      name.append(profileMeta);
+    }
+    name.append(record);
 
     const meta = document.createElement("small");
     meta.textContent = totalDecided > 0 ? `${winPercent.toFixed(1)}% / ${lossPercent.toFixed(1)}%` : "対戦なし";
 
     label.append(checkbox, name, meta);
+    if (rival?.source === "stellaverse") {
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "button-secondary rival-panel-remove";
+      removeButton.textContent = "削除";
+      removeButton.title = "削除";
+      removeButton.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        removeStellaverseRival(rivalId);
+      });
+      label.append(removeButton);
+    }
     rivalPanel.append(label);
   }
   translateApp(rivalPanel);
+}
+
+function createStellaverseRivalImportControl() {
+  const section = document.createElement("div");
+  section.className = "stellaverse-rival-import";
+
+  const label = document.createElement("label");
+  label.className = "stellaverse-rival-import-label";
+  label.textContent = "Stellaverse Rival ID";
+
+  const controls = document.createElement("div");
+  controls.className = "stellaverse-rival-import-controls";
+  const input = document.createElement("input");
+  input.type = "text";
+  input.inputMode = "numeric";
+  input.maxLength = 10;
+  input.placeholder = "187038";
+  input.autocomplete = "off";
+  input.disabled = stellaverseRivalFetchBusy || !latestAnalysis;
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "button-secondary stellaverse-rival-fetch";
+  button.textContent = stellaverseRivalFetchBusy ? "取得中…" : "取得";
+  button.disabled = stellaverseRivalFetchBusy || !latestAnalysis;
+
+  const fetchEnteredRival = async () => {
+    const playerId = input.value.trim();
+    if (!/^\d{1,10}$/.test(playerId)) {
+      stellaverseRivalFetchStatus = "Stellaverse Rival IDは10桁以内の数字で入力してください。";
+      renderRivalPanel();
+      return;
+    }
+    await addStellaverseRival(playerId);
+  };
+  button.addEventListener("click", () => void fetchEnteredRival());
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void fetchEnteredRival();
+    }
+  });
+
+  controls.append(input, button);
+  label.append(controls);
+  section.append(label);
+
+  const status = document.createElement("p");
+  status.className = "helper stellaverse-rival-status";
+  status.textContent = stellaverseRivalFetchStatus || (latestAnalysis
+    ? "IDを入力してStellaverse IRの公開スコアを比較できます。"
+    : "表とランプを読み込んだ後、Stellaverse Rival IDを追加できます。");
+  section.append(status);
+  return section;
+}
+
+async function addStellaverseRival(playerId) {
+  if (!latestAnalysis) {
+    return;
+  }
+  stellaverseRivalFetchBusy = true;
+  stellaverseRivalFetchStatus = "取得中…";
+  renderRivalPanel();
+  try {
+    const rival = await fetchStellaverseRivalFromDesktop(playerId);
+    mergeStellaverseRivalIntoAnalysis(latestAnalysis, rival);
+    stellaverseRivalIds.add(String(playerId));
+    selectedRivalIds.add(String(playerId));
+    knownRivalIds.add(String(playerId));
+    rivalSelectionInitialized = true;
+    stellaverseRivalFetchStatus = `Stellaverse IRからライバルスコアを取得しました。 ${formatInteger(rival.scoreCount)}スコア`;
+    await persistStellaverseRivalIds();
+    await persistLatestAnalysis(latestAnalysis);
+  } catch (error) {
+    stellaverseRivalFetchStatus = error instanceof Error ? error.message : "Stellaverse IRからスコアを取得できませんでした。";
+  } finally {
+    stellaverseRivalFetchBusy = false;
+    renderAnalysis();
+  }
+}
+
+async function refreshSavedStellaverseRivals() {
+  for (const playerId of stellaverseRivalIds) {
+    try {
+      const rival = await fetchStellaverseRivalFromDesktop(playerId);
+      mergeStellaverseRivalIntoAnalysis(latestAnalysis, rival);
+    } catch (error) {
+      stellaverseRivalFetchStatus = error instanceof Error ? error.message : "Stellaverse IRからスコアを取得できませんでした。";
+    }
+  }
+}
+
+async function fetchStellaverseRivalFromDesktop(playerId) {
+  if (typeof window.lr2irDesktop?.fetchStellaverseRival !== "function") {
+    throw new Error("Stellaverse RivalはElectron版で利用できます。");
+  }
+  const tableCodes = getStellaverseRivalTableCodes(latestAnalysis?.tables);
+  return window.lr2irDesktop.fetchStellaverseRival({ playerId, tableCodes });
+}
+
+function getStellaverseRivalTableCodes(tables) {
+  const codes = new Set();
+  for (const table of Array.isArray(tables) ? tables : []) {
+    const name = String(table?.name ?? "").toLowerCase();
+    const symbol = String(table?.symbol ?? "").trim().toLowerCase();
+    const text = `${name} ${symbol}`;
+    if (/dp\s*stella|dpst/.test(text)) codes.add("DPST");
+    else if (/dp\s*satellite|dpsl/.test(text)) codes.add("DPSL");
+    else if (/overjoy/.test(text) || symbol === "★★") codes.add("OVERJOY");
+    else if (/発狂bms|insane\s*1|insane1/.test(text) || symbol === "★") codes.add("INSANE1");
+    else if (/starlight/.test(text) || symbol === "sr") codes.add("SR");
+    else if (/satellite/.test(text) || symbol === "sl") codes.add("SL");
+    else if (/stella/.test(text) || symbol === "st") codes.add("ST");
+    else if (/solar/.test(text) || symbol === "so") codes.add("SO");
+    else if (/supernova/.test(text) || symbol === "sn") codes.add("SN");
+  }
+  return [...codes];
+}
+
+async function refreshOwnStellaverseRankings(analysis) {
+  if (
+    !shouldFetchOwnStellaverseRankings() ||
+    !analysis ||
+    analysis.player?.scoreDbMode !== "stellaverse" ||
+    typeof window.lr2irDesktop?.fetchStellaverseRankings !== "function"
+  ) {
+    return;
+  }
+  const playerId = String(analysis.player?.lr2Id || analysis.player?.id || "").trim();
+  if (!/^\d{1,10}$/.test(playerId)) {
+    return;
+  }
+  const allowedCodes = new Set(["INSANE1", "OVERJOY", "ST", "SL"]);
+  const tableCodes = getStellaverseRivalTableCodes(analysis.tables).filter((code) => allowedCodes.has(code));
+  if (!tableCodes.length) {
+    return;
+  }
+
+  setStatus("Stellaverse IRからランキングを取得しています。");
+  try {
+    const result = await window.lr2irDesktop.fetchStellaverseRankings({ playerId, tableCodes });
+    mergeStellaverseRankingsIntoAnalysis(analysis, result);
+  } catch (error) {
+    console.warn("Failed to fetch Stellaverse rankings", error);
+  }
+}
+
+function mergeStellaverseRankingsIntoAnalysis(analysis, result) {
+  const rankings = new Map(
+    (Array.isArray(result?.entries) ? result.entries : [])
+      .map((entry) => [String(entry?.md5 ?? "").trim().toLowerCase(), entry])
+      .filter(([md5]) => /^[0-9a-f]{32}$/.test(md5)),
+  );
+  let matchedCharts = 0;
+  for (const table of Array.isArray(analysis?.tables) ? analysis.tables : []) {
+    const tableSupportsRanking = getStellaverseRivalTableCodes([table]).some((code) =>
+      ["INSANE1", "OVERJOY", "ST", "SL"].includes(code),
+    );
+    for (const chart of Array.isArray(table?.charts) ? table.charts : []) {
+      const md5 = String(chart?.md5 || chart?.hintedBmsMd5 || "").trim().toLowerCase();
+      const ranking = tableSupportsRanking ? rankings.get(md5) : null;
+      const rank = ranking?.rank == null ? null : Number(ranking.rank);
+      const totalPlayers = ranking?.totalPlayers == null ? null : Number(ranking.totalPlayers);
+      const topPercent = ranking?.topPercent == null ? null : Number(ranking.topPercent);
+      chart.irRank = Number.isFinite(rank) && rank > 0 ? rank : null;
+      chart.irTotalPlayers = Number.isFinite(totalPlayers) && totalPlayers > 0 ? totalPlayers : null;
+      chart.irTopPercent = Number.isFinite(topPercent) && topPercent >= 0 ? topPercent : null;
+      if (chart.irRank != null) matchedCharts += 1;
+    }
+  }
+  analysis.stellaverseRankings = {
+    fetchedAt: new Date().toISOString(),
+    playerId: String(result?.playerId ?? ""),
+    matchedCharts,
+    failedTables: Array.isArray(result?.failedTables) ? result.failedTables : [],
+  };
+}
+
+function mergeStellaverseRivalIntoAnalysis(analysis, rival) {
+  const rivalId = String(rival?.id ?? "").trim();
+  if (!analysis || !rivalId) {
+    return;
+  }
+  const entries = new Map(
+    (Array.isArray(rival?.entries) ? rival.entries : [])
+      .map((entry) => [String(entry?.md5 ?? "").toLowerCase(), entry])
+      .filter(([md5]) => /^[0-9a-f]{32}$/.test(md5)),
+  );
+  analysis.rivals ||= { folderPath: "", count: 0, totalScores: 0, players: [] };
+  const players = Array.isArray(analysis.rivals.players) ? analysis.rivals.players : [];
+  analysis.rivals.players = [
+    ...players.filter((player) => String(player?.id ?? "") !== rivalId),
+    {
+      id: rivalId,
+      name: rival?.name || rivalId,
+      scoreCount: entries.size,
+      source: "stellaverse",
+      gradeSp: rival?.gradeSp || "",
+      forceRating: rival?.forceRating || null,
+    },
+  ];
+  analysis.rivals.count = analysis.rivals.players.length;
+  analysis.rivals.totalScores = analysis.rivals.players.reduce((sum, player) => sum + Number(player?.scoreCount || 0), 0);
+
+  for (const table of Array.isArray(analysis.tables) ? analysis.tables : []) {
+    for (const chart of Array.isArray(table?.charts) ? table.charts : []) {
+      const md5 = String(chart?.md5 || chart?.hintedBmsMd5 || "").toLowerCase();
+      const entry = entries.get(md5);
+      const previousScores = Array.isArray(chart?.rivalComparison?.scores) ? chart.rivalComparison.scores : [];
+      const scores = previousScores.filter((score) => String(score?.id ?? "") !== rivalId);
+      if (entry) {
+        scores.push({
+          id: rivalId,
+          name: rival?.name || rivalId,
+          lampStatus: normalizeLampStatusForUi(entry.lampStatus),
+          exScore: entry.exScore ?? null,
+          maxExScore: entry.maxExScore ?? null,
+          scoreRate: entry.scoreRate ?? null,
+          missCount: entry.missCount ?? null,
+          source: "stellaverse",
+        });
+      }
+      chart.rivalComparison = buildClientRivalComparison(chart, scores);
+    }
+  }
+}
+
+function buildClientRivalComparison(chart, scores) {
+  if (!Array.isArray(scores) || !scores.length) {
+    return null;
+  }
+  const sortedScores = [...scores].sort(compareRivalScoresForUi);
+  const bestScore = sortedScores[0];
+  const selfExScore = Number.isFinite(Number(chart?.exScore)) ? Number(chart.exScore) : null;
+  const selfLamp = normalizeLampStatusForUi(chart?.lampStatus || "NO PLAY");
+  const scoreDiff = selfExScore != null && bestScore?.exScore != null ? selfExScore - bestScore.exScore : null;
+  const lampDiff = compareLampStatus(selfLamp, bestScore?.lampStatus);
+  return {
+    rivalCount: sortedScores.length,
+    scores: sortedScores,
+    bestScore,
+    selfExScore,
+    selfLamp,
+    scoreDiff,
+    scoreResult: scoreDiff == null ? "unknown" : scoreDiff > 0 ? "win" : scoreDiff < 0 ? "lose" : "draw",
+    lampResult: lampDiff < 0 ? "win" : lampDiff > 0 ? "lose" : "draw",
+  };
+}
+
+function removeStellaverseRival(playerId) {
+  const rivalId = String(playerId ?? "").trim();
+  stellaverseRivalIds.delete(rivalId);
+  selectedRivalIds.delete(rivalId);
+  knownRivalIds.delete(rivalId);
+  if (latestAnalysis?.rivals) {
+    latestAnalysis.rivals.players = (latestAnalysis.rivals.players ?? []).filter(
+      (player) => String(player?.id ?? "") !== rivalId,
+    );
+    latestAnalysis.rivals.count = latestAnalysis.rivals.players.length;
+    latestAnalysis.rivals.totalScores = latestAnalysis.rivals.players.reduce(
+      (sum, player) => sum + Number(player?.scoreCount || 0),
+      0,
+    );
+    for (const table of latestAnalysis.tables ?? []) {
+      for (const chart of table?.charts ?? []) {
+        const scores = (chart?.rivalComparison?.scores ?? []).filter((score) => String(score?.id ?? "") !== rivalId);
+        chart.rivalComparison = buildClientRivalComparison(chart, scores);
+      }
+    }
+  }
+  stellaverseRivalFetchStatus = "";
+  void persistStellaverseRivalIds();
+  void persistLatestAnalysis(latestAnalysis);
+  renderAnalysis();
+}
+
+async function persistStellaverseRivalIds() {
+  await writePersistedValue(STELLAVERSE_RIVAL_IDS_KEY, [...stellaverseRivalIds]);
+}
+
+function createRivalProfileMeta(rival) {
+  const gradeSp = String(rival?.gradeSp ?? "").trim();
+  const forceRating = rival?.forceRating;
+  if (!gradeSp && !forceRating?.available) {
+    return null;
+  }
+
+  const meta = document.createElement("span");
+  meta.className = "rival-panel-profile-meta";
+  if (gradeSp) {
+    const grade = document.createElement("span");
+    grade.className = "rival-panel-grade";
+    grade.textContent = `${localizeString("段位")} ${gradeSp}`;
+    meta.append(grade);
+  }
+  if (forceRating?.available) {
+    const rating = Number(forceRating.rating);
+    const tier = String(forceRating.tier || "slate").trim().toLowerCase();
+    const title = String(forceRating.title || "SLATE").trim();
+    const force = document.createElement("span");
+    force.className = `rival-panel-force force-tier-${tier}`;
+    const badge = document.createElement("span");
+    badge.className = "force-rating-badge rival-panel-force-badge";
+    badge.setAttribute("role", "img");
+    badge.setAttribute("aria-label", `${title} badge`);
+    const text = document.createElement("span");
+    text.textContent = `FORCE ${Number.isFinite(rating) ? rating.toFixed(3) : "0.000"} ${title}`;
+    force.append(badge, text);
+    meta.append(force);
+  }
+  return meta;
+}
+
+function getRivalDisplayName(rival) {
+  const rivalId = String(rival?.id ?? "").trim();
+  const name = String(rival?.name ?? "").trim();
+  if (!name || /^(?:🔒\uFE0F?\s*)?(?:非公開プロフィール|private profile)$/i.test(name)) {
+    return rivalId || "Rival";
+  }
+  return name;
 }
 
 function sortRivalsForPanel(rivals, rivalStats, sortKey) {
@@ -2783,8 +3232,8 @@ function sortRivalsForPanel(rivals, rivalStats, sortKey) {
     const rightId = String(right?.id ?? "").trim();
     const leftStats = rivalStats.get(leftId) ?? { wins: 0, losses: 0 };
     const rightStats = rivalStats.get(rightId) ?? { wins: 0, losses: 0 };
-    const leftName = String(left?.name || leftId).trim();
-    const rightName = String(right?.name || rightId).trim();
+    const leftName = getRivalDisplayName(left);
+    const rightName = getRivalDisplayName(right);
 
     const leftTotal = leftStats.wins + leftStats.losses;
     const rightTotal = rightStats.wins + rightStats.losses;
@@ -2935,7 +3384,7 @@ function renderOverviewPanel(analysis) {
   return section;
 }
 
-function renderForceRatingBest50Folder(forceRating) {
+function renderForceRatingBest50Folder(forceRating, changes) {
   if (!forceRating || forceRating.available === false) {
     return null;
   }
@@ -2965,7 +3414,40 @@ function renderForceRatingBest50Folder(forceRating) {
   count.dataset.i18nSkip = "true";
   count.textContent =
     selectedLanguage === "en" ? `${charts.length} targets` : `${charts.length}対象`;
-  header.append(titleWrap, count);
+  const headerActions = document.createElement("div");
+  headerActions.className = "force-best50-actions";
+  if (charts.length) {
+    const saveImageButton = document.createElement("button");
+    saveImageButton.type = "button";
+    saveImageButton.className = "button-secondary force-best50-save-button";
+    setLocalizedText(saveImageButton, "FORCE対象を画像出力");
+    saveImageButton.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      saveImageButton.disabled = true;
+      setLocalizedText(saveImageButton, "出力中…");
+      showExportMessage("出力中…", { closable: false });
+      try {
+        await exportForceTargetsSnapshot({
+          forceRating,
+          charts,
+          themeMode: selectedThemeMode,
+          changes,
+        });
+        setStatus("画像出力が完了しました。");
+        showExportMessage("FORCE RATE対象画像を保存しました。");
+      } catch (error) {
+        const details = error instanceof Error ? error.message : String(error);
+        setStatus(`画像保存に失敗しました: ${details}`);
+        showExportMessage(`出力に失敗しました: ${details}`);
+      } finally {
+        saveImageButton.disabled = false;
+        setLocalizedText(saveImageButton, "FORCE対象を画像出力");
+      }
+    });
+    headerActions.append(saveImageButton);
+  }
+  headerActions.append(count);
+  header.append(titleWrap, headerActions);
 
   const panel = document.createElement("div");
   panel.className = "table-info-panel force-best50-panel";
@@ -2984,6 +3466,10 @@ function renderForceRatingBest50Folder(forceRating) {
       ? `Targets ${broadCount}/51 · Average ${broadAverageText} · Cutoff ${cutoffText}`
       : `対象 ${broadCount}/51 · 平均 ${broadAverageText} · 下限 ${cutoffText}`;
   panel.append(summary);
+
+  if (changes) {
+    panel.append(createForceRatingChangesPanel(changes));
+  }
 
   if (charts.length) {
     panel.append(createForceBest50Table(charts));
@@ -3007,6 +3493,87 @@ function renderForceRatingBest50Folder(forceRating) {
   return section;
 }
 
+function createForceRatingChangesPanel(changes) {
+  const container = document.createElement("section");
+  container.className = "force-rating-changes";
+  container.dataset.i18nSkip = "true";
+
+  const heading = document.createElement("div");
+  heading.className = "force-rating-changes-heading";
+  const title = document.createElement("strong");
+  title.textContent = selectedLanguage === "en" ? "Changes since previous load" : "前回読み込みからの変化";
+  const delta = Number(changes.ratingDelta);
+  const deltaText = formatForceRatingDelta(delta);
+  const summary = document.createElement("span");
+  summary.className = `force-rating-change-summary ${getForceRatingDeltaClass(delta)}`;
+  summary.textContent =
+    selectedLanguage === "en"
+      ? `RATE ${deltaText} · IN ${changes.added.length} · OUT ${changes.removed.length}`
+      : `レート ${deltaText} · IN ${changes.added.length} · OUT ${changes.removed.length}`;
+  heading.append(title, summary);
+  container.append(heading);
+
+  if (!changes.added.length && !changes.removed.length) {
+    const empty = document.createElement("p");
+    empty.className = "force-rating-changes-empty";
+    empty.textContent =
+      selectedLanguage === "en"
+        ? "The target charts did not change."
+        : "対象曲の入れ替わりはありません。";
+    container.append(empty);
+    return container;
+  }
+
+  const lists = document.createElement("div");
+  lists.className = "force-rating-change-lists";
+  if (changes.added.length) {
+    lists.append(createForceRatingChangeList("in", changes.added));
+  }
+  if (changes.removed.length) {
+    lists.append(createForceRatingChangeList("out", changes.removed));
+  }
+  container.append(lists);
+  return container;
+}
+
+function createForceRatingChangeList(kind, charts) {
+  const section = document.createElement("div");
+  section.className = `force-rating-change-list force-rating-change-list-${kind}`;
+  const heading = document.createElement("h3");
+  heading.textContent = kind === "in" ? `IN ${charts.length}` : `OUT ${charts.length}`;
+  const list = document.createElement("ul");
+  for (const chart of charts) {
+    const item = document.createElement("li");
+    const badge = document.createElement("span");
+    badge.className = `force-rating-change-badge force-rating-change-badge-${kind}`;
+    badge.textContent = kind.toUpperCase();
+    const level = document.createElement("span");
+    level.className = "force-rating-change-level";
+    level.textContent = getForceTargetLevelLabel(chart) || "-";
+    const title = document.createElement("span");
+    title.className = "force-rating-change-title";
+    title.textContent = String(chart?.title || "-").trim() || "-";
+    const force = document.createElement("span");
+    force.className = "force-rating-change-force";
+    force.textContent = Number.isFinite(Number(chart?.force)) ? Number(chart.force).toFixed(3) : "-";
+    item.append(badge, level, title, force);
+    list.append(item);
+  }
+  section.append(heading, list);
+  return section;
+}
+
+function formatForceRatingDelta(value) {
+  if (!Number.isFinite(value)) return "-";
+  const rounded = Math.abs(value) < 0.0005 ? 0 : value;
+  return `${rounded >= 0 ? "+" : ""}${rounded.toFixed(3)}`;
+}
+
+function getForceRatingDeltaClass(value) {
+  if (!Number.isFinite(value) || Math.abs(value) < 0.0005) return "is-neutral";
+  return value > 0 ? "is-positive" : "is-negative";
+}
+
 function createForceBest50Table(charts) {
   const wrapper = document.createElement("div");
   wrapper.className = "force-best50-table-wrap";
@@ -3015,21 +3582,19 @@ function createForceBest50Table(charts) {
     selectedLanguage === "en"
       ? [
           { key: "rank", label: "#" },
+          { key: "level", label: "Lv" },
           { key: "title", label: "Title" },
           { key: "chartConstant", label: "Chart Constant" },
-          { key: "lampStatus", label: "Lamp" },
-          { key: "scoreRate", label: "EX/Rate" },
           { key: "force", label: "Chart FORCE" },
-          { key: "source", label: "Source" },
+          { key: "scoreRate", label: "EX/Rate" },
         ]
       : [
           { key: "rank", label: "#" },
+          { key: "level", label: "Lv" },
           { key: "title", label: "Title" },
           { key: "chartConstant", label: "譜面定数" },
-          { key: "lampStatus", label: "Lamp" },
-          { key: "scoreRate", label: "EX/Rate" },
           { key: "force", label: "単曲レート" },
-          { key: "source", label: "対象表" },
+          { key: "scoreRate", label: "EX/Rate" },
         ];
 
   const render = () => {
@@ -3083,8 +3648,12 @@ function createForceBest50Table(charts) {
       rankCell.className = "force-best50-rank";
       rankCell.textContent = String(chart.rank ?? "-");
 
+      const levelCell = document.createElement("td");
+      levelCell.className = "force-best50-level";
+      levelCell.textContent = getForceTargetLevelLabel(chart);
+
       const titleCell = document.createElement("td");
-      titleCell.className = `chart-title-cell force-best50-title ${lampClass}`;
+      titleCell.className = "chart-title-cell force-best50-title";
       const chartTitle = String(chart.title || "").trim();
       titleCell.innerHTML = `<div class="chart-title">${escapeHtml(chartTitle || "-")}</div>`;
 
@@ -3093,10 +3662,6 @@ function createForceBest50Table(charts) {
       constantCell.textContent = Number.isFinite(Number(chart.chartConstant))
         ? Number(chart.chartConstant).toFixed(2)
         : "-";
-
-      const lampCell = document.createElement("td");
-      lampCell.className = "chart-lamp-cell force-best50-lamp";
-      lampCell.textContent = lampLabels[lampStatus] || lampStatus;
 
       const scoreCell = createScoreCell({
         lampStatus,
@@ -3111,11 +3676,7 @@ function createForceBest50Table(charts) {
       forceCell.className = "force-best50-value";
       forceCell.textContent = Number.isFinite(Number(chart.force)) ? Number(chart.force).toFixed(3) : "-";
 
-      const sourceCell = document.createElement("td");
-      sourceCell.className = "force-best50-source";
-      sourceCell.textContent = getForceSourceLabel(chart);
-
-      row.append(rankCell, titleCell, constantCell, lampCell, scoreCell, forceCell, sourceCell);
+      row.append(rankCell, levelCell, titleCell, constantCell, forceCell, scoreCell);
       tbody.append(row);
     }
 
@@ -3125,6 +3686,24 @@ function createForceBest50Table(charts) {
 
   render();
   return wrapper;
+}
+
+function getForceTargetLevelLabel(chart) {
+  const difficulty = String(chart?.difficulty ?? "").trim();
+  if (difficulty) {
+    return difficulty;
+  }
+
+  const level = String(chart?.level ?? "").trim();
+  if (level) {
+    return level;
+  }
+
+  if (chart?.candidateType === "dan") {
+    return String(chart?.grade ?? chart?.label ?? (selectedLanguage === "en" ? "Dan" : "段位")).trim() || "-";
+  }
+
+  return "-";
 }
 
 function getForceSourceLabel(chart) {
@@ -3160,6 +3739,12 @@ function sortForceBest50Charts(charts, state) {
     switch (state.sortKey) {
       case "title":
         compared = applySortDirection(compareText(left.title, right.title), state.sortDirection);
+        break;
+      case "level":
+        compared = applySortDirection(
+          compareLevels(getForceTargetLevelLabel(left), getForceTargetLevelLabel(right)),
+          state.sortDirection,
+        );
         break;
       case "chartConstant":
         compared = compareNumericNullable(left.chartConstant, right.chartConstant, state.sortDirection);
@@ -3555,6 +4140,28 @@ async function exportLampUpdatesSnapshot({ improvements, keyHitCountDelta, playT
   return "画像をダウンロードしました。";
 }
 
+async function exportForceTargetsSnapshot({ forceRating, charts, themeMode, changes }) {
+  const dataUrl = await renderForceTargetsSnapshotDataUrl({
+    forceRating,
+    charts: Array.isArray(charts) ? charts : [],
+    themeMode,
+    changes,
+  });
+  assertPngDataUrl(dataUrl);
+  const fileName = buildForceTargetsSnapshotFileName();
+
+  if (hasDesktopImageSave()) {
+    await window.lr2irDesktop.saveImage({
+      dataUrl,
+      fileName,
+      directoryPath: getScreenshotDirectoryPath(),
+    });
+    return;
+  }
+
+  downloadDataUrl(dataUrl, fileName);
+}
+
 function hasDesktopImageSave() {
   return Boolean(window?.lr2irDesktop && typeof window.lr2irDesktop.saveImage === "function");
 }
@@ -3591,6 +4198,10 @@ function buildLampUpdatesSnapshotFileName(date = new Date(), partInfo = null) {
     return `L2TV_Today_${timestamp}_${partNumber}of${partInfo.total}.png`;
   }
   return `L2TV_Today_${timestamp}.png`;
+}
+
+function buildForceTargetsSnapshotFileName(date = new Date()) {
+  return `L2TV_FORCE_Targets_${formatSnapshotTimestamp(date)}.png`;
 }
 
 async function exportTableSummarySnapshot({ table, charts, mode, themeMode }) {
@@ -3639,6 +4250,503 @@ function downloadDataUrl(dataUrl, fileName) {
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
+}
+
+async function renderForceTargetsSnapshotDataUrl({ forceRating, charts, themeMode, changes }) {
+  const normalizedTheme = normalizeThemeMode(themeMode);
+  const sortedCharts = sortForceBest50Charts(Array.isArray(charts) ? charts : [], forceBest50SortState);
+  const addedChanges = Array.isArray(changes?.added) ? changes.added : [];
+  const removedChanges = Array.isArray(changes?.removed) ? changes.removed : [];
+  const changeRowCount = Math.max(1, addedChanges.length, removedChanges.length);
+  const hasChangeLists = addedChanges.length > 0 || removedChanges.length > 0;
+  const metrics = {
+    width: 2048,
+    paddingX: 42,
+    paddingTop: 30,
+    paddingBottom: 36,
+    titleHeight: 46,
+    ratingPanelHeight: 112,
+    changePanelGap: 14,
+    changePanelHeight: hasChangeLists ? 62 + changeRowCount * 28 : 78,
+    tableTopGap: 18,
+    tableHeaderHeight: 34,
+    rowHeight: 34,
+  };
+  const tableWidth = metrics.width - metrics.paddingX * 2;
+  const columns = getForceTargetsSnapshotColumns(tableWidth);
+  const height =
+    metrics.paddingTop +
+    metrics.titleHeight +
+    metrics.ratingPanelHeight +
+    metrics.changePanelGap +
+    metrics.changePanelHeight +
+    metrics.tableTopGap +
+    metrics.tableHeaderHeight +
+    sortedCharts.length * metrics.rowHeight +
+    metrics.paddingBottom;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = metrics.width;
+  canvas.height = Math.max(1, Math.floor(height));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Canvas初期化に失敗しました。");
+  }
+
+  const palette = getForceTargetsSnapshotPalette(normalizedTheme);
+  const tier = String(forceRating?.tier || "slate").trim().toLowerCase();
+  const tierTitle = String(forceRating?.title || "SLATE").trim() || "SLATE";
+  const tierAccent = getForceSnapshotTierAccent(tier);
+  const badgeImage = await loadForceSnapshotBadgeImage(tier);
+  ctx.fillStyle = palette.page;
+  ctx.fillRect(0, 0, metrics.width, height);
+
+  let y = metrics.paddingTop;
+  ctx.textBaseline = "top";
+  ctx.font = "800 34px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText("L2TV FORCE RATE TARGETS", metrics.paddingX, y);
+
+  const timestampText = new Date().toLocaleString(getCurrentLocale());
+  ctx.font = "600 18px 'Segoe UI', 'Meiryo', sans-serif";
+  const timestampWidth = ctx.measureText(timestampText).width;
+  ctx.fillStyle = palette.textMuted;
+  ctx.fillText(timestampText, metrics.width - metrics.paddingX - timestampWidth, y + 8);
+  y += metrics.titleHeight;
+
+  const player = latestAnalysis?.player ?? {};
+  const playerName = String(player.name ?? player.playerName ?? "-").trim() || "-";
+  const playerId = getPlayerDisplayId(player);
+  const rating = Number(forceRating?.rating);
+  const ratingText = Number.isFinite(rating) ? rating.toFixed(3) : "-";
+  const broadCount = Math.max(0, Number.parseInt(forceRating?.broadCount, 10) || sortedCharts.length);
+  const broadAverage = Number(forceRating?.broadAverage);
+  const broadAverageText = Number.isFinite(broadAverage) ? broadAverage.toFixed(3) : "-";
+  const cutoff = Number(forceRating?.cutoff);
+  const cutoffText = Number.isFinite(cutoff) && sortedCharts.length ? cutoff.toFixed(3) : "-";
+  drawRoundedRect(ctx, metrics.paddingX, y, tableWidth, metrics.ratingPanelHeight, 12, palette.ratingPanelBg);
+  ctx.strokeStyle = palette.panelBorder;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(metrics.paddingX + 0.5, y + 0.5, tableWidth - 1, metrics.ratingPanelHeight - 1);
+  const badgeSize = 88;
+  const badgeX = metrics.paddingX + 18;
+  const badgeY = y + (metrics.ratingPanelHeight - badgeSize) / 2;
+  if (badgeImage) {
+    ctx.drawImage(badgeImage, badgeX, badgeY, badgeSize, badgeSize);
+  } else {
+    drawRoundedRect(ctx, badgeX, badgeY, badgeSize, badgeSize, 10, palette.badgeFallbackBg);
+  }
+  const ratingX = badgeX + badgeSize + 20;
+  ctx.textBaseline = "top";
+  ctx.font = "800 15px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textMuted;
+  ctx.fillText("FORCE RATE", ratingX, y + 17);
+  ctx.font = "800 38px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText(ratingText, ratingX, y + 36);
+  ctx.font = "800 18px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = tierAccent;
+  ctx.fillText(tierTitle, ratingX, y + 80);
+
+  const playerMetaX = metrics.paddingX + Math.floor(tableWidth * 0.53);
+  drawForceTargetsSnapshotText(
+    ctx,
+    selectedLanguage === "en" ? `Player: ${playerName} / ID ${playerId}` : `プレイヤー: ${playerName} / ID ${playerId}`,
+    playerMetaX,
+    y + 37,
+    metrics.paddingX + tableWidth - playerMetaX - 20,
+    "800 21px 'Segoe UI', 'Meiryo', sans-serif",
+    palette.textStrong,
+  );
+  drawForceTargetsSnapshotText(
+    ctx,
+    selectedLanguage === "en"
+      ? `Targets ${broadCount}/51 · Average ${broadAverageText} · Cutoff ${cutoffText}`
+      : `対象 ${broadCount}/51 · 平均 ${broadAverageText} · 下限 ${cutoffText}`,
+    playerMetaX,
+    y + 75,
+    metrics.paddingX + tableWidth - playerMetaX - 20,
+    "700 18px 'Segoe UI', 'Meiryo', sans-serif",
+    palette.textMuted,
+  );
+  y += metrics.ratingPanelHeight + metrics.changePanelGap;
+
+  drawForceTargetsSnapshotChanges(ctx, {
+    x: metrics.paddingX,
+    y,
+    width: tableWidth,
+    height: metrics.changePanelHeight,
+    changes,
+    added: addedChanges,
+    removed: removedChanges,
+    palette,
+  });
+  y += metrics.changePanelHeight + metrics.tableTopGap;
+
+  drawRoundedRect(ctx, metrics.paddingX, y, tableWidth, metrics.tableHeaderHeight, 0, palette.headerBg);
+  for (const column of columns) {
+    drawForceTargetsSnapshotText(
+      ctx,
+      column.label,
+      metrics.paddingX + column.x,
+      y + metrics.tableHeaderHeight / 2,
+      column.width,
+      "800 16px 'Segoe UI', 'Meiryo', sans-serif",
+      palette.headerText,
+      column.align,
+    );
+  }
+  y += metrics.tableHeaderHeight;
+
+  if (!sortedCharts.length) {
+    drawRoundedRect(ctx, metrics.paddingX, y, tableWidth, 72, 0, palette.emptyBg);
+    drawForceTargetsSnapshotText(
+      ctx,
+      selectedLanguage === "en"
+        ? "There are no played charts eligible for FORCE RATE."
+        : "レーティング対象のプレイ済み譜面がありません。",
+      metrics.paddingX + 18,
+      y + 36,
+      tableWidth - 36,
+      "700 20px 'Segoe UI', 'Meiryo', sans-serif",
+      palette.textMuted,
+    );
+    return canvas.toDataURL("image/png");
+  }
+
+  for (const chart of sortedCharts) {
+    const lampStatus = normalizeLampStatusForUi(chart?.lampStatus);
+    const rowStyle = getForceTargetsSnapshotRowStyle(
+      ctx,
+      lampStatus,
+      palette,
+      metrics.paddingX,
+      y,
+      tableWidth,
+      metrics.rowHeight,
+    );
+    drawRoundedRect(ctx, metrics.paddingX, y, tableWidth, metrics.rowHeight, 0, rowStyle.fill);
+
+    const centerY = y + metrics.rowHeight / 2;
+    const rankText = chart?.rank == null ? "-" : String(chart.rank);
+    const levelText = getForceTargetLevelLabel(chart);
+    const titleText = String(chart?.title ?? "").trim() || "-";
+    const constantText = Number.isFinite(Number(chart?.chartConstant)) ? Number(chart.chartConstant).toFixed(2) : "-";
+    const forceText = Number.isFinite(Number(chart?.force)) ? Number(chart.force).toFixed(3) : "-";
+    const scoreText = formatForceTargetsSnapshotScore(chart);
+
+    drawForceTargetsSnapshotText(
+      ctx,
+      rankText,
+      metrics.paddingX + columns[0].x,
+      centerY,
+      columns[0].width,
+      "800 17px 'Segoe UI', 'Meiryo', sans-serif",
+      rowStyle.text,
+      "center",
+    );
+    drawForceTargetsSnapshotText(
+      ctx,
+      levelText,
+      metrics.paddingX + columns[1].x + 10,
+      centerY,
+      columns[1].width - 20,
+      "800 17px 'Segoe UI', 'Meiryo', sans-serif",
+      rowStyle.text,
+      "center",
+    );
+    drawForceTargetsSnapshotText(
+      ctx,
+      titleText,
+      metrics.paddingX + columns[2].x + 10,
+      centerY,
+      columns[2].width - 20,
+      "700 17px 'Segoe UI', 'Meiryo', sans-serif",
+      rowStyle.text,
+    );
+    drawForceTargetsSnapshotText(
+      ctx,
+      constantText,
+      metrics.paddingX + columns[3].x,
+      centerY,
+      columns[3].width,
+      "800 17px 'Segoe UI', 'Meiryo', sans-serif",
+      rowStyle.text,
+      "center",
+    );
+    drawForceTargetsSnapshotText(
+      ctx,
+      forceText,
+      metrics.paddingX + columns[4].x + 8,
+      centerY,
+      columns[4].width - 16,
+      "800 17px 'Segoe UI', 'Meiryo', sans-serif",
+      rowStyle.text,
+      "center",
+    );
+    drawForceTargetsSnapshotText(
+      ctx,
+      scoreText,
+      metrics.paddingX + columns[5].x + 8,
+      centerY,
+      columns[5].width - 16,
+      "700 16px 'Segoe UI', 'Meiryo', sans-serif",
+      rowStyle.detailText,
+    );
+
+    ctx.fillStyle = palette.rowBorder;
+    ctx.fillRect(metrics.paddingX, y + metrics.rowHeight - 1, tableWidth, 1);
+    y += metrics.rowHeight;
+  }
+
+  return canvas.toDataURL("image/png");
+}
+
+function drawForceTargetsSnapshotChanges(ctx, { x, y, width, height, changes, added, removed, palette }) {
+  drawRoundedRect(ctx, x, y, width, height, 10, palette.changePanelBg);
+  ctx.strokeStyle = palette.panelBorder;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, height - 1);
+  ctx.textBaseline = "top";
+  ctx.font = "800 19px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText(selectedLanguage === "en" ? "Changes since previous load" : "前回読み込みからの変化", x + 16, y + 12);
+
+  const delta = Number(changes?.ratingDelta);
+  const hasComparison = Number.isFinite(delta);
+  const summary = hasComparison
+    ? selectedLanguage === "en"
+      ? `RATE ${formatForceRatingDelta(delta)} · IN ${added.length} · OUT ${removed.length}`
+      : `レート ${formatForceRatingDelta(delta)} · IN ${added.length} · OUT ${removed.length}`
+    : selectedLanguage === "en"
+      ? "RATE NO Data · IN - · OUT -"
+      : "レート NO Data · IN - · OUT -";
+  ctx.font = "800 18px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = !hasComparison || Math.abs(delta) < 0.0005 ? palette.textMuted : delta > 0 ? palette.positive : palette.negative;
+  const summaryWidth = ctx.measureText(summary).width;
+  ctx.fillText(summary, x + width - 16 - summaryWidth, y + 13);
+
+  if (!hasComparison || (!added.length && !removed.length)) {
+    ctx.font = "600 16px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillStyle = palette.textMuted;
+    ctx.fillText(
+      !hasComparison
+        ? selectedLanguage === "en" ? "No previous FORCE RATE data is available." : "比較元となる前回のFORCE RATEデータがありません。"
+        : selectedLanguage === "en" ? "The target charts did not change." : "対象曲の入れ替わりはありません。",
+      x + 16,
+      y + 46,
+    );
+    return;
+  }
+
+  const gap = 20;
+  const columnWidth = (width - 32 - gap) / 2;
+  drawForceTargetsSnapshotChangeColumn(ctx, added, "IN", x + 16, y + 42, columnWidth, palette.positive, palette);
+  drawForceTargetsSnapshotChangeColumn(ctx, removed, "OUT", x + 16 + columnWidth + gap, y + 42, columnWidth, palette.negative, palette);
+}
+
+function drawForceTargetsSnapshotChangeColumn(ctx, charts, label, x, y, width, accent, palette) {
+  ctx.textBaseline = "top";
+  ctx.font = "800 16px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = accent;
+  ctx.fillText(`${label} ${charts.length}`, x, y);
+  let rowY = y + 22;
+  for (const chart of charts) {
+    const forceText = Number.isFinite(Number(chart?.force)) ? Number(chart.force).toFixed(3) : "-";
+    const levelText = getForceTargetLevelLabel(chart) || "-";
+    const rightWidth = 70;
+    drawForceTargetsSnapshotText(ctx, `${levelText}  ${String(chart?.title || "-").trim() || "-"}`, x, rowY + 12, width - rightWidth - 8, "700 15px 'Segoe UI', 'Meiryo', sans-serif", palette.textStrong);
+    drawForceTargetsSnapshotText(ctx, forceText, x + width - rightWidth, rowY + 12, rightWidth, "800 15px 'Segoe UI', 'Meiryo', sans-serif", accent, "right");
+    rowY += 28;
+  }
+}
+
+function getForceSnapshotBadgePath(tier) {
+  const files = {
+    slate: "01_SLATE.png", azure: "02_AZURE.png", amber: "03_AMBER.png", jade: "04_JADE.png",
+    amethyst: "05_AMETHYST.png", crimson: "06_CRIMSON.png", argent: "07_ARGENT.png", aurum: "08_AURUM.png",
+    obsidian: "09_OBSIDIAN.png", "astral-1": "10_ASTRAL_I.png", "astral-2": "11_ASTRAL_II.png",
+    "astral-3": "12_ASTRAL_III.png", "astral-4": "13_ASTRAL_IV.png", singularity: "14_SINGULARITY.png",
+    "event-horizone": "15_EVENT_HORIZONE.png",
+  };
+  return `/assets/force-rank-badges/${files[tier] || files.slate}`;
+}
+
+function getForceSnapshotTierAccent(tier) {
+  const accents = {
+    slate: "#aeb7c4", azure: "#4aa3ff", amber: "#ffad38", jade: "#43c978", amethyst: "#c772ff",
+    crimson: "#ff5a4e", argent: "#c8d4e6", aurum: "#e2ad28", obsidian: "#b36bff", "astral-1": "#55a9ff",
+    "astral-2": "#6caeff", "astral-3": "#de77ff", "astral-4": "#55c8f4", singularity: "#e9a5ff",
+    "event-horizone": "#e6bd3f",
+  };
+  return accents[tier] || accents.slate;
+}
+
+function loadForceSnapshotBadgeImage(tier) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = getForceSnapshotBadgePath(tier);
+  });
+}
+
+function getForceTargetsSnapshotColumns(tableWidth) {
+  const widths = [70, 120, 900, 170, 190];
+  const usedWidth = widths.reduce((sum, width) => sum + width, 0);
+  const scoreWidth = Math.max(430, tableWidth - usedWidth);
+  const labels =
+    selectedLanguage === "en"
+      ? ["#", "Lv", "Title", "Chart Constant", "Chart FORCE", "EX/Rate"]
+      : ["#", "Lv", "Title", "譜面定数", "単曲レート", "EX/Rate"];
+  const alignments = ["center", "center", "left", "center", "center", "left"];
+  const allWidths = [...widths, scoreWidth];
+  let x = 0;
+  return allWidths.map((width, index) => {
+    const column = {
+      label: labels[index],
+      x,
+      width,
+      align: alignments[index],
+    };
+    x += width;
+    return column;
+  });
+}
+
+function getForceTargetsSnapshotPalette(themeMode) {
+  if (themeMode === "lr2ir-dark") {
+    return {
+      page: "#070b12",
+      textStrong: "#eef2ff",
+      textMuted: "#aeb8d0",
+      headerBg: "#121a28",
+      headerText: "#dce6f8",
+      rowBorder: "rgba(22, 32, 48, 0.22)",
+      emptyBg: "#121a28",
+      rowBg: "#eef2f7",
+      rowAltBg: "#e5ebf3",
+      fcRow: "#fff4bb",
+      hcRow: "#ffb0bb",
+      ncRow: "#cbe7ff",
+      ecRow: "#d8f6df",
+      flRow: "#bac4d4",
+      npRow: "#eef1f6",
+      nsRow: "#111827",
+      rowText: "#111827",
+      rowDetailText: "#263650",
+      nsText: "#eef2ff",
+      nsDetailText: "#aeb8d0",
+      ratingPanelBg: "#111827",
+      changePanelBg: "#101827",
+      panelBorder: "#344158",
+      badgeFallbackBg: "#1c2738",
+      positive: "#5ed3a2",
+      negative: "#ff8595",
+    };
+  }
+
+  return {
+    page: "#f3fbff",
+    textStrong: "#123453",
+    textMuted: "#4f7190",
+      headerBg: "#d9eef9",
+      headerText: "#173b5b",
+      rowBorder: "rgba(74, 132, 168, 0.22)",
+      emptyBg: "#e8f6fd",
+      rowBg: "#ffffff",
+      rowAltBg: "#f1f7fb",
+      fcRow: "#fff8ca",
+    hcRow: "#ffb3be",
+    ncRow: "#d5edff",
+    ecRow: "#dcf8e4",
+    flRow: "#b9c4d5",
+    npRow: "#f1f3f7",
+    nsRow: "#111827",
+    rowText: "#132033",
+    rowDetailText: "#30455f",
+    nsText: "#eef2ff",
+    nsDetailText: "#aeb8d0",
+    ratingPanelBg: "#e8f6fd",
+    changePanelBg: "#e5f3fb",
+    panelBorder: "#a8cee2",
+    badgeFallbackBg: "#d5e9f4",
+    positive: "#16845b",
+    negative: "#cf3c50",
+  };
+}
+
+function getForceTargetsSnapshotRowStyle(ctx, lamp, palette, x, y, width, height) {
+  const normalizedLamp = normalizeLampStatusForUi(lamp);
+  switch (normalizedLamp) {
+    case "FULL COMBO":
+      return {
+        fill: createFcSnapshotGradient(ctx, x, y, width, height),
+        text: palette.rowText,
+        detailText: palette.rowDetailText,
+      };
+    case "HARD CLEAR":
+      return { fill: palette.hcRow, text: palette.rowText, detailText: palette.rowDetailText };
+    case "CLEAR":
+      return { fill: palette.ncRow, text: palette.rowText, detailText: palette.rowDetailText };
+    case "EASY CLEAR":
+      return { fill: palette.ecRow, text: palette.rowText, detailText: palette.rowDetailText };
+    case "FAILED":
+      return { fill: palette.flRow, text: palette.rowText, detailText: palette.rowDetailText };
+    case "NO SONG":
+      return { fill: palette.nsRow, text: palette.nsText, detailText: palette.nsDetailText };
+    case "NO PLAY":
+    default:
+      return { fill: palette.npRow, text: palette.rowText, detailText: palette.rowDetailText };
+  }
+}
+
+function drawForceTargetsSnapshotText(ctx, text, x, centerY, width, font, color, align = "left") {
+  if (width <= 0) {
+    return;
+  }
+  const previousBaseline = ctx.textBaseline;
+  const previousAlign = ctx.textAlign;
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = align;
+  const rendered = truncateTextForWidth(ctx, text, width, font);
+  const drawX = align === "center" ? x + width / 2 : align === "right" ? x + width : x;
+  ctx.fillText(rendered, drawX, centerY + 0.5);
+  ctx.textBaseline = previousBaseline;
+  ctx.textAlign = previousAlign;
+}
+
+function drawForceTargetsSnapshotLampBadgeCentered(ctx, x, centerY, width, lamp) {
+  const normalizedLamp = normalizeLampStatusForUi(lamp);
+  const label = lampLabels[normalizedLamp] || normalizedLamp;
+  const previousFont = ctx.font;
+  ctx.font = "700 13px 'Segoe UI', 'Meiryo', sans-serif";
+  const badgeWidth = Math.ceil(ctx.measureText(label).width + 16);
+  ctx.font = previousFont;
+  drawSnapshotLampBadge(ctx, x + Math.max(0, (width - badgeWidth) / 2), centerY - 10, normalizedLamp);
+}
+
+function formatForceTargetsSnapshotScore(chart) {
+  const exScore = Number(chart?.exScore);
+  const maxExScore = Number(chart?.maxExScore);
+  const scoreRate = Number(chart?.scoreRate);
+  if (Number.isFinite(exScore) && Number.isFinite(maxExScore) && maxExScore > 0) {
+    const parts = [`${formatInteger(exScore)} / ${formatInteger(maxExScore)}`];
+    if (Number.isFinite(scoreRate)) {
+      parts.push(`${scoreRate.toFixed(2)}%`);
+    }
+    const maxOffset = Math.max(0, maxExScore - exScore);
+    if (Number.isFinite(scoreRate) && scoreRate >= 94.44) {
+      parts.push(`MAX-${formatInteger(maxOffset)}`);
+    }
+    return parts.join(" · ");
+  }
+  if (Number.isFinite(scoreRate)) {
+    return `${scoreRate.toFixed(2)}%`;
+  }
+  return "NO Data";
 }
 
 function renderTableSummarySnapshotDataUrl({ table, charts, mode, themeMode }) {
@@ -4550,16 +5658,36 @@ function renderTableSection(table, filteredCharts) {
     });
   }
 
+  const compactMeta = document.createElement("div");
+  compactMeta.className = "table-compact-meta";
+  compactMeta.dataset.i18nSkip = "true";
+  const compactMetrics = selectedLanguage === "en"
+    ? [
+        ["Charts", String(table.stats.totalCharts)],
+        ["Clear", formatPercent(table.stats.clearRate)],
+        ["Played", formatPercent(table.stats.playedRate)],
+      ]
+    : [
+        ["譜面", String(table.stats.totalCharts)],
+        ["クリア", formatPercent(table.stats.clearRate)],
+        ["プレイ", formatPercent(table.stats.playedRate)],
+      ];
+  for (const [label, value] of compactMetrics) {
+    const metric = document.createElement("span");
+    metric.className = "table-compact-metric";
+    const labelElement = document.createElement("span");
+    labelElement.textContent = label;
+    const valueElement = document.createElement("strong");
+    valueElement.textContent = value;
+    metric.append(labelElement, valueElement);
+    compactMeta.append(metric);
+  }
+  root.querySelector(".table-title-wrap")?.append(compactMeta);
+
   const tableLink = root.querySelector(".table-link");
   tableLink.href = table.sourceUrl;
 
-  const metricStrip = root.querySelector(".metric-strip");
-  const metricCards = [
-    createMetricCard("総譜面数", String(table.stats.totalCharts), ""),
-    createMetricCard("クリア率", formatPercent(table.stats.clearRate), ""),
-    createMetricCard("プレイ率", formatPercent(table.stats.playedRate), ""),
-  ];
-  metricStrip.append(...metricCards);
+  root.querySelector(".metric-strip")?.remove();
 
   const lampSummary = root.querySelector(".lamp-summary");
   for (const lamp of lampOptions) {
@@ -4572,6 +5700,21 @@ function renderTableSection(table, filteredCharts) {
     for (const tier of levelChartScoreOrder) {
       const count = filteredCharts.filter((chart) => classifyScoreTier(chart) === tier).length;
       scoreSummary.append(createScorePill(tier, count));
+    }
+  }
+
+  const irSummary = root.querySelector(".ir-summary");
+  const irSummaryHeading = root.querySelector(".ir-summary-heading");
+  if (irSummaryHeading) {
+    irSummaryHeading.classList.toggle("hidden", !showIrStatusInTableSummary);
+  }
+  if (irSummary) {
+    irSummary.classList.toggle("hidden", !showIrStatusInTableSummary);
+  }
+  if (irSummary && showIrStatusInTableSummary) {
+    const rankCounts = collectIrRankSummary(filteredCharts);
+    for (const item of rankCounts) {
+      irSummary.append(createIrStatusPill(item));
     }
   }
 
@@ -5066,7 +6209,8 @@ function initializeFloatingChartHeader() {
 }
 
 function getFloatingChartHeaderTop() {
-  return 112;
+  const toolbarBottom = document.querySelector(".app-toolbar")?.getBoundingClientRect().bottom;
+  return Number.isFinite(toolbarBottom) ? Math.max(64, toolbarBottom + 10) : 112;
 }
 
 function updateLevelGroupFloatingControls() {
@@ -5153,7 +6297,7 @@ function showFloatingChartHeader(table) {
 
   const columnRow = document.createElement("div");
   columnRow.className = "floating-chart-header-columns";
-  for (const column of chartSortColumns.filter((column) => column.key !== "level")) {
+  for (const column of getVisibleChartSortColumns().filter((column) => column.key !== "level")) {
     const cell = document.createElement("div");
     cell.className = "floating-chart-header-cell";
     const button = document.createElement("button");
@@ -5203,12 +6347,13 @@ function hideFloatingChartHeader() {
 
 function renderChartTable(charts, tableInfo, state, rerender) {
   const table = document.createElement("table");
-  table.className = "chart-table";
+  table.className = `chart-table${showIrRankInChartList ? "" : " chart-table-hide-ir-rank"}`;
   table.__l2tvFloatingHeader = { tableInfo, state, rerender };
+  const visibleColumns = getVisibleChartSortColumns();
 
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
-  for (const column of chartSortColumns) {
+  for (const column of visibleColumns) {
     const th = document.createElement("th");
     if (column.key === "level") {
       th.textContent = column.label;
@@ -5248,7 +6393,7 @@ function renderChartTable(charts, tableInfo, state, rerender) {
 
   if (!charts.length) {
     const row = document.createElement("tr");
-    row.innerHTML = `<td colspan="${chartSortColumns.length}" class="dimmed">条件に一致する譜面はありません。</td>`;
+    row.innerHTML = `<td colspan="${visibleColumns.length}" class="dimmed">条件に一致する譜面はありません。</td>`;
     tbody.append(row);
     table.append(tbody);
     return table;
@@ -5275,7 +6420,7 @@ function renderChartTable(charts, tableInfo, state, rerender) {
     lampCell.className = "chart-lamp-cell";
     lampCell.textContent = lampLabels[chart.lampStatus] || chart.lampStatus;
 
-    row.append(
+    const cells = [
       levelCell,
       titleCell,
       artistCell,
@@ -5284,8 +6429,12 @@ function renderChartTable(charts, tableInfo, state, rerender) {
       createScoreCell(chart),
       createMissCountCell(chart),
       createPlayCountCell(chart),
-      createRivalCell(chart),
-    );
+    ];
+    if (showIrRankInChartList) {
+      cells.push(createIrRankCell(chart));
+    }
+    cells.push(createRivalCell(chart));
+    row.append(...cells);
     tbody.append(row);
   }
 
@@ -5369,7 +6518,13 @@ function sortChartsForList(charts, table, state) {
 
 function normalizeChartSortKey(value) {
   const key = String(value ?? "").trim();
-  return chartSortColumns.some((column) => column.key === key) ? key : "level";
+  return getVisibleChartSortColumns().some((column) => column.key === key) ? key : "level";
+}
+
+function getVisibleChartSortColumns() {
+  return showIrRankInChartList
+    ? chartSortColumns
+    : chartSortColumns.filter((column) => column.key !== "irRank");
 }
 
 function compareChartsForSort(left, right, table, sortKey, sortDirection) {
@@ -5386,6 +6541,8 @@ function compareChartsForSort(left, right, table, sortKey, sortDirection) {
       return compareNumericNullable(left.playCount, right.playCount, sortDirection);
     case "missCount":
       return compareChartsByBp(left, right, sortDirection);
+    case "irRank":
+      return compareNumericNullable(left.irRank, right.irRank, sortDirection);
     case "rival":
       return compareRivalValues(left, right, sortDirection);
     case "scoreTier":
@@ -5548,12 +6705,25 @@ function createRivalCell(chart) {
   const comparison = getFilteredRivalComparison(chart);
 
   if (!comparison || !comparison.bestScore) {
-    cell.innerHTML = '<span class="dimmed">NO Data</span>';
+    const hasSelectedRival = (latestAnalysis?.rivals?.players ?? []).some((rival) =>
+      selectedRivalIds.has(String(rival?.id ?? "").trim()),
+    );
+    cell.innerHTML = hasSelectedRival
+      ? '<span class="dimmed">No Play</span>'
+      : '<span class="dimmed">NO Data</span>';
     return cell;
   }
 
   const rivalLampClass = `rival-lamp-${toLampSlug(comparison.bestScore.lampStatus || "NO PLAY")}`;
   cell.classList.add(rivalLampClass);
+
+  if (normalizeLampStatusForUi(comparison.bestScore.lampStatus) === "NO PLAY") {
+    const noPlay = document.createElement("span");
+    noPlay.className = "dimmed";
+    noPlay.textContent = "No Play";
+    cell.append(noPlay);
+    return cell;
+  }
 
   const scoreLine = document.createElement("div");
   scoreLine.className = `rival-result rival-result-${comparison.scoreResult || "unknown"}`;
@@ -5561,7 +6731,7 @@ function createRivalCell(chart) {
 
   const rivalNameLine = document.createElement("div");
   rivalNameLine.className = "rival-detail rival-name";
-  rivalNameLine.textContent = comparison.bestScore.name || comparison.bestScore.id || "Rival";
+  rivalNameLine.textContent = getRivalDisplayName(comparison.bestScore);
 
   const rivalScoreLine = document.createElement("div");
   rivalScoreLine.className = "rival-detail rival-score";
@@ -5697,6 +6867,36 @@ function createMetricCard(label, value, subvalue, cardClass = "") {
   return card;
 }
 
+function createIrRankCell(chart) {
+  const cell = document.createElement("td");
+  cell.className = "chart-ir-rank-cell";
+  const rank = Number(chart?.irRank);
+  const totalPlayers = Number(chart?.irTotalPlayers);
+  if (!Number.isFinite(rank) || rank <= 0 || !Number.isFinite(totalPlayers) || totalPlayers <= 0) {
+    cell.innerHTML = '<span class="dimmed">NO Data</span>';
+    return cell;
+  }
+
+  const badge = document.createElement("div");
+  badge.className = "chart-ir-rank-badge";
+  if (rank === 1) badge.classList.add("ir-rank-first");
+  else if (rank === 2) badge.classList.add("ir-rank-second");
+  else if (rank === 3) badge.classList.add("ir-rank-third");
+  else if (rank <= 10) badge.classList.add("ir-rank-top10");
+  const rankLine = document.createElement("strong");
+  rankLine.textContent = selectedLanguage === "en" ? `#${formatInteger(rank)}` : `${formatInteger(rank)}位`;
+  const percentLine = document.createElement("span");
+  const topPercent = Number.isFinite(Number(chart?.irTopPercent))
+    ? Number(chart.irTopPercent)
+    : (rank / totalPlayers) * 100;
+  percentLine.textContent =
+    selectedLanguage === "en" ? `Top ${topPercent.toFixed(2)}%` : `上位${topPercent.toFixed(2)}%`;
+  badge.title = `${formatInteger(rank)} / ${formatInteger(totalPlayers)}`;
+  badge.append(rankLine, percentLine);
+  cell.append(badge);
+  return cell;
+}
+
 function createForceRatingCard(forceRating) {
   if (!forceRating || forceRating.available === false) {
     return null;
@@ -5753,7 +6953,19 @@ function createForceRatingCard(forceRating) {
       ? `avg ${broadCount} targets · charts ${top50Count}/50 · ${playedCharts} rated charts`
       : `平均 ${broadCount}対象 · 譜面 ${top50Count}/50 · 対象 ${playedCharts}譜面`;
 
-  copy.append(label, value, titleElement, detail);
+  if (latestForceRatingChanges) {
+    const change = document.createElement("div");
+    const delta = Number(latestForceRatingChanges.ratingDelta);
+    change.className = `force-rating-card-change ${getForceRatingDeltaClass(delta)}`;
+    change.dataset.i18nSkip = "true";
+    change.textContent =
+      selectedLanguage === "en"
+        ? `Since previous load ${formatForceRatingDelta(delta)}`
+        : `前回比 ${formatForceRatingDelta(delta)}`;
+    copy.append(label, value, titleElement, detail, change);
+  } else {
+    copy.append(label, value, titleElement, detail);
+  }
   content.append(badge, copy);
   card.append(helpButton, content);
   return card;
@@ -5929,7 +7141,43 @@ function buildStatusMessage(analysis) {
     lines.push(`読み込み失敗の難易度表: ${analysis.tableErrors.length}件`);
   }
 
+  if (analysis.stellaverseRankings && shouldFetchOwnStellaverseRankings()) {
+    lines.push(`Stellaverse IR順位: ${formatInteger(analysis.stellaverseRankings.matchedCharts)}譜面`);
+    if (analysis.stellaverseRankings.failedTables?.length) {
+      lines.push(`IR順位の取得失敗: ${analysis.stellaverseRankings.failedTables.length}表`);
+    }
+  }
+
   return lines.join("\n");
+}
+
+function collectIrRankSummary(charts) {
+  const ranks = (Array.isArray(charts) ? charts : [])
+    .map((chart) => Number(chart?.irRank))
+    .filter((rank) => Number.isFinite(rank) && rank > 0);
+  const first = ranks.filter((rank) => rank === 1).length;
+  const second = ranks.filter((rank) => rank === 2).length;
+  const third = ranks.filter((rank) => rank === 3).length;
+  return [
+    { key: "first", labelJa: "1位", labelEn: "1st", count: first },
+    { key: "second", labelJa: "2位", labelEn: "2nd", count: second },
+    { key: "third", labelJa: "3位", labelEn: "3rd", count: third },
+    { key: "podium", labelJa: "1～3位", labelEn: "Top 3", count: first + second + third },
+    { key: "top10", labelJa: "4～10位", labelEn: "4th–10th", count: ranks.filter((rank) => rank >= 4 && rank <= 10).length },
+  ];
+}
+
+function createIrStatusPill(item) {
+  const pill = document.createElement("div");
+  pill.className = `lamp-pill ir-status-pill ir-status-${item.key}`;
+  const countElement = document.createElement("div");
+  countElement.className = "count";
+  countElement.textContent = String(item.count);
+  const nameElement = document.createElement("div");
+  nameElement.className = "name";
+  nameElement.textContent = selectedLanguage === "en" ? item.labelEn : item.labelJa;
+  pill.append(countElement, nameElement);
+  return pill;
 }
 
 function buildProfileOnlyStatusMessage(player, fetchedAt) {
@@ -7204,6 +8452,79 @@ function mergePlayerProfileFields(primary, fallback) {
   };
 }
 
+function collectForceRatingChanges(previousAnalysis, currentAnalysis) {
+  const previousPlayerId = String(previousAnalysis?.player?.id ?? "").trim();
+  const currentPlayerId = String(currentAnalysis?.player?.id ?? "").trim();
+  if (previousPlayerId && currentPlayerId && previousPlayerId !== currentPlayerId) {
+    return null;
+  }
+
+  const previousRating = previousAnalysis?.player?.forceRating;
+  const currentRating = currentAnalysis?.player?.forceRating;
+  const previousValue = Number(previousRating?.rating);
+  const currentValue = Number(currentRating?.rating);
+  if (
+    !previousRating ||
+    previousRating.available === false ||
+    !currentRating ||
+    currentRating.available === false ||
+    !Number.isFinite(previousValue) ||
+    !Number.isFinite(currentValue)
+  ) {
+    return null;
+  }
+
+  const previousCharts = buildForceTargetChartMap(previousRating.topCharts);
+  const currentCharts = buildForceTargetChartMap(currentRating.topCharts);
+  const added = [...currentCharts]
+    .filter(([md5]) => !previousCharts.has(md5))
+    .map(([, chart]) => chart)
+    .sort(compareForceRatingChangeCharts);
+  const removed = [...previousCharts]
+    .filter(([md5]) => !currentCharts.has(md5))
+    .map(([, chart]) => chart)
+    .sort(compareForceRatingChangeCharts);
+
+  return {
+    previousRating: previousValue,
+    currentRating: currentValue,
+    ratingDelta: currentValue - previousValue,
+    added,
+    removed,
+  };
+}
+
+function normalizeForceRatingChanges(value) {
+  if (!value || !Number.isFinite(Number(value.ratingDelta))) {
+    return null;
+  }
+  return {
+    previousRating: Number(value.previousRating),
+    currentRating: Number(value.currentRating),
+    ratingDelta: Number(value.ratingDelta),
+    added: Array.isArray(value.added) ? value.added.filter((chart) => chart && typeof chart === "object") : [],
+    removed: Array.isArray(value.removed) ? value.removed.filter((chart) => chart && typeof chart === "object") : [],
+  };
+}
+
+function buildForceTargetChartMap(charts) {
+  const result = new Map();
+  for (const chart of Array.isArray(charts) ? charts : []) {
+    const md5 = String(chart?.md5 ?? "").trim().toLowerCase();
+    if (/^[0-9a-f]{32}$/.test(md5)) {
+      result.set(md5, chart);
+    }
+  }
+  return result;
+}
+
+function compareForceRatingChangeCharts(left, right) {
+  return (
+    Number(right?.force || 0) - Number(left?.force || 0) ||
+    String(left?.title || "").localeCompare(String(right?.title || ""), "ja")
+  );
+}
+
 function mergeSkillAnalyzerProfiles(primary, fallback) {
   const st = mergeSkillAnalyzerEntries(primary?.st, fallback?.st, "st");
   const sl = mergeSkillAnalyzerEntries(primary?.sl, fallback?.sl, "sl");
@@ -7261,6 +8582,7 @@ initializePersistence().catch((error) => {
 async function initializePersistence() {
   await restoreCustomTableListEntries();
   await restoreTablePresetSelection();
+  await restoreStellaverseRivalIds();
   syncPresetCheckboxesFromState();
   void refreshTableList({ silent: true }).catch((error) => {
     console.error("Failed to load table list", error);
@@ -7462,6 +8784,15 @@ async function persistCustomTableListEntries() {
   await writePersistedValue(CUSTOM_TABLE_LIST_KEY, customTableListEntries);
 }
 
+async function restoreStellaverseRivalIds() {
+  const persisted = await readPersistedValue(STELLAVERSE_RIVAL_IDS_KEY);
+  stellaverseRivalIds = new Set(
+    (Array.isArray(persisted) ? persisted : [])
+      .map((value) => String(value ?? "").trim())
+      .filter((value) => /^\d{1,10}$/.test(value)),
+  );
+}
+
 async function restoreFormState() {
   const persisted = await readPersistedValue(FORM_STATE_KEY);
   if (!persisted) {
@@ -7494,6 +8825,14 @@ async function restoreFormState() {
   if (includeUnlistedUpdatesInput) {
     includeUnlistedUpdatesInput.checked = includeUnlistedChartsInLampUpdates;
   }
+  showIrRankInChartList = persisted.showIrRankInChartList !== false;
+  if (showIrRankInput) {
+    showIrRankInput.checked = showIrRankInChartList;
+  }
+  showIrStatusInTableSummary = persisted.showIrStatusInTableSummary !== false;
+  if (showIrStatusInput) {
+    showIrStatusInput.checked = showIrStatusInTableSummary;
+  }
   scoreDbMode = normalizeScoreDbMode(persisted.scoreDbMode);
   if (scoreDbModeSelect) {
     scoreDbModeSelect.value = scoreDbMode;
@@ -7511,6 +8850,7 @@ async function restoreLatestAnalysis() {
   }
 
   latestAnalysis = normalizeAnalysisLampStatuses(persisted);
+  latestForceRatingChanges = normalizeForceRatingChanges(latestAnalysis?.forceRatingChanges);
   renderAnalysis();
   resultsRoot.classList.remove("hidden");
   return latestAnalysis;
@@ -7530,6 +8870,8 @@ async function persistFormState() {
     themeMode: selectedThemeMode,
     includeBpUpdatesInLampUpdates,
     includeUnlistedChartsInLampUpdates,
+    showIrRankInChartList,
+    showIrStatusInTableSummary,
     scoreDbMode,
     skillAnalyzerFetchMode,
   });
@@ -7542,6 +8884,7 @@ async function persistLatestAnalysis(analysis) {
 async function clearPersistedState() {
   await deletePersistedValue(FORM_STATE_KEY);
   await deletePersistedValue(LAST_ANALYSIS_KEY);
+  await deletePersistedValue(STELLAVERSE_RIVAL_IDS_KEY);
   await deletePersistedValue("player-profile-cache");
 }
 

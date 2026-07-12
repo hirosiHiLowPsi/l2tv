@@ -3,7 +3,7 @@
 **L2TV (LR2 Table Viewer)** は、Lunatic Rave 2 / OpenLR2 のローカルDBとBMS難易度表を照合し、クリアランプ、スコア、BP、段位、ライバル比較、FORCE RATEなどを確認できるWindows向けElectronアプリです。
 
 開発・制作: **HiLowPsi**  
-最新バージョン: **2.0.1**
+最新バージョン: **2.1.0**
 
 > [!IMPORTANT]
 > L2TVはインストール不要のポータブル版として配布します。解凍すると `L2TV` フォルダ内に構成ファイルがまとまります。削除するときはWindowsのアンインストーラーを使わず、解凍して作成された **L2TV専用フォルダだけ** をゴミ箱へ移動してください。
@@ -52,6 +52,9 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 - 発狂段位コースはEXスコアが取得できる場合、段位定数にもスコア係数を掛けます。GENOSIDE2018 Overjoyはスコア係数を掛けず、合格時点で段位定数満額として扱います。
 - BEST20補正は使用しません。
 - 対象譜面はFORCE RATE対象フォルダで確認できます。
+- FORCE RATE対象51件は、一覧と同じ並び替え状態のままPNG画像として出力できます。
+- FORCE RATE対象画像には、現在レートと称号バッジ、前回比、対象曲のIN / OUTも表示します。
+- 前回読み込み時からのレート増減と、対象曲へ新しく入った曲（IN）・外れた曲（OUT）を確認できます。
 - 詳細仕様は [FORCE_RATE_SPEC.md](FORCE_RATE_SPEC.md) を参照してください。
 
 ### ランプ・スコア集計
@@ -64,8 +67,12 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 
 ### 譜面一覧
 
-- `Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / Rival` を表示します。
+- `Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / IR順位 / Rival` を表示します。
 - RankはAAA / AA / Aなどを色付きバッジで表示します。
+- Stellaverse IR仕様では、★・★★・st・sl譜面のIR順位と上位率を表単位で取得します。
+- 各難易度表に、1位・2位・3位・1～3位合計・4～10位合計のIR状況を表示します。
+- IR順位・IR状況・Stellaverse Rivalは、現在Stellaverse IRのみ対応しています。BMS-IRはscore.dbの読み込み仕様としてのみ扱います。
+- IR順位とIR状況は個別にON / OFFでき、両方をOFFにすると自分用IR順位の通信取得も行いません。
 - 各列を昇順・降順で並べ替えられます。
 - フォルダを開いている間は、画面下部の `Folder Close` から閉じられます。
 - `Folder Option` から、開いているフォルダ専用の並べ替えヘッダーを表示できます。
@@ -82,15 +89,19 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 ### ライバル
 
 - LR2のRivalフォルダを読み込み、譜面ごとのWIN / LOSE / DRAWを表示します。
+- Rival DBを作成できない場合でも、Stellaverse Rival IDを入力して公開スコアを取得できます。
+- Stellaverse IRから取得した相手とローカルRival DBの相手は同時に比較できます。
+- StellaverseライバルはSP段位とFORCE RATE、称号バッジもライバル一覧に表示します。
 - ライバルのEXスコア、スコアレート、クリアランプを比較できます。
 - WIN率順 / LOSE率順 / 名前順で並べ替えられます。
 - 比較対象を個別選択、全選択、全解除できます。
+- IR機能をあまり使わない場合は、メニューから譜面一覧のIR順位と難易度表のIR状況を個別に非表示にできます。
 
 ### 表示・画像出力
 
 - 日本語 / Englishを切り替えられます。
 - Light Aqua / Geek Darkテーマを選択できます。
-- 本日更新と難易度表サマリーをPNGで保存できます。
+- 本日更新、難易度表サマリー、FORCE RATE対象一覧をPNGで保存できます。
 - スクリーンショットの保存先を指定できます。
 
 ## 動作要件
@@ -101,7 +112,7 @@ L2TVは、LR2系プレイヤーの `score.db` / `song.db` / Rival DBをローカ
 - LR2系の `song.db`
 - インターネット接続
 
-ライバル比較を利用する場合は、LR2のRivalフォルダも必要です。
+ローカルRival DBを使う場合のみ、LR2のRivalフォルダが必要です。Stellaverse Rival IDによる比較では不要です。
 
 一般的な配置例:
 
@@ -113,7 +124,7 @@ Rival:    LR2files\Rival
 
 ## 導入手順
 
-1. Releasesから最新版の `L2TV-2.0.1-win-x64.7z` をダウンロードします。
+1. Releasesから最新版の `L2TV-2.1.0-win-x64.7z` をダウンロードします。
 2. 任意の場所へ解凍します。
 3. 解凍して作成された `L2TV` フォルダを開きます。
 4. `L2TV.exe` を起動します。

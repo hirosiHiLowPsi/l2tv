@@ -54,6 +54,9 @@ Player Data:
 - 譜面定数はLR2IR Archive上の「クリア人数に対するAAA到達人数の割合」を主軸にしたスコア力重視の定数
 - 単曲FORCE = 譜面定数 × スコア係数
 - クリアランプ係数とBEST20補正は使用せず、単曲FORCE上位50譜面と最高合格GENOSIDE2018 SP段位1件を合わせた最大51対象の単純平均で算出
+- FORCE RATE対象51件をPNG画像として出力
+- FORCE RATE対象画像に現在レート / 称号バッジ / 前回比 / IN・OUTを表示
+- 前回読み込み時からのレート増減と、対象曲のIN / OUTを表示
 - 発狂段位定数はLR2IR Archive上の「プレイ人数に対する合格+AAA達成人数の割合」を基準に算出
 - 発狂段位コースはEXスコアが取得できる場合、段位定数にもスコア係数を反映。GENOSIDE2018 Overjoyはスコア係数を掛けず、合格時点で段位定数満額
 - SP段位
@@ -79,8 +82,12 @@ Player Data:
 譜面一覧:
 
 - レベル別に譜面一覧を表示
-- Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / Rival を表示
+- Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / IR順位 / Rival を表示
 - Rank は AAA / AA / A などを色付きバッジで表示
+- Stellaverse IR仕様では★ / ★★ / st / sl譜面のIR順位と上位率を表示
+- 各表に1位 / 2位 / 3位 / 1～3位 / 4～10位のIR状況を表示
+- IR順位 / IR状況 / Stellaverse Rival は、現在 Stellaverse IR のみに対応します。BMS-IR は score.db 読み込み仕様としてのみ扱います。
+- IR順位とIR状況は個別にON / OFFでき、両方OFFなら自分用IR順位の通信取得を行いません。
 - Lv は見出しのみ表示
 - Title / Artist などで並べ替え
 - 曲名とアーティスト以外を中央揃えで表示
@@ -108,6 +115,9 @@ Player Data:
 RIVAL:
 
 - LR2 の Rival フォルダを読み込み
+- Stellaverse Rival IDから公開スコアを取得（Rival DB不要）
+- Stellaverse IRの相手とローカルRival DBの相手を同時に比較
+- StellaverseライバルのSP段位 / FORCE RATE / 称号バッジを表示
 - ライバルごとのクリアランプを比較
 - ライバルごとのスコア勝敗を比較
 - 譜面一覧の Rival 列に相手スコア / レート / ランプを表示
@@ -118,11 +128,13 @@ RIVAL:
 - 全選択 / 全解除
 - 勝敗表示を「全譜面」または各難易度表ごとに切り替え
 - WIN率順 / LOSE率順 / 名前順でライバル一覧を並べ替え
+- IRをあまり使わない場合は、メニューから譜面一覧のIR順位と難易度表のIR状況を非表示にできます。
 
 画像出力:
 
 - 本日更新の画像出力
 - 難易度表サマリーの画像出力
+- FORCE RATE対象一覧の画像出力
 - CLEAR LAMP / SCORE LAMP の画像出力
 - スクショ保存先を自由に指定可能
 - 保存完了時に「スクショ保存完了！」と表示
@@ -168,7 +180,7 @@ Rival フォルダ:
 
 7z 版の場合:
 
-1. L2TV-2.0.1-win-x64.7z を任意の場所に解凍します。
+1. L2TV-2.1.0-win-x64.7z を任意の場所に解凍します。
 2. 自動で作成された「L2TV」フォルダ内の L2TV.exe を実行します。
 3. インストールは不要です。
 
@@ -355,6 +367,11 @@ BP更新:
 - 各難易度表のサマリー画面から出力できます。
 - ランプ内訳、スコア内訳、CLEAR LAMP / SCORE LAMP グラフを出力できます。
 
+FORCE RATE対象一覧の画像出力:
+
+- FORCE RATE TARGETS の「FORCE対象を画像出力」から出力できます。
+- 現在の並び替え状態のまま、最大51対象を1枚のPNGにできます。
+
 保存先:
 
 - メニューの「スクショ保存先」で自由に指定できます。
@@ -371,6 +388,9 @@ BP更新:
 
 - 難易度表サマリー
   L2TV_Table_難易度表シンボル_yyyymmddhhmmss.png
+
+- FORCE RATE対象一覧
+  L2TV_FORCE_Targets_yyyymmddhhmmss.png
 
 同じ名前の画像がすでに存在する場合:
 
@@ -489,7 +509,7 @@ DBの内容はローカルPC上で読み取って表示します。
 7z 版の場合:
 
 1. L2TV を終了します。
-2. 新しい L2TV-2.0.1-win-x64.7z を解凍します。
+2. 新しい L2TV-2.1.0-win-x64.7z を解凍します。
 3. 古い L2TV フォルダと差し替えます。
 
 注意:
