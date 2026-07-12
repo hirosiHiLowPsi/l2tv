@@ -726,6 +726,14 @@ function sendError(res, statusCode, message) {
 }
 
 async function loadTableListRequest(body) {
+  if (process.env.L2TV_TEST_OFFLINE === "1") {
+    return {
+      sourceUrl: REMOTE_TABLE_LIST_URL,
+      fetchedAt: new Date().toISOString(),
+      tables: [],
+    };
+  }
+
   const force = Boolean(body?.force);
   const cacheKey = REMOTE_TABLE_LIST_URL;
   const cached = tableListCache.get(cacheKey);
