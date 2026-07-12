@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   test:
-    name: Syntax and FORCE RATE tests
+    name: Syntax and application tests
     runs-on: ubuntu-latest
 
     steps:
@@ -36,5 +36,5 @@ jobs:
       - name: Check public/app.js
         run: node --check public/app.js
 
-      - name: Run FORCE RATE tests
-        run: npm run test:force
+      - name: Run test suite
+        run: npm test

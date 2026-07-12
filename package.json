@@ -18,6 +18,7 @@
     "dist:radar": "node notes-radar-app/scripts/build-win-zip.js",
     "force:constants:score-oriented": "node scripts/apply-score-oriented-force-constants.js",
     "test:force": "node --test scripts/force-rating.test.js",
+    "test": "node --test scripts/force-rating.test.js scripts/data-import.test.js",
     "dist:win:installer": "electron-builder --win nsis"
   },
   "devDependencies": {
