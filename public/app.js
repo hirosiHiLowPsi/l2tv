@@ -4774,11 +4774,26 @@ function renderTableSummarySnapshotDataUrl({ table, charts, mode, themeMode }) {
   const lampCardGap = 12;
   const scoreCardHeight = 68;
   const scoreCardGap = 10;
+  const irSummaryColumns = 3;
+  const irCardHeight = 68;
+  const irCardGap = 10;
   const lampStartY = metrics.panelPadding + 44;
   const scoreTitleY = lampStartY + lampRows * (lampCardHeight + lampCardGap) + 34;
   const scoreStartY = scoreTitleY + 42;
   const scoreCardsHeight = scoreRows * scoreCardHeight + Math.max(0, scoreRows - 1) * scoreCardGap;
-  const leftPanelHeight = scoreStartY + scoreCardsHeight + metrics.panelPadding;
+  const irRows = Math.ceil(collectIrRankSummary(charts).length / irSummaryColumns);
+  const irTitleGap = showIrStatusInTableSummary ? 34 : 0;
+  const irCardsGap = showIrStatusInTableSummary ? 42 : 0;
+  const irCardsHeight = showIrStatusInTableSummary
+    ? irRows * irCardHeight + Math.max(0, irRows - 1) * irCardGap
+    : 0;
+  const leftPanelHeight =
+    scoreStartY +
+    scoreCardsHeight +
+    irTitleGap +
+    irCardsGap +
+    irCardsHeight +
+    metrics.panelPadding;
   const graphPanelHeight = metrics.panelPadding * 2 + 30 + metrics.legendHeight + graphRowsHeight;
   const panelHeight = Math.max(360, leftPanelHeight, graphPanelHeight);
   const height = metrics.padding + metrics.headerHeight + panelHeight + metrics.padding;
@@ -4824,6 +4839,7 @@ function renderTableSummarySnapshotDataUrl({ table, charts, mode, themeMode }) {
     width: metrics.leftWidth,
     height: panelHeight,
     padding: metrics.panelPadding,
+    showIrStatus: showIrStatusInTableSummary,
     palette,
   });
 
@@ -4876,7 +4892,7 @@ function getSummarySnapshotPalette(themeMode) {
 }
 
 function drawSnapshotLampSummary(ctx, charts, metrics) {
-  const { x, y, width, padding, palette } = metrics;
+  const { x, y, width, padding, palette, showIrStatus = false } = metrics;
   ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
   ctx.fillStyle = palette.textStrong;
   ctx.fillText(localizeString("ランプ内訳"), x + padding, y + padding);
@@ -4926,6 +4942,45 @@ function drawSnapshotLampSummary(ctx, charts, metrics) {
     ctx.font = "700 12px 'Segoe UI', 'Meiryo', sans-serif";
     ctx.fillText(levelChartScoreLabels[tier] || tier, cardX + 12, cardY + 43);
   });
+
+  if (!showIrStatus) {
+    return;
+  }
+
+  const irTitleY = scoreStartY + scoreRows * scoreCardHeight + Math.max(0, scoreRows - 1) * scoreCardGap + 34;
+  ctx.font = "700 22px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = palette.textStrong;
+  ctx.fillText(localizeString("IR状況"), x + padding, irTitleY);
+
+  const irItems = collectIrRankSummary(charts);
+  const irColumns = 3;
+  const irCardGap = 10;
+  const irCardWidth = (width - padding * 2 - irCardGap * (irColumns - 1)) / irColumns;
+  const irCardHeight = 68;
+  const irStartY = irTitleY + 42;
+  irItems.forEach((item, index) => {
+    const row = Math.floor(index / irColumns);
+    const column = index % irColumns;
+    const cardX = x + padding + column * (irCardWidth + irCardGap);
+    const cardY = irStartY + row * (irCardHeight + irCardGap);
+    const fill = getSnapshotIrStatusFill(item.key);
+    drawRoundedRect(ctx, cardX, cardY, irCardWidth, irCardHeight, 12, fill);
+    ctx.fillStyle = "#172231";
+    ctx.font = "700 19px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillText(formatInteger(item.count), cardX + 12, cardY + 13);
+    ctx.font = "700 12px 'Segoe UI', 'Meiryo', sans-serif";
+    ctx.fillText(selectedLanguage === "en" ? item.labelEn : item.labelJa, cardX + 12, cardY + 43);
+  });
+}
+
+function getSnapshotIrStatusFill(key) {
+  return {
+    first: "#f7d45a",
+    second: "#d7e0ec",
+    third: "#d28b4c",
+    podium: "#e8d9bd",
+    top10: "#8bd7e8",
+  }[key] || "#d7e0ec";
 }
 
 function getLampSnapshotCardTextColor(lamp, palette) {
@@ -5270,12 +5325,14 @@ function renderLampUpdatesSnapshotDataUrl({
       const tierWidth = 76;
       const exWidth = 112;
       const rateWidth = 108;
+      const irWidth = 92;
       const transitionX = detailX;
       const transitionWidth = 150;
       const bpX = transitionX + transitionWidth + detailGap;
       const tierX = bpX + bpWidth + detailGap;
       const exX = tierX + tierWidth + detailGap;
       const rateX = exX + exWidth + detailGap;
+      const irX = rateX + rateWidth + detailGap;
 
       drawSnapshotLampTransition(
         ctx,
@@ -5343,6 +5400,14 @@ function renderLampUpdatesSnapshotDataUrl({
         rowCenterY,
         "600 16px 'Segoe UI', 'Meiryo', sans-serif",
         palette.detailText,
+      );
+      drawSnapshotIrRankBadge(
+        ctx,
+        irX,
+        rowCenterY,
+        irWidth,
+        showIrRankInChartList ? item.irRank : null,
+        palette,
       );
 
       drawSnapshotColumnText(
@@ -6142,6 +6207,31 @@ function renderGroupedChartTables(table, charts, state, rerender) {
   }
 
   return wrapper;
+}
+
+function drawSnapshotIrRankBadge(ctx, x, centerY, width, rank, palette) {
+  const normalizedRank = Number(rank);
+  if (!Number.isFinite(normalizedRank) || normalizedRank < 1 || normalizedRank > 10 || width <= 0) {
+    return;
+  }
+
+  const height = 24;
+  const y = Math.round(centerY - height / 2);
+  const colors = normalizedRank === 1
+    ? { bg: "#f7d45a", text: "#302507" }
+    : normalizedRank === 2
+      ? { bg: "#d7e0ec", text: "#263344" }
+      : normalizedRank === 3
+        ? { bg: "#d28b4c", text: "#321b08" }
+        : { bg: "#8bd7e8", text: "#123247" };
+  drawRoundedRect(ctx, x, y, width, height, 10, colors.bg);
+  const label = selectedLanguage === "en" ? `#${formatInteger(normalizedRank)}` : `${formatInteger(normalizedRank)}位`;
+  ctx.font = "800 13px 'Segoe UI', 'Meiryo', sans-serif";
+  ctx.fillStyle = colors.text;
+  ctx.textBaseline = "middle";
+  const textWidth = ctx.measureText(label).width;
+  ctx.fillText(label, x + Math.max(0, (width - textWidth) / 2), centerY + 0.5);
+  ctx.textBaseline = "top";
 }
 
 function getLevelGroupLampTone(charts) {
@@ -8137,6 +8227,9 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
             previousExScore: previousState.exScore,
             exScore,
             scoreRate,
+            irRank: toFiniteChartNumber(chart?.irRank),
+            irTotalPlayers: toFiniteChartNumber(chart?.irTotalPlayers),
+            irTopPercent: toFiniteChartNumber(chart?.irTopPercent),
             scoreUpdated,
             levelEntries: [],
             levelEntrySet: new Set(),
@@ -8148,6 +8241,12 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
           entry.previousExScore = mergeLampImprovementPreviousExScore(entry.previousExScore, previousState.exScore);
           entry.exScore = mergeLampImprovementExScore(entry.exScore, exScore);
           entry.scoreRate = mergeLampImprovementScoreRate(entry.scoreRate, scoreRate);
+          const chartIrRank = toFiniteChartNumber(chart?.irRank);
+          if (chartIrRank != null && (entry.irRank == null || chartIrRank < entry.irRank)) {
+            entry.irRank = chartIrRank;
+            entry.irTotalPlayers = toFiniteChartNumber(chart?.irTotalPlayers);
+            entry.irTopPercent = toFiniteChartNumber(chart?.irTopPercent);
+          }
           entry.scoreUpdated = entry.scoreUpdated || scoreUpdated;
           if (entry.badCount == null && badCount != null) {
             entry.badCount = badCount;
@@ -8185,6 +8284,9 @@ function collectLampImprovements(previousAnalysis, currentAnalysis, options = {}
       previousExScore: entry.previousExScore,
       exScore: entry.exScore,
       scoreRate: entry.scoreRate,
+      irRank: entry.irRank,
+      irTotalPlayers: entry.irTotalPlayers,
+      irTopPercent: entry.irTopPercent,
       scoreUpdated: Boolean(entry.scoreUpdated),
       levelText,
       sortSymbol: primaryLevel?.symbol ?? "",
