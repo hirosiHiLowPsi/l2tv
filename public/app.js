@@ -4927,6 +4927,7 @@ function drawSnapshotLampSummary(ctx, charts, metrics) {
   const scoreCardGap = 10;
   const scoreCardWidth = (width - padding * 2 - scoreCardGap * (scoreColumns - 1)) / scoreColumns;
   const scoreCardHeight = 68;
+  const scoreRows = Math.ceil(levelChartScoreOrder.length / scoreColumns);
   const scoreStartY = scoreTitleY + 42;
 
   levelChartScoreOrder.forEach((tier, index) => {
