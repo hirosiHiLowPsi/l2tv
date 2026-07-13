@@ -945,6 +945,17 @@ body.rival-open .rival-toggle-button {
   padding-top: 2px;
 }
 
+.data-transfer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.data-transfer-actions button {
+  padding: 8px 11px;
+  font-size: 0.75rem;
+}
+
 .menu-status-section {
   padding: 4px 2px 0;
 }
