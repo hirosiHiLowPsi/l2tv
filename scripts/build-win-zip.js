@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const crypto = require("node:crypto");
 const { path7za } = require("7zip-bin");
 
 const projectRoot = path.resolve(__dirname, "..");
@@ -21,14 +22,15 @@ const artifactLabel = artifactSuffix ? `-${artifactSuffix}` : "";
 const archiveFormatArgument = process.argv.find(
   (argument) => argument.startsWith("--format=") || argument.startsWith("--archive="),
 );
-const archiveFormat = String(archiveFormatArgument?.split("=").slice(1).join("=") || "zip")
+const archiveFormat = String(archiveFormatArgument?.split("=").slice(1).join("=") || "7z")
   .trim()
   .toLowerCase();
-if (!["zip", "7z"].includes(archiveFormat)) {
-  throw new Error(`Unsupported archive format: ${archiveFormat}`);
+if (archiveFormat !== "7z") {
+  throw new Error("L2TVの配布形式は7zのみです。");
 }
 let archivePath = path.join(distDir, `L2TV-${packageJson.version}${artifactLabel}-win-x64.${archiveFormat}`);
 const electronBuilderCli = require.resolve("electron-builder/cli.js");
+const localElectronDist = path.join(projectRoot, "node_modules", "electron", "dist");
 
 function assertInsideDist(targetPath) {
   const relative = path.relative(distDir, path.resolve(targetPath));
@@ -40,6 +42,25 @@ function assertInsideDist(targetPath) {
 function removeBuildPath(targetPath) {
   assertInsideDist(targetPath);
   fs.rmSync(targetPath, { recursive: true, force: true });
+}
+
+function directorySize(targetPath) {
+  return fs.readdirSync(targetPath, { withFileTypes: true }).reduce((total, entry) => {
+    const entryPath = path.join(targetPath, entry.name);
+    return total + (entry.isDirectory() ? directorySize(entryPath) : fs.statSync(entryPath).size);
+  }, 0);
+}
+
+function verifyElectronLocales() {
+  const localeDir = path.join(unpackedDir, "locales");
+  const locales = fs
+    .readdirSync(localeDir)
+    .filter((name) => name.endsWith(".pak"))
+    .sort();
+  const expected = ["en-US.pak", "ja.pak"];
+  if (JSON.stringify(locales) !== JSON.stringify(expected)) {
+    throw new Error(`Unexpected Electron locales: ${locales.join(", ")}`);
+  }
 }
 
 function run(command, args, options = {}) {
@@ -62,32 +83,43 @@ removeBuildPath(stageDir);
 removeBuildPath(unpackedDir);
 try {
   removeBuildPath(archivePath);
+  removeBuildPath(`${archivePath}.sha256`);
 } catch (error) {
   if (error?.code !== "EPERM") {
     throw error;
   }
   archivePath = path.join(distDir, `L2TV-${packageJson.version}${artifactLabel}-win-x64-new.${archiveFormat}`);
   removeBuildPath(archivePath);
+  removeBuildPath(`${archivePath}.sha256`);
 }
 removeBuildPath(builderDebugPath);
 removeBuildPath(builderConfigPath);
 
-run(process.execPath, [electronBuilderCli, "--win", "--dir"]);
+const electronBuilderArgs = [electronBuilderCli, "--win", "--dir"];
+if (fs.existsSync(path.join(localElectronDist, "electron.exe"))) {
+  electronBuilderArgs.push(`--config.electronDist=${localElectronDist}`);
+}
+run(process.execPath, electronBuilderArgs);
 
 if (!fs.existsSync(path.join(unpackedDir, "L2TV.exe"))) {
   throw new Error("The unpacked Windows build was not created.");
 }
+verifyElectronLocales();
+run(process.execPath, [path.join(projectRoot, "scripts", "verify-electron-fuses.js"), path.join(unpackedDir, "L2TV.exe")]);
+run(process.execPath, [path.join(projectRoot, "scripts", "verify-packaged-launch.js"), path.join(unpackedDir, "L2TV.exe")]);
+
+const unpackedBytes = directorySize(unpackedDir);
 
 fs.mkdirSync(stageDir, { recursive: true });
 fs.cpSync(unpackedDir, appDir, { recursive: true });
 if (artifactSuffix.startsWith("force-rate-pretest")) {
   fs.copyFileSync(forcePretestNotesPath, path.join(appDir, path.basename(forcePretestNotesPath)));
 }
-const archiveArgs =
-  archiveFormat === "7z"
-    ? ["a", "-t7z", "-mx=9", "-m0=lzma2", "-ms=on", archivePath, "L2TV"]
-    : ["a", "-tzip", "-mx=7", archivePath, "L2TV"];
+const archiveArgs = ["a", "-t7z", "-mx=9", "-m0=lzma2", "-ms=on", archivePath, "L2TV"];
 run(path7za, archiveArgs, { cwd: stageDir });
+
+const digest = crypto.createHash("sha256").update(fs.readFileSync(archivePath)).digest("hex");
+fs.writeFileSync(`${archivePath}.sha256`, `${digest} *${path.basename(archivePath)}\n`, "utf8");
 
 removeBuildPath(stageDir);
 removeBuildPath(unpackedDir);
@@ -95,3 +127,5 @@ removeBuildPath(builderDebugPath);
 removeBuildPath(builderConfigPath);
 
 console.log(`Created ${path.relative(projectRoot, archivePath)} with top-level L2TV folder.`);
+console.log(`Unpacked size ${(unpackedBytes / 1024 / 1024).toFixed(1)} MiB.`);
+console.log(`SHA256 ${digest}`);

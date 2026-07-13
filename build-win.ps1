@@ -1,7 +1,6 @@
 [CmdletBinding()]
 param(
-  [switch]$SkipInstall,
-  [switch]$Installer
+  [switch]$SkipInstall
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,9 +68,7 @@ if (-not $SkipInstall) {
   Write-Host "`n[2/4] Skip dependency install (-SkipInstall)"
 }
 
-$buildCommand = if ($Installer) { "dist:win:installer" } else { "dist:win" }
-$buildLabel = if ($Installer) { "Build installer (.exe)" } else { "Build portable zip" }
-Invoke-Step "`n[3/4] $buildLabel" { npm run $buildCommand }
+Invoke-Step "`n[3/4] Build portable 7z" { npm run dist:win }
 
 Write-Host "`n[4/4] Locate artifacts"
 $distDir = Join-Path $projectRoot "dist"
@@ -79,22 +76,18 @@ if (-not (Test-Path $distDir)) {
   throw "dist フォルダが見つかりません。ビルドログを確認してください。"
 }
 
-$zip = Get-ChildItem -Path $distDir -Filter "*.zip" -File -ErrorAction SilentlyContinue |
+$archive = Get-ChildItem -Path $distDir -Filter "*.7z" -File -ErrorAction SilentlyContinue |
   Sort-Object LastWriteTime -Descending |
   Select-Object -First 1
 
-if ($zip) {
-  Write-Host "Zip:       $($zip.FullName)" -ForegroundColor Green
+if ($archive) {
+  Write-Host "7z:        $($archive.FullName)" -ForegroundColor Green
+  $checksum = "$($archive.FullName).sha256"
+  if (Test-Path -LiteralPath $checksum) {
+    Write-Host "SHA256:    $checksum" -ForegroundColor Green
+  }
 } else {
-  Write-Warning "dist 直下に zip が見つかりませんでした。ビルドログにエラーがないか確認してください。"
-}
-
-$installer = Get-ChildItem -Path $distDir -Filter "*Setup*.exe" -File -ErrorAction SilentlyContinue |
-  Sort-Object LastWriteTime -Descending |
-  Select-Object -First 1
-
-if ($installer) {
-  Write-Host "Installer: $($installer.FullName)" -ForegroundColor Green
+  Write-Warning "dist 直下に7zが見つかりませんでした。ビルドログにエラーがないか確認してください。"
 }
 
 $unpackedExe = Get-ChildItem -Path (Join-Path $distDir "win-unpacked") -Filter "*.exe" -File -ErrorAction SilentlyContinue |

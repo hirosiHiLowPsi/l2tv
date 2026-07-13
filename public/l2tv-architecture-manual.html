@@ -96,8 +96,8 @@
     <main>
       <h1>L2TV 構造説明書</h1>
       <p class="muted small">
-        対象バージョン: <code>1.0.4</code> / 生成日: 2026-04-26<br />
-        この文書は現在の実装（<code>server.js</code> / <code>electron-main.js</code> / <code>public/app.js</code>）をもとに、機能とコード構造を把握しやすくまとめたものです。
+        対象バージョン: <code>2.1.0</code> / 更新日: 2026-07-13<br />
+        この文書は現在の実装（<code>server.js</code> / <code>database-worker.js</code> / <code>electron-main.js</code> / <code>public/app.js</code>）をもとに、機能とコード構造を把握しやすくまとめたものです。
       </p>
 
       <section>
@@ -110,7 +110,7 @@
         ↓ fetch("/api/*")
 Node HTTP Server (server.js)
         ├─ 難易度表 (table.html → header.json → score.json)
-        └─ ローカルDB (score.db / song.db, sqlite)
+        └─ Database Worker (score.db / song.db / Rival DB, read-only sqlite)
 </pre>
       </section>
 
@@ -123,6 +123,7 @@ Node HTTP Server (server.js)
 │  ├─ styles.css                 # 全テーマ/全コンポーネントのスタイル
 │  └─ l2tv-architecture-manual.html  # この説明書
 ├─ server.js                     # API + 静的配信 + 解析ロジック本体
+├─ database-worker.js            # DB読み取りをメインスレッドから分離
 ├─ electron-main.js              # Electronメインプロセス
 ├─ electron-preload.js           # IPCブリッジ
 ├─ build-win.ps1                 # Windowsビルド支援スクリプト
@@ -222,7 +223,8 @@ Node HTTP Server (server.js)
         <h2>6. Electron 連携</h2>
         <h3>6.1 electron-main.js</h3>
         <ul>
-          <li>アプリ起動時に組み込みサーバーを立ち上げ、<code>http://127.0.0.1:4173</code> を表示</li>
+          <li>アプリ起動時に <code>127.0.0.1:4173</code> を自プロセスで確保し、起動成功を確認してから組み込み画面を表示</li>
+          <li>Stellaverse IR通信は利用者が明示的に許可した場合だけ実行し、アクセスを直列化・間隔制御・キャッシュ</li>
           <li>配布版は原則 <code>exe</code> 隣にポータブルデータフォルダを作成して保存</li>
           <li>IPC:
             <code>lr2ir:pick-file</code>（db参照ダイアログ）、
@@ -245,8 +247,7 @@ Node HTTP Server (server.js)
           <tbody>
             <tr><td>ブラウザ版起動</td><td><code>node server.js</code></td></tr>
             <tr><td>Electron起動</td><td><code>npm run desktop</code></td></tr>
-            <tr><td>Windows zip作成</td><td><code>npm run dist:win</code></td></tr>
-            <tr><td>Windowsインストーラー作成</td><td><code>npm run dist:win:installer</code></td></tr>
+            <tr><td>Windows 7z + SHA256作成</td><td><code>npm run dist:win</code></td></tr>
             <tr><td>PowerShellビルド補助</td><td><code>.\build-win.ps1</code></td></tr>
           </tbody>
         </table>

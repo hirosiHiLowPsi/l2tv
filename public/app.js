@@ -11,6 +11,7 @@ const tableUrlsInput = document.getElementById("table-urls");
 const manualTableUrlTogglesContainer = document.getElementById("manual-table-url-toggles");
 const languageSelect = document.getElementById("language-select");
 const scoreDbModeSelect = document.getElementById("score-db-mode-select");
+const allowStellaverseNetworkInput = document.getElementById("allow-stellaverse-network");
 const themeSelect = document.getElementById("theme-select");
 const includeBpUpdatesInput = document.getElementById("include-bp-updates");
 const includeUnlistedUpdatesInput = document.getElementById("include-unlisted-updates");
@@ -36,6 +37,8 @@ const tableListSelectedOnlyToggle = document.getElementById("table-list-selected
 const tableListSelectedOnlyCount = document.getElementById("table-list-selected-only-count");
 const analyzeButton = document.getElementById("analyze-button");
 const clearSavedButton = document.getElementById("clear-saved-button");
+const exportTransferButton = document.getElementById("export-transfer-button");
+const importTransferButton = document.getElementById("import-transfer-button");
 const statusBox = document.getElementById("status-box");
 const mainFeedback = document.getElementById("main-feedback");
 const resultsRoot = document.getElementById("results-root");
@@ -205,6 +208,15 @@ const LAST_ANALYSIS_KEY = "last-analysis";
 const TABLE_PRESET_SELECTION_KEY = "table-preset-selection";
 const CUSTOM_TABLE_LIST_KEY = "custom-table-list-entries";
 const STELLAVERSE_RIVAL_IDS_KEY = "stellaverse-rival-ids";
+const DATA_TRANSFER_FORMAT = "l2tv-data-transfer";
+const DATA_TRANSFER_VERSION = 1;
+const DATA_TRANSFER_KEYS = [
+  FORM_STATE_KEY,
+  LAST_ANALYSIS_KEY,
+  TABLE_PRESET_SELECTION_KEY,
+  CUSTOM_TABLE_LIST_KEY,
+  STELLAVERSE_RIVAL_IDS_KEY,
+];
 const LAMP_UPDATES_SNAPSHOT_MAX_ITEMS_PER_IMAGE = 250;
 
 let latestAnalysis = null;
@@ -219,6 +231,7 @@ let showIrRankInChartList = true;
 let showIrStatusInTableSummary = true;
 let skillAnalyzerFetchMode = "both";
 let scoreDbMode = "auto";
+let allowStellaverseNetwork = false;
 let disabledManualTableUrls = new Set();
 let autoDbProfileFetchToken = 0;
 let baseTableListEntries = DEFAULT_TABLE_LIST_ENTRIES.map((entry) => ({ ...entry }));
@@ -262,6 +275,7 @@ let latestPlayTimeDeltaSeconds = null;
 let latestForceRatingChanges = null;
 let mainFeedbackTimeoutId = null;
 let apiTokenPromise = null;
+let dataTransferImportInProgress = false;
 const persistFormStateDebounced = debounce(() => {
   persistFormState().catch((error) => console.error("Failed to persist form state", error));
 }, 250);
@@ -336,6 +350,10 @@ const I18N_TEXT = {
   "自動判別": "Auto Detect",
   "従来LR2IR互換": "Legacy LR2IR Compatible",
   "StellaverseIR": "StellaverseIR",
+  "Stellaverse IRへの接続を許可する": "Allow connections to Stellaverse IR",
+  "ONにするとプレイヤーIDをStellaverse IRへ送信し、名前・順位・公開スコアを取得します。DBファイルやローカルスコアは送信しません。":
+    "When enabled, L2TV sends the player ID to Stellaverse IR to retrieve the name, ranks, and public scores. Database files and local scores are not sent.",
+  "Stellaverse IRへの接続をメニューで許可してください。": "Allow Stellaverse IR connections in the menu first.",
   "BMS-IR": "BMS-IR",
   "テーマ": "Theme",
   "プレイ回数": "Play Count",
@@ -344,6 +362,8 @@ const I18N_TEXT = {
   "表外": "Unlisted",
   "表とランプを読み込む": "Load Tables and Lamps",
   "保存データを消す": "Clear Saved Data",
+  "引継ぎデータを書き出す": "Export Transfer Data",
+  "引継ぎデータを読み込む": "Import Transfer Data",
   "進行状況": "Status",
   "読み込み結果とエラーを確認できます。": "Review loading results and errors.",
   "バックエンドが難易度表またはプレイヤーデータを読み込みます。": "The backend loads table or player data.",
@@ -425,6 +445,14 @@ const I18N_TEXT = {
   "LR2 Rival フォルダを選択": "Select LR2 Rival Folder",
   "保存してある入力内容と前回の読み込み結果を削除しますか？\n※難易度表の選択状態は保持されます。": "Delete saved input and the previous load result?\nTable selections will be kept.",
   "保存済みデータを削除しました。難易度表の選択状態は保持しています。": "Saved data was deleted. Table selections were kept.",
+  "引継ぎデータを書き出しました。": "Transfer data was exported.",
+  "引継ぎデータの書き出しに失敗しました。": "Failed to export transfer data.",
+  "現在の保存データを引継ぎデータで上書きしますか？": "Replace the current saved data with the imported transfer data?",
+  "設定、難易度表、ライバルID、前回の読み込み結果が引き継がれます。": "Settings, difficulty tables, rival IDs, and the previous load result will be imported.",
+  "読み込む": "Import",
+  "引継ぎデータを読み込みました。画面を再読み込みします。": "Transfer data was imported. The app will now reload.",
+  "引継ぎデータの読み込みに失敗しました。": "Failed to import transfer data.",
+  "引継ぎデータの形式が正しくありません。": "The transfer data format is invalid.",
   "プレイ更新を検知しました": "Play Updates Detected",
   "プレイ更新がありました、反映しますか？": "Play updates were detected. Apply them now?",
   "前回読み込み後に score.db / song.db が更新されています。": "score.db / song.db has changed since the previous load.",
@@ -500,6 +528,7 @@ renderManualTableUrlToggles();
 configureDbBrowseButtons();
 configureScreenshotDirectoryBrowseButton();
 configureRivalFolderBrowseButton();
+configureDataTransferButtons();
 initializeControlMenu();
 initializeRivalPanel();
 initializeLevelModeToggleButton();
@@ -673,6 +702,7 @@ function updateLevelModeToggleButton() {
 
 function initializeThemeSelector() {
   initializeScoreDbModeSelector();
+  initializeStellaverseNetworkConsent();
 
   if (!themeSelect) {
     return;
@@ -754,7 +784,23 @@ function initializeIrDisplayControls() {
 }
 
 function shouldFetchOwnStellaverseRankings() {
-  return showIrRankInChartList || showIrStatusInTableSummary;
+  return allowStellaverseNetwork && (showIrRankInChartList || showIrStatusInTableSummary);
+}
+
+function initializeStellaverseNetworkConsent() {
+  if (!allowStellaverseNetworkInput) {
+    return;
+  }
+  allowStellaverseNetworkInput.checked = allowStellaverseNetwork;
+  allowStellaverseNetworkInput.addEventListener("change", async () => {
+    allowStellaverseNetwork = allowStellaverseNetworkInput.checked;
+    persistFormStateDebounced();
+    if (allowStellaverseNetwork && latestAnalysis && shouldFetchOwnStellaverseRankings()) {
+      await refreshOwnStellaverseRankings(latestAnalysis);
+      void persistLatestAnalysis(latestAnalysis).catch((error) => console.error("Failed to persist analysis", error));
+      renderAnalysis();
+    }
+  });
 }
 
 function initializeScoreDbModeSelector() {
@@ -1234,16 +1280,24 @@ function applyTheme(themeMode, options = {}) {
 
 async function getApiToken() {
   if (!apiTokenPromise) {
-    apiTokenPromise = fetch("/api/client-config", {
-      method: "GET",
-      credentials: "same-origin",
-    })
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (!response.ok || !payload?.apiToken) {
+    apiTokenPromise = (typeof window.lr2irDesktop?.getApiToken === "function"
+      ? window.lr2irDesktop.getApiToken()
+      : fetch("/api/client-config", {
+          method: "GET",
+          credentials: "same-origin",
+        }).then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload?.apiToken) {
+            throw new Error("API設定の取得に失敗しました。");
+          }
+          return payload.apiToken;
+        }))
+      .then((token) => {
+        const normalizedToken = String(token || "");
+        if (!normalizedToken) {
           throw new Error("API設定の取得に失敗しました。");
         }
-        return String(payload.apiToken);
+        return normalizedToken;
       })
       .catch((error) => {
         apiTokenPromise = null;
@@ -1299,6 +1353,21 @@ function configureRivalFolderBrowseButton() {
     return;
   }
   browseRivalFolderButton.title = "参照ボタンはデスクトップ版(.exe)で利用できます。";
+}
+
+function configureDataTransferButtons() {
+  const available =
+    typeof window.lr2irDesktop?.exportDataTransfer === "function" &&
+    typeof window.lr2irDesktop?.importDataTransfer === "function";
+  for (const button of [exportTransferButton, importTransferButton]) {
+    if (!button) {
+      continue;
+    }
+    button.disabled = !available;
+    if (!available) {
+      button.title = "引継ぎ機能はデスクトップ版(.exe)で利用できます。";
+    }
+  }
 }
 
 function hasDesktopFileDialog() {
@@ -2312,10 +2381,11 @@ form.addEventListener("submit", async (event) => {
       includeUnlistedUpdates: includeUnlistedChartsInLampUpdates,
       skillAnalyzerFetchMode,
       scoreDbMode,
+      allowStellaverseNetwork,
     });
 
     latestAnalysis = normalizeAnalysisLampStatuses(payload);
-    if (stellaverseRivalIds.size > 0) {
+    if (allowStellaverseNetwork && stellaverseRivalIds.size > 0) {
       setStatus("Stellaverse IRからライバルスコアを取得しています。");
       await refreshSavedStellaverseRivals();
     }
@@ -2491,6 +2561,126 @@ scoreDbPathInput.addEventListener("change", () => {
   });
 });
 
+async function buildDataTransferPayload() {
+  await persistFormState();
+  await persistTablePresetSelection();
+  await persistCustomTableListEntries();
+  await persistStellaverseRivalIds();
+  if (latestAnalysis) {
+    await persistLatestAnalysis(latestAnalysis);
+  }
+
+  const data = {};
+  for (const key of DATA_TRANSFER_KEYS) {
+    data[key] = await readPersistedValue(key);
+  }
+  return {
+    format: DATA_TRANSFER_FORMAT,
+    version: DATA_TRANSFER_VERSION,
+    exportedAt: new Date().toISOString(),
+    appVersion: "2.1.0",
+    data,
+  };
+}
+
+function validateDataTransferPayload(payload) {
+  const data = payload?.data;
+  const hasKnownKey =
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    DATA_TRANSFER_KEYS.some((key) => Object.prototype.hasOwnProperty.call(data, key));
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    payload.format !== DATA_TRANSFER_FORMAT ||
+    payload.version !== DATA_TRANSFER_VERSION ||
+    !hasKnownKey
+  ) {
+    throw new Error("引継ぎデータの形式が正しくありません。");
+  }
+  return payload;
+}
+
+exportTransferButton?.addEventListener("click", async () => {
+  exportTransferButton.disabled = true;
+  if (importTransferButton) {
+    importTransferButton.disabled = true;
+  }
+  try {
+    const payload = await buildDataTransferPayload();
+    const result = await window.lr2irDesktop.exportDataTransfer({
+      payload,
+      fileName: `L2TV_data_transfer_${formatSnapshotTimestamp(new Date())}.json`,
+    });
+    if (!result?.filePath) {
+      return;
+    }
+    setStatus("引継ぎデータを書き出しました。");
+    showExportMessage("引継ぎデータを書き出しました。");
+  } catch (error) {
+    console.error("Failed to export transfer data", error);
+    const message = error instanceof Error ? error.message : "引継ぎデータの書き出しに失敗しました。";
+    setStatus(message);
+    showExportMessage(message);
+  } finally {
+    exportTransferButton.disabled = false;
+    if (importTransferButton) {
+      importTransferButton.disabled = false;
+    }
+  }
+});
+
+importTransferButton?.addEventListener("click", async () => {
+  let reloadScheduled = false;
+  importTransferButton.disabled = true;
+  if (exportTransferButton) {
+    exportTransferButton.disabled = true;
+  }
+  try {
+    const imported = await window.lr2irDesktop.importDataTransfer();
+    if (!imported) {
+      return;
+    }
+    const payload = validateDataTransferPayload(imported);
+    const shouldImport = await showAppConfirm("現在の保存データを引継ぎデータで上書きしますか？", {
+      description: "設定、難易度表、ライバルID、前回の読み込み結果が引き継がれます。",
+      confirmLabel: "読み込む",
+      cancelLabel: "キャンセル",
+    });
+    if (!shouldImport) {
+      return;
+    }
+
+    dataTransferImportInProgress = true;
+    for (const key of DATA_TRANSFER_KEYS) {
+      const value = Object.prototype.hasOwnProperty.call(payload.data, key) ? payload.data[key] : null;
+      if (value == null) {
+        await deletePersistedValue(key);
+      } else {
+        await writePersistedValue(key, value);
+      }
+    }
+    setStatus("引継ぎデータを読み込みました。画面を再読み込みします。");
+    reloadScheduled = true;
+    window.setTimeout(() => window.location.reload(), 250);
+  } catch (error) {
+    console.error("Failed to import transfer data", error);
+    const message = error instanceof Error ? error.message : "引継ぎデータの読み込みに失敗しました。";
+    setStatus(message);
+    showExportMessage(message);
+  } finally {
+    if (!reloadScheduled) {
+      dataTransferImportInProgress = false;
+    }
+    importTransferButton.disabled = false;
+    if (exportTransferButton) {
+      exportTransferButton.disabled = false;
+    }
+  }
+});
+
 clearSavedButton.addEventListener("click", async () => {
   const shouldClear = await showAppConfirm("保存してある入力内容と前回の読み込み結果を削除しますか？", {
     description: "※難易度表の選択状態は保持されます。",
@@ -2546,11 +2736,15 @@ clearSavedButton.addEventListener("click", async () => {
   }
   showIrRankInChartList = true;
   showIrStatusInTableSummary = true;
+  allowStellaverseNetwork = false;
   if (showIrRankInput) {
     showIrRankInput.checked = true;
   }
   if (showIrStatusInput) {
     showIrStatusInput.checked = true;
+  }
+  if (allowStellaverseNetworkInput) {
+    allowStellaverseNetworkInput.checked = false;
   }
   skillAnalyzerFetchMode = "both";
   scoreDbMode = "auto";
@@ -2922,13 +3116,13 @@ function createStellaverseRivalImportControl() {
   input.maxLength = 10;
   input.placeholder = "187038";
   input.autocomplete = "off";
-  input.disabled = stellaverseRivalFetchBusy || !latestAnalysis;
+  input.disabled = stellaverseRivalFetchBusy || !latestAnalysis || !allowStellaverseNetwork;
 
   const button = document.createElement("button");
   button.type = "button";
   button.className = "button-secondary stellaverse-rival-fetch";
   button.textContent = stellaverseRivalFetchBusy ? "取得中…" : "取得";
-  button.disabled = stellaverseRivalFetchBusy || !latestAnalysis;
+  button.disabled = stellaverseRivalFetchBusy || !latestAnalysis || !allowStellaverseNetwork;
 
   const fetchEnteredRival = async () => {
     const playerId = input.value.trim();
@@ -2953,15 +3147,22 @@ function createStellaverseRivalImportControl() {
 
   const status = document.createElement("p");
   status.className = "helper stellaverse-rival-status";
-  status.textContent = stellaverseRivalFetchStatus || (latestAnalysis
-    ? "IDを入力してStellaverse IRの公開スコアを比較できます。"
-    : "表とランプを読み込んだ後、Stellaverse Rival IDを追加できます。");
+  status.textContent = stellaverseRivalFetchStatus || (!allowStellaverseNetwork
+    ? "Stellaverse IRへの接続をメニューで許可してください。"
+    : latestAnalysis
+      ? "IDを入力してStellaverse IRの公開スコアを比較できます。"
+      : "表とランプを読み込んだ後、Stellaverse Rival IDを追加できます。");
   section.append(status);
   return section;
 }
 
 async function addStellaverseRival(playerId) {
   if (!latestAnalysis) {
+    return;
+  }
+  if (!allowStellaverseNetwork) {
+    stellaverseRivalFetchStatus = "Stellaverse IRへの接続をメニューで許可してください。";
+    renderRivalPanel();
     return;
   }
   stellaverseRivalFetchBusy = true;
@@ -2986,6 +3187,9 @@ async function addStellaverseRival(playerId) {
 }
 
 async function refreshSavedStellaverseRivals() {
+  if (!allowStellaverseNetwork) {
+    return;
+  }
   for (const playerId of stellaverseRivalIds) {
     try {
       const rival = await fetchStellaverseRivalFromDesktop(playerId);
@@ -2997,6 +3201,9 @@ async function refreshSavedStellaverseRivals() {
 }
 
 async function fetchStellaverseRivalFromDesktop(playerId) {
+  if (!allowStellaverseNetwork) {
+    throw new Error("Stellaverse IRへの接続をメニューで許可してください。");
+  }
   if (typeof window.lr2irDesktop?.fetchStellaverseRival !== "function") {
     throw new Error("Stellaverse RivalはElectron版で利用できます。");
   }
@@ -3181,7 +3388,11 @@ function removeStellaverseRival(playerId) {
 }
 
 async function persistStellaverseRivalIds() {
+  if (dataTransferImportInProgress) {
+    return false;
+  }
   await writePersistedValue(STELLAVERSE_RIVAL_IDS_KEY, [...stellaverseRivalIds]);
+  return true;
 }
 
 function createRivalProfileMeta(rival) {
@@ -7311,6 +7522,7 @@ async function autoFetchProfileFromScoreDb() {
       songDbPath: songDbPathInput.value.trim(),
       skillAnalyzerFetchMode,
       scoreDbMode,
+      allowStellaverseNetwork,
     });
 
     if (token !== autoDbProfileFetchToken) {
@@ -8854,7 +9066,11 @@ async function restoreTablePresetSelection() {
 }
 
 async function persistTablePresetSelection() {
+  if (dataTransferImportInProgress) {
+    return false;
+  }
   await writePersistedValue(TABLE_PRESET_SELECTION_KEY, dedupeTableUrlsByNormalizedKey([...selectedTableUrls]));
+  return true;
 }
 
 async function restoreCustomTableListEntries() {
@@ -8884,7 +9100,11 @@ async function restoreCustomTableListEntries() {
 }
 
 async function persistCustomTableListEntries() {
+  if (dataTransferImportInProgress) {
+    return false;
+  }
   await writePersistedValue(CUSTOM_TABLE_LIST_KEY, customTableListEntries);
+  return true;
 }
 
 async function restoreStellaverseRivalIds() {
@@ -8936,6 +9156,10 @@ async function restoreFormState() {
   if (showIrStatusInput) {
     showIrStatusInput.checked = showIrStatusInTableSummary;
   }
+  allowStellaverseNetwork = persisted.allowStellaverseNetwork === true;
+  if (allowStellaverseNetworkInput) {
+    allowStellaverseNetworkInput.checked = allowStellaverseNetwork;
+  }
   scoreDbMode = normalizeScoreDbMode(persisted.scoreDbMode);
   if (scoreDbModeSelect) {
     scoreDbModeSelect.value = scoreDbMode;
@@ -8960,6 +9184,9 @@ async function restoreLatestAnalysis() {
 }
 
 async function persistFormState() {
+  if (dataTransferImportInProgress) {
+    return false;
+  }
   await writePersistedValue(FORM_STATE_KEY, {
     scoreDbPath: scoreDbPathInput.value.trim(),
     songDbPath: songDbPathInput.value.trim(),
@@ -8975,13 +9202,19 @@ async function persistFormState() {
     includeUnlistedChartsInLampUpdates,
     showIrRankInChartList,
     showIrStatusInTableSummary,
+    allowStellaverseNetwork,
     scoreDbMode,
     skillAnalyzerFetchMode,
   });
+  return true;
 }
 
 async function persistLatestAnalysis(analysis) {
+  if (dataTransferImportInProgress) {
+    return false;
+  }
   await writePersistedValue(LAST_ANALYSIS_KEY, analysis);
+  return true;
 }
 
 async function clearPersistedState() {

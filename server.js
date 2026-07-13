@@ -7,6 +7,7 @@ const crypto = require("node:crypto");
 const dns = require("node:dns").promises;
 const net = require("node:net");
 const { DatabaseSync } = require("node:sqlite");
+const { Worker } = require("node:worker_threads");
 
 const HOST = process.env.HOST ?? "127.0.0.1";
 const PORT = Number.parseInt(process.env.PORT ?? "4173", 10);
@@ -17,6 +18,11 @@ const LOCAL_COURSE_HASHES_PATH = path.join(PUBLIC_DIR, "data", "local-course-has
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) L2TV/0.1 Safari/537.36";
 const API_TOKEN = crypto.randomBytes(32).toString("hex");
+let databaseWorker = null;
+let databaseWorkerRequestId = 0;
+let databaseWorkerIdleTimer = null;
+const expectedDatabaseWorkerStops = new WeakSet();
+const databaseWorkerRequests = new Map();
 const MAX_REMOTE_RESPONSE_BYTES = 25 * 1024 * 1024;
 const MAX_CACHE_ENTRIES = 300;
 const MAX_REDIRECTS = 5;
@@ -67,6 +73,9 @@ const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "no-referrer",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
   "Content-Security-Policy":
     "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; " +
     "connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
@@ -233,7 +242,11 @@ function createAppServer() {
         return;
       }
 
-      if (req.method === "GET" && requestUrl.pathname === "/api/client-config") {
+      if (
+        req.method === "GET" &&
+        requestUrl.pathname === "/api/client-config" &&
+        !process.versions.electron
+      ) {
         sendJson(res, 200, { apiToken: API_TOKEN });
         return;
       }
@@ -243,7 +256,7 @@ function createAppServer() {
           return;
         }
         const body = await readJsonBody(req);
-        const analysis = await analyzeRequest(body);
+        const analysis = await runDatabaseWorkerTask("analyze", body);
         sendJson(res, 200, analysis);
         return;
       }
@@ -273,7 +286,7 @@ function createAppServer() {
           return;
         }
         const body = await readJsonBody(req);
-        const profile = await loadProfileFromScoreDbRequest(body);
+        const profile = await runDatabaseWorkerTask("profile", body);
         sendJson(res, 200, profile);
         return;
       }
@@ -307,7 +320,9 @@ function startServer({ host = HOST, port = PORT } = {}) {
   const server = createAppServer();
 
   server.listen(listenPort, host, () => {
-    console.log(`L2TV: http://${host}:${listenPort}`);
+    const address = server.address();
+    const actualPort = typeof address === "object" && address ? address.port : listenPort;
+    console.log(`L2TV: http://${host}:${actualPort}`);
   });
 
   return server;
@@ -320,6 +335,7 @@ async function analyzeRequest(body) {
   const includeUnlistedUpdates = Boolean(body?.includeUnlistedUpdates);
   const skillAnalyzerFetchMode = normalizeSkillAnalyzerFetchMode(body?.skillAnalyzerFetchMode);
   const scoreDbMode = normalizeScoreDbMode(body?.scoreDbMode);
+  const allowStellaverseNetwork = body?.allowStellaverseNetwork === true;
   const useLocalScoreDb = Boolean(scoreDbPath);
   const tableUrls = Array.isArray(body?.tableUrls)
     ? [...new Set(body.tableUrls.map((url) => String(url ?? "").trim()).filter(Boolean))]
@@ -351,7 +367,11 @@ async function analyzeRequest(body) {
     throw new Error("難易度表を1件も読み込めませんでした。");
   }
 
-  const playerMyList = await loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath, { skillAnalyzerFetchMode, scoreDbMode });
+  const playerMyList = await loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath, {
+    skillAnalyzerFetchMode,
+    scoreDbMode,
+    allowStellaverseNetwork,
+  });
   const rivalData = await loadRivalFolderData(rivalFolderPath);
   const playerProfile = playerMyList.localProfile ?? {
     playerId: playerMyList.playerId || "",
@@ -419,6 +439,85 @@ async function analyzeRequest(body) {
   };
 }
 
+function runDatabaseWorkerTask(task, body) {
+  const worker = getDatabaseWorker();
+  if (databaseWorkerIdleTimer) {
+    clearTimeout(databaseWorkerIdleTimer);
+    databaseWorkerIdleTimer = null;
+  }
+  const id = ++databaseWorkerRequestId;
+  return new Promise((resolve, reject) => {
+    databaseWorkerRequests.set(id, { resolve, reject, worker });
+    worker.postMessage({ id, task, body });
+  });
+}
+
+function getDatabaseWorker() {
+  if (databaseWorker) {
+    return databaseWorker;
+  }
+
+  const worker = new Worker(path.join(__dirname, "database-worker.js"));
+  databaseWorker = worker;
+  worker.unref();
+  worker.on("message", (message) => {
+    const pending = databaseWorkerRequests.get(message?.id);
+    if (!pending) {
+      return;
+    }
+    databaseWorkerRequests.delete(message.id);
+    if (message.ok) {
+      pending.resolve(message.value);
+    } else {
+      pending.reject(new Error(String(message.error || "DB処理に失敗しました。")));
+    }
+    scheduleDatabaseWorkerStop();
+  });
+  const rejectPending = (error) => {
+    const failure = error instanceof Error ? error : new Error("DBワーカーが停止しました。");
+    if (databaseWorker === worker) {
+      databaseWorker = null;
+    }
+    for (const [id, pending] of databaseWorkerRequests) {
+      if (pending.worker !== worker) {
+        continue;
+      }
+      pending.reject(failure);
+      databaseWorkerRequests.delete(id);
+    }
+  };
+  worker.on("error", rejectPending);
+  worker.on("exit", (code) => {
+    const wasStopping = expectedDatabaseWorkerStops.has(worker);
+    if (code !== 0 && !wasStopping) {
+      rejectPending(new Error(`DBワーカーが終了しました (${code})。`));
+    } else if (databaseWorker === worker) {
+      databaseWorker = null;
+    }
+  });
+  return worker;
+}
+
+function scheduleDatabaseWorkerStop() {
+  if (databaseWorkerRequests.size || !databaseWorker) {
+    return;
+  }
+  if (databaseWorkerIdleTimer) {
+    clearTimeout(databaseWorkerIdleTimer);
+  }
+  databaseWorkerIdleTimer = setTimeout(() => {
+    databaseWorkerIdleTimer = null;
+    if (databaseWorkerRequests.size || !databaseWorker) {
+      return;
+    }
+    const worker = databaseWorker;
+    databaseWorker = null;
+    expectedDatabaseWorkerStops.add(worker);
+    void worker.terminate();
+  }, 1000);
+  databaseWorkerIdleTimer.unref();
+}
+
 async function loadLocalDbStateRequest(body) {
   const scoreDbPath = normalizeLocalPath(body?.scoreDbPath);
   const songDbPath = normalizeLocalPath(body?.songDbPath);
@@ -473,6 +572,7 @@ async function loadProfileFromScoreDbRequest(body) {
   const songDbPath = normalizeLocalPath(body?.songDbPath);
   const skillAnalyzerFetchMode = normalizeSkillAnalyzerFetchMode(body?.skillAnalyzerFetchMode);
   const requestedScoreDbMode = normalizeScoreDbMode(body?.scoreDbMode);
+  const allowStellaverseNetwork = body?.allowStellaverseNetwork === true;
   if (!scoreDbPath) {
     throw new Error("LR2 score.db パスを入力してください。");
   }
@@ -503,7 +603,9 @@ async function loadProfileFromScoreDbRequest(body) {
     const inferredGradeSp = inferredGradeInfo?.grade || fallbackGradeSp;
     const localSkillAnalyzer = await loadLocalSkillAnalyzerProgress(resolvedSongDbPath, scoreRows);
     const stellaverseIrProfile =
-      scoreDbMode === "stellaverse" && dbProfile?.id ? await fetchStellaverseIrPlayerProfile(dbProfile.id) : null;
+      allowStellaverseNetwork && scoreDbMode === "stellaverse" && dbProfile?.id
+        ? await fetchStellaverseIrPlayerProfile(dbProfile.id)
+        : null;
     const skillAnalyzer = mergeSkillAnalyzerProgress(null, localSkillAnalyzer, "both");
     const gradeSp = inferredGradeSp || "";
     const gradeDp = localGradeDp || "";
@@ -726,6 +828,14 @@ function sendError(res, statusCode, message) {
 }
 
 async function loadTableListRequest(body) {
+  if (process.env.L2TV_TEST_OFFLINE === "1") {
+    return {
+      sourceUrl: REMOTE_TABLE_LIST_URL,
+      fetchedAt: new Date().toISOString(),
+      tables: [],
+    };
+  }
+
   const force = Boolean(body?.force);
   const cacheKey = REMOTE_TABLE_LIST_URL;
   const cached = tableListCache.get(cacheKey);
@@ -1490,6 +1600,7 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "", options
   const resolvedSongDbPath = resolveSongDbPathFromScoreDb(resolvedPath, songDbPath);
   const skillAnalyzerFetchMode = normalizeSkillAnalyzerFetchMode(options?.skillAnalyzerFetchMode);
   const requestedScoreDbMode = normalizeScoreDbMode(options?.scoreDbMode);
+  const allowStellaverseNetwork = options?.allowStellaverseNetwork === true;
 
   const stat = await fsp.stat(resolvedPath).catch(() => null);
   if (!stat?.isFile()) {
@@ -1506,6 +1617,7 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "", options
     songDbFingerprint,
     `mode:${requestedScoreDbMode}`,
     `skill:${skillAnalyzerFetchMode}`,
+    `stellaverse:${allowStellaverseNetwork ? "on" : "off"}`,
   ].join("|");
 
   if (playerMyListCache.has(cacheKey)) {
@@ -1580,7 +1692,9 @@ async function loadPlayerMyListFromScoreDb(scoreDbPath, songDbPath = "", options
     const inferredGradeInfo = await inferLocalGradeInfoFromSongDbGrades(resolvedSongDbPath, scoreRows);
     const inferredGradeSp = inferredGradeInfo?.grade || fallbackGradeSp;
     const stellaverseIrProfile =
-      scoreDbMode === "stellaverse" && dbProfile?.id ? await fetchStellaverseIrPlayerProfile(dbProfile.id) : null;
+      allowStellaverseNetwork && scoreDbMode === "stellaverse" && dbProfile?.id
+        ? await fetchStellaverseIrPlayerProfile(dbProfile.id)
+        : null;
     const skillAnalyzer = mergeSkillAnalyzerProgress(null, localSkillAnalyzer, "both");
     const profileName = stellaverseIrProfile?.name || localPlayerName;
     const gradeSp = inferredGradeSp || "";
@@ -2214,16 +2328,32 @@ function isBlockedIpv4(address) {
 
 function isBlockedIpv6(address) {
   const value = address.toLowerCase();
-  if (value === "::1" || value === "::" || value.startsWith("fe80:") || value.startsWith("fc") || value.startsWith("fd")) {
+  if (value === "::1" || value === "::") {
     return true;
   }
 
-  const mappedIpv4 = value.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-  if (mappedIpv4) {
-    return isBlockedIpv4(mappedIpv4[1]);
+  // These literal forms are unnecessary for remote tables. Blocking the
+  // complete ranges also catches hexadecimal forms such as ::ffff:7f00:1.
+  if (value.startsWith("::ffff:") || /^::(?:[0-9a-f]{1,4}:){0,2}[0-9a-f]{1,4}$/.test(value)) {
+    return true;
   }
 
-  return false;
+  const firstHextet = Number.parseInt(value.split(":", 1)[0], 16);
+  if (!Number.isInteger(firstHextet)) {
+    return true;
+  }
+
+  return (
+    (firstHextet >= 0xfc00 && firstHextet <= 0xfdff) ||
+    (firstHextet >= 0xfe80 && firstHextet <= 0xfebf) ||
+    (firstHextet >= 0xfec0 && firstHextet <= 0xfeff) ||
+    firstHextet >= 0xff00 ||
+    value.startsWith("100:") ||
+    value.startsWith("2001:0:") ||
+    value.startsWith("2001:db8:") ||
+    value.startsWith("2002:") ||
+    value.startsWith("64:ff9b:")
+  );
 }
 
 async function fetchRemoteWithValidatedRedirects(initialUrl) {
@@ -3189,7 +3319,7 @@ async function fetchStellaverseIrPlayerProfile(playerId) {
 
   const url = `https://ir.stellabms.xyz/players/${encodeURIComponent(normalizedId)}`;
   try {
-    const response = await fetchRemoteText(url, { useCache: false });
+    const response = await fetchRemoteText(url);
     const parsed = parseStellaverseIrPlayerProfile(response.text, normalizedId);
     return parsed ? { ...parsed, id: normalizedId, url } : null;
   } catch {
@@ -3778,15 +3908,29 @@ if (require.main === module) {
 module.exports = {
   __test: {
     buildForceDanCandidateFromGradeInfo,
+    buildLocalScoreInfo,
+    buildRivalScoreInfo,
+    buildUnlistedUpdateCharts,
     calculateForceDanScoreCoefficient,
     calculateForceScoreCoefficient,
+    isBlockedIpAddress,
+    isSpTableListEntry,
+    loadPlayerMyListFromScoreDb,
+    loadRivalFolderData,
+    normalizeLocalScoreLamp,
+    normalizeRemoteUrl,
+    parseTableListHtml,
+    parseTableListJson,
     parseLocalDanGradeTitle,
     parseSkillAnalyzerLevel,
   },
   buildForceRating,
+  analyzeRequest,
   calculateForceScoreCoefficient,
   clampForceRating,
   createAppServer,
   getForceRatingTier,
+  getApiTokenForDesktop: () => API_TOKEN,
+  loadProfileFromScoreDbRequest,
   startServer,
 };

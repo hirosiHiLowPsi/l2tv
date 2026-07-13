@@ -5,21 +5,41 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { calculateForceScoreCoefficient, getForceRatingTier, startServer } = require("./server");
+const {
+  calculateForceScoreCoefficient,
+  getApiTokenForDesktop,
+  getForceRatingTier,
+  startServer,
+} = require("./server");
 
 const HOST = "127.0.0.1";
 const PORT = 4173;
 const HEALTH_PATH = "/api/health";
-const APP_URL = `http://${HOST}:${PORT}`;
-const APP_ORIGIN = new URL(APP_URL).origin;
+const EXTERNAL_LINK_ALLOWLIST = new Set([
+  "bms-ir.org",
+  "darksabun.club",
+  "github.com",
+  "ir.stellabms.xyz",
+  "lr2.sakura.ne.jp",
+  "lr2ir.com",
+  "script.google.com",
+  "walkure.net",
+  "www.bms-ir.org",
+]);
 const PORTABLE_DATA_DIR_NAME = "lr2ir-table-lamp-viewer-data";
 const SCREENSHOT_DIR_NAME = "screenshot";
 const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
+const MAX_DATA_TRANSFER_BYTES = 128 * 1024 * 1024;
+const DATA_TRANSFER_FORMAT = "l2tv-data-transfer";
+const DATA_TRANSFER_VERSION = 1;
 const APP_ICON_PATH = path.join(__dirname, "build", "icon.ico");
 const STELLAVERSE_IR_ORIGIN = "https://ir.stellabms.xyz";
 const STELLAVERSE_RIVAL_PARTITION = "l2tv-stellaverse-rival";
-const STELLAVERSE_RIVAL_LOAD_TIMEOUT_MS = 30000;
-const STELLAVERSE_RIVAL_CACHE_TTL_MS = 5 * 60 * 1000;
+const STELLAVERSE_RIVAL_LOAD_TIMEOUT_MS = 20000;
+const STELLAVERSE_RIVAL_CACHE_TTL_MS = 30 * 60 * 1000;
+const STELLAVERSE_ERROR_CACHE_TTL_MS = 5 * 60 * 1000;
+const STELLAVERSE_CACHE_MAX_ENTRIES = 100;
+const STELLAVERSE_REQUEST_INTERVAL_MS = 350;
 const STELLAVERSE_TABLE_CODES = new Set(["INSANE1", "OVERJOY", "ST", "SL", "SR", "SO", "SN", "DPSL", "DPST"]);
 const RIVAL_FORCE_CONSTANTS_PATH = path.join(__dirname, "public", "data", "force-chart-constants.json");
 const RIVAL_FORCE_DAN_CONSTANTS = new Map([
@@ -39,10 +59,18 @@ const RIVAL_FORCE_DAN_CONSTANTS = new Map([
 
 let mainWindow = null;
 let embeddedServer = null;
+let appUrl = "";
+let appOrigin = "";
+let serverPort = 0;
 let isQuitting = false;
 let usesPortableData = false;
 const stellaverseRivalCache = new Map();
 const stellaverseClearStatusCache = new Map();
+const stellaverseProfileCache = new Map();
+const configuredStellaverseSessions = new WeakSet();
+const configuredMainSessions = new WeakSet();
+let stellaverseRequestQueue = Promise.resolve();
+let lastStellaverseNavigationAt = 0;
 let rivalForceConstantsCache = null;
 
 configureAppStoragePaths();
@@ -53,7 +81,11 @@ function configureAppStoragePaths() {
   }
 
   const exeDir = path.dirname(process.execPath);
-  const baseDataDir = path.join(exeDir, PORTABLE_DATA_DIR_NAME);
+  const smokeDataDir =
+    process.env.L2TV_MAIN_SMOKE_TEST === "1" ? process.env.L2TV_SMOKE_DATA_DIR : "";
+  const baseDataDir = smokeDataDir
+    ? path.resolve(smokeDataDir)
+    : path.join(exeDir, PORTABLE_DATA_DIR_NAME);
   const userDataDir = path.join(baseDataDir, "user-data");
   const sessionDataDir = path.join(baseDataDir, "session-data");
   const logsDir = path.join(baseDataDir, "logs");
@@ -104,6 +136,11 @@ ipcMain.handle("lr2ir:pick-file", async (event, options = {}) => {
   }
 
   return result.filePaths[0];
+});
+
+ipcMain.handle("lr2ir:get-api-token", (event) => {
+  assertTrustedIpcSender(event);
+  return getApiTokenForDesktop();
 });
 
 ipcMain.handle("lr2ir:pick-directory", async (event, options = {}) => {
@@ -159,6 +196,52 @@ ipcMain.handle("lr2ir:save-image", async (event, options = {}) => {
   };
 });
 
+ipcMain.handle("lr2ir:export-data-transfer", async (event, options = {}) => {
+  assertTrustedIpcSender(event);
+  const payload = validateDataTransferPayload(options?.payload);
+  const serialized = JSON.stringify(payload, null, 2);
+  if (Buffer.byteLength(serialized, "utf8") > MAX_DATA_TRANSFER_BYTES) {
+    throw new Error("引継ぎデータが大きすぎます。");
+  }
+
+  const result = await dialog.showSaveDialog({
+    title: "L2TV 引継ぎデータを書き出す",
+    defaultPath: sanitizeDataTransferFileName(options?.fileName),
+    filters: [{ name: "L2TV data transfer", extensions: ["json"] }],
+  });
+  if (result.canceled || !result.filePath) {
+    return null;
+  }
+
+  await fs.promises.writeFile(result.filePath, serialized, "utf8");
+  return { filePath: result.filePath };
+});
+
+ipcMain.handle("lr2ir:import-data-transfer", async (event) => {
+  assertTrustedIpcSender(event);
+  const result = await dialog.showOpenDialog({
+    title: "L2TV 引継ぎデータを読み込む",
+    properties: ["openFile"],
+    filters: [{ name: "L2TV data transfer", extensions: ["json"] }],
+  });
+  if (result.canceled || !result.filePaths?.length) {
+    return null;
+  }
+
+  const sourcePath = result.filePaths[0];
+  const stat = await fs.promises.stat(sourcePath);
+  if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_DATA_TRANSFER_BYTES) {
+    throw new Error("引継ぎデータが空か、大きすぎます。");
+  }
+  let payload;
+  try {
+    payload = JSON.parse(await fs.promises.readFile(sourcePath, "utf8"));
+  } catch {
+    throw new Error("引継ぎデータの形式が正しくありません。");
+  }
+  return validateDataTransferPayload(payload);
+});
+
 ipcMain.handle("lr2ir:fetch-stellaverse-rival", async (event, options = {}) => {
   assertTrustedIpcSender(event);
   const playerId = String(options?.playerId ?? "").trim();
@@ -173,7 +256,7 @@ ipcMain.handle("lr2ir:fetch-stellaverse-rival", async (event, options = {}) => {
     throw new Error("Stellaverse IRで比較できる難易度表が読み込まれていません。");
   }
 
-  return fetchStellaverseRival(playerId, tableCodes);
+  return enqueueStellaverseRequest(() => fetchStellaverseRival(playerId, tableCodes));
 });
 
 ipcMain.handle("lr2ir:fetch-stellaverse-rankings", async (event, options = {}) => {
@@ -190,6 +273,10 @@ ipcMain.handle("lr2ir:fetch-stellaverse-rankings", async (event, options = {}) =
     return { playerId, entries: [], failedTables: [] };
   }
 
+  return enqueueStellaverseRequest(() => fetchStellaverseRankings(playerId, tableCodes));
+});
+
+async function fetchStellaverseRankings(playerId, tableCodes) {
   const entriesByHash = new Map();
   const failedTables = [];
   for (const tableCode of tableCodes) {
@@ -212,20 +299,60 @@ ipcMain.handle("lr2ir:fetch-stellaverse-rankings", async (event, options = {}) =
     entries: [...entriesByHash.values()],
     failedTables,
   };
-});
+}
+
+function enqueueStellaverseRequest(task) {
+  const queued = stellaverseRequestQueue.then(task, task);
+  stellaverseRequestQueue = queued.catch(() => undefined);
+  return queued;
+}
+
+async function waitForStellaverseRequestSlot() {
+  const waitMs = Math.max(0, STELLAVERSE_REQUEST_INTERVAL_MS - (Date.now() - lastStellaverseNavigationAt));
+  if (waitMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+  lastStellaverseNavigationAt = Date.now();
+}
+
+function setBoundedCacheEntry(cache, key, entry) {
+  cache.delete(key);
+  cache.set(key, entry);
+  while (cache.size > STELLAVERSE_CACHE_MAX_ENTRIES) {
+    cache.delete(cache.keys().next().value);
+  }
+}
+
+function readStellaverseCache(cache, key) {
+  const cached = cache.get(key);
+  if (!cached) {
+    return null;
+  }
+  const ttl = cached.errorMessage ? STELLAVERSE_ERROR_CACHE_TTL_MS : STELLAVERSE_RIVAL_CACHE_TTL_MS;
+  if (Date.now() - cached.fetchedAt >= ttl) {
+    cache.delete(key);
+    return null;
+  }
+  cache.delete(key);
+  cache.set(key, cached);
+  if (cached.errorMessage) {
+    throw new Error(cached.errorMessage);
+  }
+  return cached.value;
+}
 
 async function fetchStellaverseRival(playerId, tableCodes) {
   const cacheKey = `${playerId}:${[...tableCodes].sort().join(",")}`;
-  const cached = stellaverseRivalCache.get(cacheKey);
-  if (cached && Date.now() - cached.fetchedAt < STELLAVERSE_RIVAL_CACHE_TTL_MS) {
-    return cached.value;
+  const cached = readStellaverseCache(stellaverseRivalCache, cacheKey);
+  if (cached) {
+    return cached;
   }
 
   const entriesByHash = new Map();
   const failedTables = [];
   let profile = null;
   try {
-    profile = await scrapeStellaversePlayerProfile(playerId);
+    profile = await fetchCachedStellaversePlayerProfile(playerId);
   } catch {
     profile = null;
   }
@@ -265,24 +392,47 @@ async function fetchStellaverseRival(playerId, tableCodes) {
     entries: [...entriesByHash.values()],
     failedTables,
   };
-  stellaverseRivalCache.set(cacheKey, { fetchedAt: Date.now(), value });
+  setBoundedCacheEntry(stellaverseRivalCache, cacheKey, { fetchedAt: Date.now(), value });
   return value;
 }
 
 async function fetchCachedStellaverseClearStatus(playerId, tableCode) {
   const cacheKey = `${playerId}:${tableCode}`;
-  const cached = stellaverseClearStatusCache.get(cacheKey);
-  if (cached && Date.now() - cached.fetchedAt < STELLAVERSE_RIVAL_CACHE_TTL_MS) {
-    return cached.value;
+  const cached = readStellaverseCache(stellaverseClearStatusCache, cacheKey);
+  if (cached) {
+    return cached;
   }
-  const value = await scrapeStellaverseClearStatus(playerId, tableCode);
-  stellaverseClearStatusCache.set(cacheKey, { fetchedAt: Date.now(), value });
-  return value;
+  try {
+    const value = await scrapeStellaverseClearStatus(playerId, tableCode);
+    setBoundedCacheEntry(stellaverseClearStatusCache, cacheKey, { fetchedAt: Date.now(), value });
+    return value;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Stellaverse IRの取得に失敗しました。";
+    setBoundedCacheEntry(stellaverseClearStatusCache, cacheKey, { fetchedAt: Date.now(), errorMessage });
+    throw new Error(errorMessage);
+  }
+}
+
+async function fetchCachedStellaversePlayerProfile(playerId) {
+  const cached = readStellaverseCache(stellaverseProfileCache, playerId);
+  if (cached) {
+    return cached;
+  }
+  try {
+    const value = await scrapeStellaversePlayerProfile(playerId);
+    setBoundedCacheEntry(stellaverseProfileCache, playerId, { fetchedAt: Date.now(), value });
+    return value;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Stellaverse IRのプロフィール取得に失敗しました。";
+    setBoundedCacheEntry(stellaverseProfileCache, playerId, { fetchedAt: Date.now(), errorMessage });
+    throw new Error(errorMessage);
+  }
 }
 
 async function scrapeStellaversePlayerProfile(playerId) {
   const window = createStellaverseScrapeWindow();
   try {
+    await waitForStellaverseRequestSlot();
     await window.loadURL(`${STELLAVERSE_IR_ORIGIN}/players/${encodeURIComponent(playerId)}`);
     const deadline = Date.now() + STELLAVERSE_RIVAL_LOAD_TIMEOUT_MS;
     while (Date.now() < deadline) {
@@ -333,6 +483,7 @@ async function scrapeStellaverseClearStatus(playerId, tableCode) {
   const window = createStellaverseScrapeWindow();
 
   try {
+    await waitForStellaverseRequestSlot();
     await window.loadURL(targetUrl);
     const deadline = Date.now() + STELLAVERSE_RIVAL_LOAD_TIMEOUT_MS;
     while (Date.now() < deadline) {
@@ -368,7 +519,17 @@ function createStellaverseScrapeWindow() {
   });
 
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
-  window.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  const scrapeSession = window.webContents.session;
+  if (!configuredStellaverseSessions.has(scrapeSession)) {
+    scrapeSession.setPermissionCheckHandler(() => false);
+    scrapeSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    scrapeSession.on("will-download", (event) => event.preventDefault());
+    scrapeSession.webRequest.onBeforeRequest({ urls: ["*://*/*"] }, (details, callback) => {
+      callback({ cancel: ["font", "image", "media"].includes(details.resourceType) });
+    });
+    configuredStellaverseSessions.add(scrapeSession);
+  }
+  window.webContents.setAudioMuted(true);
   const blockUnexpectedNavigation = (event, url) => {
     try {
       if (new URL(url).origin !== STELLAVERSE_IR_ORIGIN) {
@@ -543,7 +704,7 @@ function compareStellaverseRivalEntry(left, right) {
 function assertTrustedIpcSender(event) {
   const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || "";
   try {
-    if (new URL(senderUrl).origin === APP_ORIGIN) {
+    if (appOrigin && new URL(senderUrl).origin === appOrigin) {
       return;
     }
   } catch {
@@ -597,6 +758,37 @@ function sanitizeScreenshotFileName(fileName) {
   return withExt.slice(0, 180);
 }
 
+function sanitizeDataTransferFileName(fileName) {
+  const now = new Date();
+  const pad2 = (value) => String(value).padStart(2, "0");
+  const timestamp =
+    `${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}` +
+    `${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
+  const normalized = String(fileName ?? "")
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "_")
+    .replace(/\s+/g, "_");
+  const baseName = normalized || `L2TV_data_transfer_${timestamp}.json`;
+  const withExtension = baseName.toLowerCase().endsWith(".json") ? baseName : `${baseName}.json`;
+  return withExtension.slice(0, 180);
+}
+
+function validateDataTransferPayload(payload) {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    Array.isArray(payload) ||
+    payload.format !== DATA_TRANSFER_FORMAT ||
+    payload.version !== DATA_TRANSFER_VERSION ||
+    !payload.data ||
+    typeof payload.data !== "object" ||
+    Array.isArray(payload.data)
+  ) {
+    throw new Error("引継ぎデータの形式が正しくありません。");
+  }
+  return payload;
+}
+
 function writeUniqueFileSync(directoryPath, fileName, buffer) {
   const parsed = path.parse(fileName);
   const baseName = parsed.name || "l2tv-image";
@@ -645,14 +837,14 @@ function createMainWindow() {
   });
 
   mainWindow.once("ready-to-show", () => {
-    mainWindow.show();
+    if (process.env.L2TV_MAIN_SMOKE_TEST !== "1") {
+      mainWindow.show();
+    }
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isHttpUrl(url)) {
-      shell.openExternal(url).catch((error) => {
-        console.error(`Failed to open external URL: ${error instanceof Error ? error.message : String(error)}`);
-      });
+      void openExternalUrlSafely(url);
     }
     return { action: "deny" };
   });
@@ -663,11 +855,17 @@ function createMainWindow() {
     }
     event.preventDefault();
     if (isHttpUrl(url)) {
-      shell.openExternal(url).catch((error) => {
-        console.error(`Failed to open external URL: ${error instanceof Error ? error.message : String(error)}`);
-      });
+      void openExternalUrlSafely(url);
     }
   });
+
+  const mainSession = mainWindow.webContents.session;
+  if (!configuredMainSessions.has(mainSession)) {
+    mainSession.setPermissionCheckHandler(() => false);
+    mainSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    mainSession.on("will-download", (event) => event.preventDefault());
+    configuredMainSessions.add(mainSession);
+  }
 
   mainWindow.on("closed", () => {
     mainWindow = null;
@@ -676,10 +874,44 @@ function createMainWindow() {
 
 function isAppUrl(url) {
   try {
-    return new URL(url).origin === APP_ORIGIN;
+    return Boolean(appOrigin) && new URL(url).origin === appOrigin;
   } catch {
     return false;
   }
+}
+
+async function openExternalUrlSafely(url) {
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return;
+  }
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    return;
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  const trusted = parsed.protocol === "https:" && EXTERNAL_LINK_ALLOWLIST.has(hostname);
+  if (!trusted) {
+    const result = await dialog.showMessageBox(mainWindow ?? undefined, {
+      type: "question",
+      buttons: ["キャンセル", "ブラウザで開く"],
+      defaultId: 0,
+      cancelId: 0,
+      title: "外部リンクを開きますか？",
+      message: "L2TVから外部サイトを既定のブラウザで開きます。",
+      detail: `${parsed.protocol}//${parsed.host}`,
+      noLink: true,
+    });
+    if (result.response !== 1) {
+      return;
+    }
+  }
+
+  shell.openExternal(parsed.toString()).catch((error) => {
+    console.error(`Failed to open external URL: ${error instanceof Error ? error.message : String(error)}`);
+  });
 }
 
 function isHttpUrl(url) {
@@ -690,20 +922,34 @@ function isHttpUrl(url) {
   }
 }
 
-function startEmbeddedServer() {
+async function startEmbeddedServer() {
   if (embeddedServer && embeddedServer.listening) {
-    return;
+    return true;
   }
 
   try {
     embeddedServer = startServer({ host: HOST, port: PORT });
+    await new Promise((resolve, reject) => {
+      embeddedServer.once("listening", resolve);
+      embeddedServer.once("error", reject);
+    });
+    const address = embeddedServer.address();
+    if (!address || typeof address !== "object" || !Number.isInteger(address.port)) {
+      throw new Error("アプリ内サーバーのポートを取得できませんでした。");
+    }
+    serverPort = address.port;
+    if (serverPort !== PORT) {
+      throw new Error("アプリ内サーバーが予約ポートを使用できませんでした。");
+    }
+    appUrl = `http://${HOST}:${serverPort}`;
+    appOrigin = new URL(appUrl).origin;
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
     if (!isQuitting) {
       dialog.showErrorBox("起動エラー", `アプリ内サーバーの起動に失敗しました。\n${details}`);
       app.quit();
     }
-    return;
+    return false;
   }
 
   embeddedServer.on("error", (error) => {
@@ -714,6 +960,7 @@ function startEmbeddedServer() {
       app.quit();
     }
   });
+  return true;
 }
 
 function stopEmbeddedServer() {
@@ -723,6 +970,9 @@ function stopEmbeddedServer() {
 
   const server = embeddedServer;
   embeddedServer = null;
+  serverPort = 0;
+  appUrl = "";
+  appOrigin = "";
   try {
     server.close();
   } catch {
@@ -735,7 +985,7 @@ function checkHealth() {
     const request = http.get(
       {
         hostname: HOST,
-        port: PORT,
+        port: serverPort,
         path: HEALTH_PATH,
         timeout: 1500,
       },
@@ -768,10 +1018,13 @@ async function waitForServerReady(maxAttempts = 120, delayMs = 250) {
 }
 
 async function bootstrap() {
+  const started = await startEmbeddedServer();
+  if (!started) {
+    return;
+  }
   if (!mainWindow) {
     createMainWindow();
   }
-  startEmbeddedServer();
 
   if (usesPortableData) {
     console.log(`Using portable app data directory: ${app.getPath("userData")}`);
@@ -787,7 +1040,34 @@ async function bootstrap() {
     return;
   }
 
-  await mainWindow.loadURL(APP_URL);
+  await mainWindow.loadURL(appUrl);
+  if (process.env.L2TV_MAIN_SMOKE_TEST === "1") {
+    try {
+      const result = await mainWindow.webContents.executeJavaScript(
+        `Promise.resolve(window.lr2irDesktop?.getApiToken?.()).then((token) => ({
+          title: document.title,
+          consentChecked: document.getElementById("allow-stellaverse-network")?.checked,
+          tokenLength: String(token || "").length
+        }))`,
+        true,
+      );
+      if (result?.title !== "L2TV" || result?.consentChecked !== false || result?.tokenLength !== 64) {
+        throw new Error(`Unexpected main-window state: ${JSON.stringify(result)}`);
+      }
+      if (process.env.L2TV_SMOKE_DATA_DIR) {
+        fs.writeFileSync(
+          path.join(path.resolve(process.env.L2TV_SMOKE_DATA_DIR), "packaged-smoke-ok"),
+          "ok\n",
+          "utf8",
+        );
+      }
+      console.log("Electron main-process smoke test passed");
+      app.quit();
+    } catch (error) {
+      console.error(error instanceof Error ? error.stack : String(error));
+      app.exit(1);
+    }
+  }
 }
 
 app.whenReady().then(bootstrap);
