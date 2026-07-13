@@ -97,6 +97,12 @@
               </select>
             </label>
 
+            <label class="checkbox-setting stellaverse-network-consent">
+              <input id="allow-stellaverse-network" type="checkbox" name="allowStellaverseNetwork" />
+              <span>Stellaverse IRへの接続を許可する</span>
+            </label>
+            <p class="helper">ONにするとプレイヤーIDをStellaverse IRへ送信し、名前・順位・公開スコアを取得します。DBファイルやローカルスコアは送信しません。</p>
+
             <div class="form-actions">
               <div class="action-row">
                 <button id="analyze-button" type="submit">表とランプを読み込む</button>
@@ -202,7 +208,13 @@
                 <span>表外譜面も更新楽曲として表示する</span>
               </label>
 
-              <div class="form-actions form-actions-secondary">
+              <div class="form-actions form-actions-secondary data-transfer-actions">
+                <button id="export-transfer-button" type="button" class="button-secondary">
+                  引継ぎデータを書き出す
+                </button>
+                <button id="import-transfer-button" type="button" class="button-secondary">
+                  引継ぎデータを読み込む
+                </button>
                 <button id="clear-saved-button" type="button" class="button-secondary">保存データを消す</button>
               </div>
             </div>
