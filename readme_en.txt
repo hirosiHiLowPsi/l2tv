@@ -83,10 +83,10 @@ Chart list:
 - Show chart lists by level
 - Show Lv / Title / Artist / Lamp / Rank / EX/Rate / BP / Play Count / IR Rank / Rival
 - Show Rank such as AAA / AA / A as a colored badge
-- In Stellaverse IR mode, show IR rank and top percentage for ★, ★★, st, and sl charts.
+- In Stellaverse IR mode, show IR rank and top percentage for ★, ★★, st, and sl charts when network access is explicitly enabled.
 - Each table shows counts for 1st, 2nd, 3rd, total Top 3, and 4th–10th placements.
 - IR rank, IR status, and Stellaverse Rival currently support Stellaverse IR only. BMS-IR is supported only as a score.db format.
-- IR rank and IR status can be toggled independently. When both are off, L2TV skips fetching the player's IR rankings.
+- IR rank and IR status can be toggled independently. When Stellaverse IR access is off, L2TV does not fetch profiles, ranks, or rivals.
 - Lv is shown as a heading only
 - Sort by Title, Artist, and other columns
 - Center-align columns other than Title and Artist
@@ -204,6 +204,7 @@ Load settings:
 
 - Set score.db.
 - Set song.db.
+- Choose whether to allow Stellaverse IR access (off by default).
 - Set the screenshot save folder.
 - Set the Rival folder.
 - Open the difficulty table list in a separate window.
@@ -454,8 +455,12 @@ Confirmed safety points:
 - Existing image files are not overwritten.
 - Dangerous characters are removed from image filenames before saving.
 - The local API is restricted so external sites cannot easily use it without permission.
+- The local API opens the UI only after its own process has exclusively bound the loopback-only port.
+- Remote URLs are blocked from loopback, private, and reserved network targets.
+- Heavy database reads run in a dedicated Worker.
 - Dangerous Electron features are disabled.
 - There is no feature that uploads score.db, song.db, or Rival DB to the outside.
+- The distribution includes the L2TV MIT license and third-party notices.
 
 In short, L2TV is a tool for viewing LR2 data,
 not for changing or deleting LR2 score data.
@@ -465,21 +470,29 @@ not for changing or deleting LR2 score data.
 ------------------
 
 L2TV may connect to the internet to load the table list and difficulty table data.
+Stellaverse IR access is disabled by default and is used only after explicit permission in Menu.
 
 Examples:
 
 - Difficulty table list
 - Selected difficulty table URLs
+- Stellaverse IR profiles, ranks, and public scores when enabled
+
+Data sent to Stellaverse IR when enabled:
+
+- Your player ID or a rival player ID entered by you
 
 Data that is not sent:
 
 - score.db
 - song.db
 - Rival DB
-- LR2 player data
+- Player name, grade, and complete local score data
 - Contents of local DB files
 
 DB contents are read and displayed on the local PC.
+Database files, local database paths, and the complete local score database are not uploaded to Stellaverse IR.
+IR requests use a queue, a minimum interval, bounded caching, and request limits.
 
 
 16. Windows Warnings

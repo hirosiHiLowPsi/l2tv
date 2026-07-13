@@ -45,6 +45,15 @@ These packages are used to build L2TV from source. They are not part of L2TV's o
 
 L2TV uses this package to create release archives. The 7-Zip executable itself is not distributed inside the L2TV application folder.
 
+### @electron/fuses
+
+- Package: `@electron/fuses`
+- Version used by this repository: `1.8.0`
+- License: MIT
+- Source: https://github.com/electron/fuses
+
+L2TV uses this build-time package to disable unnecessary Electron runtime entry points in the packaged executable.
+
 ## Data Sources and External Services
 
 L2TV can read or refer to public BMS-related data sources, including difficulty tables and IR services. These are not owned by L2TV.

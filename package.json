@@ -11,17 +11,17 @@
     "start": "node server.js",
     "desktop": "electron .",
     "dist:win": "node scripts/build-win-zip.js --format=7z",
-    "dist:win:zip": "node scripts/build-win-zip.js",
     "dist:win:7z": "node scripts/build-win-zip.js --format=7z",
-    "dist:win:force-pretest": "node scripts/build-win-zip.js --suffix=force-rate-pretest",
-    "dist:win:force-pretest:7z": "node scripts/build-win-zip.js --suffix=force-rate-pretest --format=7z",
+    "dist:win:force-pretest": "node scripts/build-win-zip.js --suffix=force-rate-pretest --format=7z",
     "dist:radar": "node notes-radar-app/scripts/build-win-zip.js",
     "force:constants:score-oriented": "node scripts/apply-score-oriented-force-constants.js",
     "test:force": "node --test scripts/force-rating.test.js",
-    "dist:win:installer": "electron-builder --win nsis"
+    "test": "node --test scripts/force-rating.test.js scripts/data-import.test.js scripts/security-config.test.js scripts/ui-smoke.test.js scripts/electron-main-smoke.test.js"
   },
   "devDependencies": {
-    "electron": "^41.3.0",
+    "@electron/fuses": "^1.8.0",
+    "7zip-bin": "^5.2.0",
+    "electron": "^43.1.0",
     "electron-builder": "^26.8.0"
   },
   "build": {
@@ -32,6 +32,7 @@
       "electron-main.js",
       "electron-preload.js",
       "server.js",
+      "database-worker.js",
       "build/icon.ico",
       "public/**/*",
       "!public/assets/force-rating-badges.png",
@@ -59,23 +60,30 @@
       {
         "from": "更新履歴.txt",
         "to": "更新履歴.txt"
+      },
+      {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "THIRD_PARTY_NOTICES.md",
+        "to": "THIRD_PARTY_NOTICES.md"
+      },
+      {
+        "from": "SECURITY.md",
+        "to": "SECURITY.md"
       }
     ],
+    "afterPack": "scripts/apply-electron-fuses.js",
+    "electronLanguages": [
+      "ja",
+      "en-US"
+    ],
     "win": {
-      "icon": "build/icon.ico",
-      "target": [
-        "zip"
-      ],
-      "artifactName": "${productName}-${version}-win-x64.${ext}"
-    },
-    "nsis": {
-      "artifactName": "${productName}-Setup-${version}.${ext}",
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": false,
-      "perMachine": true,
-      "allowElevation": true,
-      "include": "build/installer.nsh",
-      "warningsAsErrors": false
+      "icon": "build/icon.ico"
     }
+  },
+  "allowScripts": {
+    "electron@43.1.0": true
   }
 }
