@@ -19,7 +19,7 @@
     "test": "node --test scripts/force-rating.test.js scripts/data-import.test.js scripts/security-config.test.js scripts/ui-smoke.test.js scripts/electron-main-smoke.test.js"
   },
   "devDependencies": {
-    "@electron/fuses": "^1.8.0",
+    "@electron/fuses": "^2.1.3",
     "7zip-bin": "^5.2.0",
     "electron": "^43.1.0",
     "electron-builder": "^26.8.0"
